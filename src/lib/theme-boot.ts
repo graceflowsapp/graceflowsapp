@@ -6,6 +6,9 @@ export const CHURCH_ACCENT_KEY = "graceflow-church-accent";
  * Inline script for <head>: applies the saved theme before first paint so dark-mode users
  * never see a white flash. Keep in sync with applyTheme().
  */
+/** Captures the browser's install event early so the "Pasang GraceFlow" banner can trigger it later. */
+export const INSTALL_BOOT_SCRIPT = `window.addEventListener("beforeinstallprompt",function(e){e.preventDefault();window.__gfInstall=e;window.dispatchEvent(new Event("gf-installable"));});`;
+
 export const THEME_BOOT_SCRIPT = `(function(){try{
 var p=JSON.parse(localStorage.getItem("${THEME_KEY}")||"{}");var m=p.mode||"system";
 var d=m==="dark"||(m==="system"&&matchMedia("(prefers-color-scheme: dark)").matches);

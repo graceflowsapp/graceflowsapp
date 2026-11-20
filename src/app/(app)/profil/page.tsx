@@ -2,7 +2,8 @@
 
 import { useRef, useState } from "react";
 import Link from "next/link";
-import { CalendarDays, Camera, LogOut } from "lucide-react";
+import { CalendarDays, Camera, Download, LogOut } from "lucide-react";
+import { IOSInstallSteps, useInstall } from "@/components/InstallPrompt";
 import { serviceLine, useMyDuties } from "@/components/duty";
 import { ThemeSettings } from "@/components/ThemeSettings";
 import { useApp } from "@/components/providers";
@@ -189,9 +190,41 @@ export default function ProfilePage() {
       <SectionTitle>Tampilan</SectionTitle>
       <ThemeSettings />
 
+      <InstallCard />
+
       <Button variant="danger" className="w-full mt-6" onClick={logout}>
         <LogOut size={16} /> {demo ? "Ganti peran (demo)" : "Keluar"}
       </Button>
     </div>
+  );
+}
+
+/** "Pasang aplikasi" — shown only when the app isn't installed yet and the device can install it. */
+function InstallCard() {
+  const { available, canPrompt, ios, promptInstall } = useInstall();
+  const [showIOS, setShowIOS] = useState(false);
+  if (!available) return null;
+  return (
+    <>
+      <Card className="mt-4 flex items-center gap-3">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/icons/icon-192.png" alt="" className="h-10 w-10 rounded-full shrink-0" />
+        <div className="min-w-0 flex-1">
+          <div className="font-semibold text-sm">Pasang aplikasi</div>
+          <div className="text-xs text-ink-soft">Tambahkan GraceFlow ke layar utama HP-mu.</div>
+        </div>
+        <Button
+          size="sm"
+          onClick={async () => {
+            if (canPrompt) {
+              if (await promptInstall()) toast("GraceFlow terpasang 🎉");
+            } else if (ios) setShowIOS(true);
+          }}
+        >
+          <Download size={15} /> Pasang
+        </Button>
+      </Card>
+      <IOSInstallSteps open={showIOS} onClose={() => setShowIOS(false)} />
+    </>
   );
 }

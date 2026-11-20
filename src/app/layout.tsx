@@ -5,7 +5,8 @@ import { AppProvider } from "@/components/providers";
 import { Toaster } from "@/components/ui";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 import { ThemeSync } from "@/components/ThemeSync";
-import { THEME_BOOT_SCRIPT } from "@/lib/theme-boot";
+import { InstallBanner } from "@/components/InstallPrompt";
+import { INSTALL_BOOT_SCRIPT, THEME_BOOT_SCRIPT } from "@/lib/theme-boot";
 
 const jakarta = Plus_Jakarta_Sans({ subsets: ["latin"], variable: "--font-jakarta" });
 
@@ -37,13 +38,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="id" suppressHydrationWarning>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
+        <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT + INSTALL_BOOT_SCRIPT }} />
       </head>
       <body className={`${jakarta.variable} antialiased`}>
         <AppProvider>
           {children}
           <Toaster />
         </AppProvider>
+        <InstallBanner />
         <ServiceWorkerRegister />
         <ThemeSync />
       </body>
