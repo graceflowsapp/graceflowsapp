@@ -8,7 +8,7 @@ export interface ThemePrefs {
   accent: string | null;
 }
 
-import { CHURCH_ACCENT_KEY, THEME_KEY } from "./theme-boot";
+import { CHURCH_ACCENT_KEY, SURFACE_DARK, SURFACE_LIGHT, THEME_KEY } from "./theme-boot";
 
 export { THEME_KEY };
 export const DEFAULT_THEME: ThemePrefs = { mode: "system", accent: null };
@@ -77,14 +77,13 @@ export function applyTheme(p: ThemePrefs) {
     root.style.removeProperty("--color-brand-dark");
     root.style.removeProperty("--color-brand-soft");
   }
-  // Android status + navigation bar colour = page background (never the green accent)
-  const metas = document.querySelectorAll('meta[name="theme-color"]');
-  const color = resolved === "dark" ? "#0e1615" : "#f4f8f7"; // match the page background so system bars blend in
-  if (metas.length) metas.forEach((m) => m.setAttribute("content", color));
-  else {
-    const m = document.createElement("meta");
-    m.name = "theme-color";
-    m.content = color;
-    document.head.appendChild(m);
-  }
+  // Android status bar + navigation bar / gesture pill = page background (never the green accent).
+  // layout.tsx renders two metas: media="(prefers-color-scheme: light|dark)".
+  //  - "system": each meta keeps its own colour, so the browser follows the phone setting live.
+  //  - forced light/dark: both metas get the chosen colour, so the bars match the app, not the phone.
+  document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]').forEach((m) => {
+    const metaIsDark = (m.media || "").includes("dark");
+    const color = p.mode === "system" ? (metaIsDark ? SURFACE_DARK : SURFACE_LIGHT) : resolved === "dark" ? SURFACE_DARK : SURFACE_LIGHT;
+    m.setAttribute("content", color);
+  });
 }

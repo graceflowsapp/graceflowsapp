@@ -7,7 +7,7 @@ import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 import { ThemeSync } from "@/components/ThemeSync";
 import { InstallBanner } from "@/components/InstallPrompt";
 import { CelebrateHost, ConfirmHost } from "@/components/FeedbackHost";
-import { INSTALL_BOOT_SCRIPT, THEME_BOOT_SCRIPT } from "@/lib/theme-boot";
+import { INSTALL_BOOT_SCRIPT, SURFACE_DARK, SURFACE_LIGHT, THEME_BOOT_SCRIPT } from "@/lib/theme-boot";
 
 const jakarta = Plus_Jakarta_Sans({ subsets: ["latin"], variable: "--font-jakarta" });
 
@@ -26,7 +26,12 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  // theme-color (Android status bar) is owned by THEME_BOOT_SCRIPT / applyTheme so it follows light/dark/accent.
+  // Android status bar + navigation bar / gesture pill: same colour as the page background.
+  // If the user forces light/dark in Profil, applyTheme() overrides both metas to match.
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: SURFACE_LIGHT },
+    { media: "(prefers-color-scheme: dark)", color: SURFACE_DARK },
+  ],
   width: "device-width",
   initialScale: 1,
   // App-like feel on phones: no pinch/double-tap zoom, and no auto-zoom when focusing inputs on iOS.
