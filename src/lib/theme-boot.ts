@@ -7,7 +7,7 @@ export const CHURCH_ACCENT_KEY = "graceflow-church-accent";
  * never see a white flash. Keep in sync with applyTheme().
  */
 export const THEME_BOOT_SCRIPT = `(function(){try{
-var p=JSON.parse(localStorage.getItem("${THEME_KEY}")||"{}");var m=p.mode||"light";
+var p=JSON.parse(localStorage.getItem("${THEME_KEY}")||"{}");var m=p.mode||"system";
 var d=m==="dark"||(m==="system"&&matchMedia("(prefers-color-scheme: dark)").matches);
 var r=document.documentElement;r.dataset.theme=d?"dark":"light";
 var a=p.accent||localStorage.getItem("${CHURCH_ACCENT_KEY}");

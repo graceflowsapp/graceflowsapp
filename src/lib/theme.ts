@@ -11,7 +11,7 @@ export interface ThemePrefs {
 import { CHURCH_ACCENT_KEY, THEME_KEY } from "./theme-boot";
 
 export { THEME_KEY };
-export const DEFAULT_THEME: ThemePrefs = { mode: "light", accent: null };
+export const DEFAULT_THEME: ThemePrefs = { mode: "system", accent: null };
 
 export const ACCENT_PRESETS = [
   { name: "Teal (default)", value: null },
