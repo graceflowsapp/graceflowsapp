@@ -8,6 +8,7 @@ import { Button, Card, Field, inputCls } from "@/components/ui";
 import { Logo } from "@/components/AppShell";
 import { DEMO_CHURCHES } from "@/lib/seed";
 import { resetDemoData } from "@/lib/store";
+import { ask } from "@/lib/feedback";
 
 export default function LoginPage() {
   const { ready, uid, demo } = useApp();
@@ -83,8 +84,8 @@ function DemoLogin() {
 
       <button
         className="block mx-auto mt-5 text-xs text-ink-soft underline"
-        onClick={() => {
-          if (confirm("Reset semua data demo ke kondisi awal?")) resetDemoData();
+        onClick={async () => {
+          if (await ask({ title: "Reset data demo?", message: "Semua data demo kembali ke kondisi awal.", confirmText: "Reset", tone: "danger" })) resetDemoData();
         }}
       >
         Reset data demo

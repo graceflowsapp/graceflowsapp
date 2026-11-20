@@ -77,9 +77,9 @@ export function applyTheme(p: ThemePrefs) {
     root.style.removeProperty("--color-brand-dark");
     root.style.removeProperty("--color-brand-soft");
   }
-  // Android status bar: dark surface in dark mode, accent in light mode
+  // Android status + navigation bar colour = page background (never the green accent)
   const metas = document.querySelectorAll('meta[name="theme-color"]');
-  const color = resolved === "dark" ? "#0e1615" : accent ?? "#0f766e";
+  const color = resolved === "dark" ? "#0e1615" : "#f4f8f7"; // match the page background so system bars blend in
   if (metas.length) metas.forEach((m) => m.setAttribute("content", color));
   else {
     const m = document.createElement("meta");

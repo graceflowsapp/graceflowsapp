@@ -8,6 +8,7 @@ import { respondAttendance } from "@/lib/actions";
 import { formatDateLong, formatDateTimeLocal, relativeDay, todayISO } from "@/lib/dates";
 import { slotsForService, sortServices } from "@/lib/scheduling";
 import type { Assignment, AttendanceStatus, Ministry, Service } from "@/lib/types";
+import { celebrate, haptic } from "@/lib/feedback";
 
 export interface Duty {
   assignment: Assignment;
@@ -80,7 +81,8 @@ export function DutyCard({ duty, highlight }: { duty: Duty; highlight?: boolean 
     setBusy(true);
     try {
       await respondAttendance({ a: assignment, me, service, status: "confirmed", users });
-      toast("Terima kasih! Koordinator sudah diberi tahu ✅");
+      celebrate("Siap melayani! 🙌");
+      toast("Koordinator sudah diberi tahu");
     } finally {
       setBusy(false);
     }
@@ -256,6 +258,7 @@ function DeclineModal({ open, onClose, duty }: { open: boolean; onClose: () => v
           setBusy(true);
           try {
             await respondAttendance({ a: duty.assignment, me: me!, service: duty.service, status: "declined", reason: reason.trim(), users });
+            haptic("warning");
             toast("Koordinator sudah diberi tahu 🙏");
             onClose();
           } finally {

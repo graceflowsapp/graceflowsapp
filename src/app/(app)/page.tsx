@@ -9,6 +9,7 @@ import { DutyCard, useMyDuties } from "@/components/duty";
 import { takeSubstitute } from "@/lib/actions";
 import { formatDateLong, formatDateShort, todayISO } from "@/lib/dates";
 import { canFill, findConflicts, isAvailableNow, statsFor } from "@/lib/scheduling";
+import { ask, celebrate } from "@/lib/feedback";
 
 const VERSES = [
   ["Marilah kepada-Ku, semua yang letih lesu dan berbeban berat, Aku akan memberi kelegaan kepadamu.", "Matius 11:28"],
@@ -108,9 +109,9 @@ export default function HomePage() {
                   <Button
                     size="sm"
                     onClick={async () => {
-                      if (!confirm(`Gantikan sebagai ${a.position} pada ${formatDateLong(s.date)}?`)) return;
+                      if (!(await ask({ title: `Gantikan sebagai ${a.position}?`, message: formatDateLong(s.date), confirmText: "Saya bisa" }))) return;
                       await takeSubstitute(a, me, s, users);
-                      toast("Terima kasih sudah menolong! 🙌");
+                      celebrate("Terima kasih sudah menolong! 🙌");
                     }}
                   >
                     <Repeat2 size={14} /> Saya bisa

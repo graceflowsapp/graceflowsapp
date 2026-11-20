@@ -17,5 +17,5 @@ var a=p.accent||localStorage.getItem("${CHURCH_ACCENT_KEY}");
 if(a){r.style.setProperty("--color-brand",a);
 r.style.setProperty("--color-brand-dark","color-mix(in oklab, "+a+" 75%, black)");
 r.style.setProperty("--color-brand-soft","color-mix(in oklab, "+a+" "+(d?22:14)+"%, var(--color-card))");}
-var t=document.createElement("meta");t.name="theme-color";t.content=d?"#0e1615":(a||"#0f766e");document.head.appendChild(t);
+var t=document.createElement("meta");t.name="theme-color";t.content=d?"#0e1615":"#f4f8f7";document.head.appendChild(t);
 }catch(e){}})();`;

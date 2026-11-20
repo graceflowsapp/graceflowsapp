@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 import { ThemeSync } from "@/components/ThemeSync";
 import { InstallBanner } from "@/components/InstallPrompt";
+import { CelebrateHost, ConfirmHost } from "@/components/FeedbackHost";
 import { INSTALL_BOOT_SCRIPT, THEME_BOOT_SCRIPT } from "@/lib/theme-boot";
 
 const jakarta = Plus_Jakarta_Sans({ subsets: ["latin"], variable: "--font-jakarta" });
@@ -44,6 +45,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <AppProvider>
           {children}
           <Toaster />
+          <ConfirmHost />
+          <CelebrateHost />
         </AppProvider>
         <InstallBanner />
         <ServiceWorkerRegister />

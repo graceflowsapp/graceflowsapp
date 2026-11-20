@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Bell, CalendarDays, Check, Home, LayoutGrid, LogOut, Menu, Plus, ShieldCheck, ToggleRight, User, X } from "lucide-react";
 import { useApp } from "./providers";
 import { Avatar, Button, Empty, Modal, cn } from "./ui";
 import { markNotificationsRead } from "@/lib/actions";
+import { haptic } from "@/lib/feedback";
 import { relativeDay } from "@/lib/dates";
 
 export function Logo({ className, subtitle }: { className?: string; subtitle?: string }) {
@@ -31,6 +32,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   // close the drawer whenever the route changes
   useEffect(() => setMenuOpen(false), [pathname]);
+  const drag = useDrawerSwipe(menuOpen, setMenuOpen);
 
   useEffect(() => {
     if (ready && !uid) router.replace("/login");
@@ -158,13 +160,19 @@ export function AppShell({ children }: { children: ReactNode }) {
       <main className="mx-auto max-w-3xl px-4 py-5">{children}</main>
 
       {/* Mobile burger drawer */}
-      <div className={cn("md:hidden fixed inset-0 z-50 transition", menuOpen ? "visible" : "invisible")} aria-hidden={!menuOpen}>
-        <div className={cn("absolute inset-0 bg-black/40 transition-opacity", menuOpen ? "opacity-100" : "opacity-0")} onClick={() => setMenuOpen(false)} />
+      <div className={cn("md:hidden fixed inset-0 z-50", menuOpen || drag !== null ? "visible" : "invisible")} aria-hidden={!menuOpen}>
+        <div
+          className={cn("absolute inset-0 bg-black/40", drag === null && "transition-opacity duration-300")}
+          style={{ opacity: drag !== null ? drag : menuOpen ? 1 : 0 }}
+          onClick={() => setMenuOpen(false)}
+        />
         <aside
+          data-drawer
           className={cn(
-            "absolute inset-y-0 left-0 w-[80%] max-w-xs bg-card shadow-xl flex flex-col transition-transform duration-200 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]",
-            menuOpen ? "translate-x-0" : "-translate-x-full",
+            "absolute inset-y-0 left-0 w-[80%] max-w-xs bg-card shadow-xl flex flex-col pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]",
+            drag === null && "transition-transform duration-300 ease-[cubic-bezier(.2,.9,.3,1)]",
           )}
+          style={{ transform: `translateX(${drag !== null ? (drag - 1) * 100 : menuOpen ? 0 : -100}%)` }}
           role="dialog"
           aria-label="Menu"
         >
@@ -229,4 +237,80 @@ export function AppShell({ children }: { children: ReactNode }) {
       </Modal>
     </div>
   );
+}
+
+/**
+ * Swipe gestures for the mobile drawer: drag right from the left part of the screen to open,
+ * drag left to close. Returns the live open-progress (0..1) while dragging, otherwise null.
+ */
+function useDrawerSwipe(open: boolean, setOpen: (v: boolean) => void) {
+  const [progress, setProgress] = useState<number | null>(null);
+  const st = useRef<{ x: number; y: number; t: number; w: number; mode: "pending" | "drag" | "ignore"; from: boolean } | null>(null);
+  const openRef = useRef(open);
+  openRef.current = open;
+
+  useEffect(() => {
+    const scrollsX = (el: Element | null) => {
+      for (let n = el; n && n !== document.body; n = n.parentElement) {
+        if (n.hasAttribute("data-no-swipe")) return true;
+        const ox = getComputedStyle(n).overflowX;
+        if ((ox === "auto" || ox === "scroll") && n.scrollWidth > n.clientWidth + 2) return true;
+      }
+      return false;
+    };
+    const onStart = (e: TouchEvent) => {
+      if (window.innerWidth >= 768 || e.touches.length !== 1) return;
+      if (document.querySelector('[role="dialog"][aria-modal="true"], [role="alertdialog"]')) return; // a modal is open
+      const t = e.touches[0];
+      const isOpen = openRef.current;
+      // closed: start in the left 40% of the screen (Android's own back-gesture strip is only ~20px)
+      if (!isOpen && (t.clientX > window.innerWidth * 0.4 || scrollsX(e.target as Element))) return;
+      const drawer = document.querySelector("[data-drawer]") as HTMLElement | null;
+      st.current = { x: t.clientX, y: t.clientY, t: Date.now(), w: drawer?.offsetWidth || 300, mode: "pending", from: isOpen };
+    };
+    const onMove = (e: TouchEvent) => {
+      const s = st.current;
+      if (!s || s.mode === "ignore") return;
+      const t = e.touches[0];
+      const dx = t.clientX - s.x;
+      const dy = t.clientY - s.y;
+      if (s.mode === "pending") {
+        if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return;
+        // must be clearly horizontal, in the right direction
+        if (Math.abs(dx) < Math.abs(dy) * 1.3 || (!s.from && dx < 0) || (s.from && dx > 0)) {
+          s.mode = "ignore";
+          return;
+        }
+        s.mode = "drag";
+        s.x = t.clientX; // start from here so the drawer doesn't jump
+      }
+      const base = s.from ? 1 : 0;
+      setProgress(Math.min(1, Math.max(0, base + (t.clientX - s.x) / s.w)));
+      if (e.cancelable) e.preventDefault();
+    };
+    const onEnd = (e: TouchEvent) => {
+      const s = st.current;
+      st.current = null;
+      if (!s || s.mode !== "drag") return;
+      const endX = e.changedTouches[0]?.clientX ?? s.x;
+      const v = (endX - s.x) / Math.max(1, Date.now() - s.t); // px per ms
+      const p = (s.from ? 1 : 0) + (endX - s.x) / s.w;
+      const shouldOpen = v > 0.45 ? true : v < -0.45 ? false : p > 0.5;
+      if (shouldOpen !== s.from) haptic("tap");
+      setOpen(shouldOpen);
+      setProgress(null);
+    };
+    document.addEventListener("touchstart", onStart, { passive: true });
+    document.addEventListener("touchmove", onMove, { passive: false });
+    document.addEventListener("touchend", onEnd);
+    document.addEventListener("touchcancel", onEnd);
+    return () => {
+      document.removeEventListener("touchstart", onStart);
+      document.removeEventListener("touchmove", onMove);
+      document.removeEventListener("touchend", onEnd);
+      document.removeEventListener("touchcancel", onEnd);
+    };
+  }, [setOpen]);
+
+  return progress;
 }

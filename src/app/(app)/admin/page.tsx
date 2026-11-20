@@ -12,6 +12,7 @@ import { ACCENT_PRESETS } from "@/lib/theme";
 import { formatDateLong, formatMonth, monthKey, todayISO, weekdaysInMonth } from "@/lib/dates";
 import { isAvailableNow } from "@/lib/scheduling";
 import type { Ministry, Role, Service, UserProfile } from "@/lib/types";
+import { ask, celebrate } from "@/lib/feedback";
 
 const SESSIONS = ["Sesi 1", "Sesi 2", "Sesi 3", "Sesi Pagi", "Sesi Sore"];
 const LOCATIONS = ["Ruang Ibadah Utama", "Aula Lt. 2", "Ruang Youth", "Online / Live Streaming"];
@@ -163,11 +164,11 @@ function ServiceModal({ service, defaultDate, onClose }: { service?: Service; de
   const save = async () => {
     const id = service?.id ?? `svc-${form.date}-${form.time.replace(":", "")}-${Math.random().toString(36).slice(2, 6)}`;
     await store.set("services", id, { ...form, id, label: form.label || "" });
-    toast("Ibadah disimpan");
+    celebrate("Ibadah disimpan");
     onClose();
   };
   const remove = async () => {
-    if (!service || !confirm("Hapus ibadah ini beserta seluruh jadwal pelayannya?")) return;
+    if (!service || !(await ask({ title: "Hapus ibadah ini?", message: "Seluruh jadwal pelayan di ibadah ini ikut terhapus.", confirmText: "Hapus", tone: "danger" }))) return;
     await Promise.all(assignments.filter((a) => a.serviceId === service.id).map((a) => store.remove("assignments", a.id)));
     await store.remove("services", service.id);
     toast("Ibadah dihapus");
@@ -322,7 +323,7 @@ function BulkModal({ year, month, onClose }: { year: number; month: number; onCl
             label: date === dates[0] ? firstLabel : "",
           }));
           await store.setMany("services", items as never);
-          toast(`${items.length} ibadah dibuat`);
+          celebrate(`${items.length} ibadah dibuat`);
           onClose();
         }}
       >
@@ -482,7 +483,7 @@ function UserModal({ user, onClose }: { user: UserProfile; onClose: () => void }
             variant="secondary"
             onClick={async () => {
               const on = user.active === false;
-              if (!on && !confirm(`Nonaktifkan ${user.name}? Ia tidak bisa masuk dan tugas mendatangnya dikosongkan.`)) return;
+              if (!on && !(await ask({ title: `Nonaktifkan ${user.name}?`, message: "Ia tidak bisa masuk dan tugas mendatangnya dikosongkan. Bisa diaktifkan lagi kapan saja.", confirmText: "Nonaktifkan", tone: "warning" }))) return;
               await setAccountActive(user, on, assignments, todayISO(), sDate);
               toast(on ? "Akun diaktifkan kembali" : "Akun dinonaktifkan");
               onClose();
@@ -493,7 +494,7 @@ function UserModal({ user, onClose }: { user: UserProfile; onClose: () => void }
           <Button
             variant="danger"
             onClick={async () => {
-              if (!confirm(`Hapus akun ${user.name}? Tugas mendatangnya akan dikosongkan. Tindakan ini tidak bisa dibatalkan.`)) return;
+              if (!(await ask({ title: `Hapus akun ${user.name}?`, message: "Tugas mendatangnya akan dikosongkan. Tindakan ini tidak bisa dibatalkan.", confirmText: "Hapus akun", tone: "danger" }))) return;
               await deleteAccount(user, assignments, todayISO(), sDate);
               toast("Akun dihapus");
               onClose();
@@ -528,7 +529,7 @@ function AddAccountModal({ onClose }: { onClose: () => void }) {
           setError("");
           try {
             await createAccount(church!.id, { name: name.trim(), email: email.trim(), password, phone: phone.trim(), role, ministries: ministryIds, coordinatorOf: coordOf });
-            toast(`Akun ${name} dibuat`);
+            celebrate(`Akun ${name} dibuat`);
             onClose();
           } catch (err) {
             const code = (err as { code?: string }).code ?? (err as Error).message;
@@ -638,7 +639,7 @@ function MinistryModal({ ministry, onClose }: { ministry?: Ministry; onClose: ()
           <Button
             variant="danger"
             onClick={async () => {
-              if (!confirm(`Hapus komisi ${ministry.name}?`)) return;
+              if (!(await ask({ title: `Hapus komisi ${ministry.name}?`, message: "Posisi dan jadwal komisi ini tidak akan tampil lagi.", confirmText: "Hapus", tone: "danger" }))) return;
               await store.remove("ministries", ministry.id);
               onClose();
             }}
@@ -709,7 +710,7 @@ Atau masukkan kode undangan: *${church.inviteCode}*`;
         <button
           className="mt-3 text-xs text-ink-soft flex items-center gap-1 hover:text-danger-ink"
           onClick={async () => {
-            if (!confirm("Buat kode baru? Kode lama langsung tidak berlaku (anggota yang sudah bergabung tidak terpengaruh).")) return;
+            if (!(await ask({ title: "Buat kode undangan baru?", message: "Kode lama langsung tidak berlaku. Anggota yang sudah bergabung tidak terpengaruh.", confirmText: "Buat kode baru", tone: "warning" }))) return;
             await regenerateInviteCode(church);
             toast("Kode undangan baru dibuat");
           }}

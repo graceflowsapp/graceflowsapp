@@ -83,3 +83,28 @@ body {
   from { transform: translateY(16px); opacity: 0; }
   to { transform: none; opacity: 1; }
 }
+
+/* ---------- micro-interactions ---------- */
+@keyframes gf-fade { from { opacity: 0; } }
+@keyframes gf-fade-out { to { opacity: 0; } }
+@keyframes gf-sheet { from { transform: translateY(100%); } }
+@keyframes gf-pop { from { transform: scale(.85); opacity: 0; } }
+@keyframes gf-pop-out { to { transform: scale(.92); opacity: 0; } }
+@keyframes gf-toast {
+  0% { transform: translateY(12px) scale(.96); opacity: 0; }
+  8%, 88% { transform: none; opacity: 1; }
+  100% { transform: translateY(6px); opacity: 0; }
+}
+@keyframes gf-ring { from { transform: scale(.6); opacity: 1; } to { transform: scale(1.9); opacity: 0; } }
+@keyframes gf-dot {
+  from { transform: rotate(var(--a)) translateY(0) scale(1); opacity: 1; }
+  to { transform: rotate(var(--a)) translateY(-62px) scale(.4); opacity: 0; }
+}
+@keyframes gf-draw { from { stroke-dasharray: 40; stroke-dashoffset: 40; } to { stroke-dasharray: 40; stroke-dashoffset: 0; } }
+@keyframes gf-celebrate-out { 0%, 75% { opacity: 1; transform: none; } 100% { opacity: 0; transform: scale(.9); } }
+@keyframes gf-bump { 0% { transform: scale(1); } 40% { transform: scale(1.06); } 100% { transform: scale(1); } }
+@keyframes gf-flash { from { background-color: color-mix(in oklab, var(--color-success) 22%, transparent); } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 1ms !important; animation-delay: 0ms !important; transition-duration: 1ms !important; }
+}

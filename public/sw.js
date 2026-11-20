@@ -1,5 +1,5 @@
 /* GraceFlow service worker — app-shell caching so the PWA opens offline. */
-const VERSION = "graceflow-v3";
+const VERSION = "graceflow-v4";
 const SHELL = ["/", "/jadwal", "/profil", "/login", "/manifest.webmanifest", "/icons/icon-192.png", "/icons/icon-512.png"];
 
 self.addEventListener("install", (event) => {

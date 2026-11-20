@@ -14,6 +14,7 @@ import { formatDateLong, formatMonth, monthKey, todayISO } from "@/lib/dates";
 import { canFill, findConflicts, isActive, isAvailableForService, isAvailableOn, isPositionOn, slotsForService, smartFill } from "@/lib/scheduling";
 import { openWhatsApp, scheduleToWhatsAppText } from "@/lib/whatsapp";
 import type { Assignment, Service, Slot } from "@/lib/types";
+import { ask, celebrate, haptic } from "@/lib/feedback";
 
 export default function CoordinatorPage() {
   const { services, assignments, ministries, users } = useApp();
@@ -284,7 +285,7 @@ function RehearsalModal({ service, ministryId, onClose }: { service: Service; mi
           className="flex-1"
           onClick={async () => {
             await store.update("services", service.id, { rehearsals: { ...(service.rehearsals ?? {}), [ministryId]: { at, place } } });
-            toast("Jadwal latihan disimpan");
+            celebrate("Jadwal latihan disimpan");
             onClose();
           }}
         >
@@ -316,6 +317,7 @@ function AssignModal({ slot, onClose }: { slot: Slot; onClose: () => void }) {
 
   const pick = async (userId: string | null) => {
     await assignSlot({ id: slot.assignmentId, service: slot.service, ministryId: slot.ministry.id, position: slot.position, userId, previousUserId: current });
+    if (userId) haptic("success");
     toast(userId ? "Pelayan dijadwalkan & diberi notifikasi" : "Slot dikosongkan");
     onClose();
   };
@@ -330,9 +332,9 @@ function AssignModal({ slot, onClose }: { slot: Slot; onClose: () => void }) {
         {rows.map(({ u, load, available, offReason, roleOn, conflicts, skilled }) => (
           <li key={u.id}>
             <button
-              onClick={() => {
-                if (conflicts.length && !confirm(`${u.name} sudah bertugas di waktu yang sama. Tetap jadwalkan?`)) return;
-                if (!available && !confirm(`${u.name} sedang OFF (${offReason}). Tetap jadwalkan?`)) return;
+              onClick={async () => {
+                if (conflicts.length && !(await ask({ title: "Jadwal bentrok", message: `${u.name} sudah bertugas di waktu yang sama. Tetap jadwalkan?`, confirmText: "Tetap jadwalkan", tone: "warning" }))) return;
+                if (!available && !(await ask({ title: `${u.name} sedang OFF`, message: `Alasan: ${offReason}. Tetap jadwalkan?`, confirmText: "Tetap jadwalkan", tone: "warning" }))) return;
                 pick(u.id);
               }}
               className={cn("w-full flex items-center gap-3 rounded-xl px-2 py-2 text-left hover:bg-surface", u.id === current && "bg-brand-soft", (!available || conflicts.length > 0) && "opacity-60")}
@@ -418,7 +420,8 @@ function SmartFillModal({ scope, targets, ministryId, label, onClose }: { scope:
           onClick={async () => {
             setBusy(true);
             await saveAssignments(result);
-            toast(`${result.length} slot terisi & pelayan diberi notifikasi`);
+            celebrate(`${result.length} slot terisi`);
+            toast("Pelayan sudah diberi notifikasi");
             onClose();
           }}
         >

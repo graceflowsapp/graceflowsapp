@@ -9,6 +9,7 @@ import { respondAttendance, updateProfile } from "@/lib/actions";
 import { formatDateLong, formatDateShort, toISODate, todayISO } from "@/lib/dates";
 import { isAvailableNow, isAvailableOn, isPositionOn, positionKey, rolesFor } from "@/lib/scheduling";
 import type { Service } from "@/lib/types";
+import { ask } from "@/lib/feedback";
 
 const SEASONS = ["Ujian Kampus", "Cuti", "Di Luar Kota", "Sakit / Pemulihan", "Fokus Keluarga", "Istirahat Pelayanan"];
 const WEEKS_AHEAD = 8;
@@ -46,9 +47,13 @@ export default function AvailabilityPage() {
   const toggleService = async (s: Service, on: boolean) => {
     const duties = myDutiesIn(s);
     if (!on && duties.length) {
-      const ok = confirm(
-        `Kamu sudah dijadwalkan sebagai ${duties.map((d) => d.position).join(", ")} di ibadah ini. Matikan berarti kamu berhalangan, dan koordinator akan diberi tahu. Lanjutkan?`,
-      );
+      const ok = await ask({
+        title: "Kamu sudah dijadwalkan",
+        message: `Kamu bertugas sebagai ${duties.map((d) => d.position).join(", ")} di ibadah ini. Mematikan berarti kamu berhalangan, dan koordinator akan diberi tahu.`,
+        confirmText: "Ya, berhalangan",
+        cancelText: "Tetap ON",
+        tone: "warning",
+      });
       if (!ok) return;
     }
     setBusyId(s.id);

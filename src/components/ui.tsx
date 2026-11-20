@@ -1,31 +1,34 @@
 "use client";
 
-import { useEffect, useState, type ButtonHTMLAttributes, type ReactNode } from "react";
+import { useEffect, useState, type ComponentProps, type ReactNode } from "react";
 import { X } from "lucide-react";
+import { haptic } from "@/lib/feedback";
 
 export function cn(...c: (string | false | null | undefined)[]) {
   return c.filter(Boolean).join(" ");
 }
 
-type Variant = "primary" | "success" | "secondary" | "ghost" | "danger" | "whatsapp";
+type Variant = "primary" | "success" | "secondary" | "ghost" | "danger" | "dangerSolid" | "warningSolid" | "whatsapp";
 
 export function Button({
   variant = "primary",
   size = "md",
   className,
   ...props
-}: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant; size?: "sm" | "md" }) {
+}: ComponentProps<"button"> & { variant?: Variant; size?: "sm" | "md" }) {
   return (
     <button
       {...props}
       className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-xl font-medium transition active:scale-[.98] disabled:opacity-50 disabled:pointer-events-none",
+        "inline-flex items-center justify-center gap-2 rounded-xl font-medium transition duration-150 active:scale-[.96] active:brightness-95 outline-none focus-visible:ring-2 focus-visible:ring-brand/40 disabled:opacity-50 disabled:pointer-events-none select-none",
         size === "sm" ? "px-3 py-1.5 text-sm" : "px-4 py-2.5 text-sm",
         variant === "primary" && "bg-brand text-white hover:bg-brand-dark shadow-sm",
         variant === "success" && "bg-success text-white hover:brightness-95 shadow-sm",
         variant === "secondary" && "bg-card text-ink border border-line hover:bg-surface",
         variant === "ghost" && "text-ink-soft hover:bg-surface",
         variant === "danger" && "bg-danger-soft text-danger-ink hover:bg-danger-soft",
+        variant === "dangerSolid" && "bg-danger text-white hover:brightness-95 shadow-sm",
+        variant === "warningSolid" && "bg-warning text-white hover:brightness-95 shadow-sm",
         variant === "whatsapp" && "bg-[#25D366] text-white hover:bg-[#1ebe5b] shadow-sm",
         className,
       )}
@@ -97,10 +100,18 @@ export function Toggle({ checked, onChange, label }: { checked: boolean; onChang
       role="switch"
       aria-checked={checked}
       aria-label={label}
-      onClick={() => onChange(!checked)}
-      className={cn("relative h-7 w-12 rounded-full transition shrink-0", checked ? "bg-success" : "bg-ink-soft/40")}
+      onClick={() => {
+        haptic("select");
+        onChange(!checked);
+      }}
+      className={cn("relative h-7 w-12 rounded-full transition-colors duration-200 shrink-0 active:scale-95", checked ? "bg-success" : "bg-ink-soft/40")}
     >
-      <span className={cn("absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-all", checked ? "left-[22px]" : "left-0.5")} />
+      <span
+        className={cn(
+          "absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-all duration-300 ease-[cubic-bezier(.3,1.5,.5,1)]",
+          checked ? "left-[22px]" : "left-0.5",
+        )}
+      />
     </button>
   );
 }
@@ -118,9 +129,12 @@ export function Modal({ open, onClose, title, children, wide }: { open: boolean;
   }, [open, onClose]);
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-[2px]" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-[2px] animate-[gf-fade_.2s_ease-out]" onClick={onClose}>
       <div
-        className={cn("w-full bg-card rounded-t-3xl sm:rounded-3xl max-h-[90dvh] flex flex-col shadow-xl", wide ? "sm:max-w-2xl" : "sm:max-w-md")}
+        className={cn(
+          "w-full bg-card rounded-t-3xl sm:rounded-3xl max-h-[90dvh] flex flex-col shadow-xl animate-[gf-sheet_.32s_cubic-bezier(.2,.9,.3,1)] sm:animate-[gf-pop_.24s_ease-out]",
+          wide ? "sm:max-w-2xl" : "sm:max-w-md",
+        )}
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
@@ -167,11 +181,11 @@ export function toast(message: string) {
 }
 
 export function Toaster() {
-  const [msg, setMsg] = useState<string | null>(null);
+  const [msg, setMsg] = useState<{ id: number; text: string } | null>(null);
   useEffect(() => {
     let t: ReturnType<typeof setTimeout>;
     const on = (e: Event) => {
-      setMsg((e as CustomEvent<string>).detail);
+      setMsg({ id: Date.now(), text: (e as CustomEvent<string>).detail });
       clearTimeout(t);
       t = setTimeout(() => setMsg(null), 2600);
     };
@@ -180,8 +194,10 @@ export function Toaster() {
   }, []);
   if (!msg) return null;
   return (
-    <div className="fixed left-1/2 -translate-x-1/2 bottom-6 z-[60] rounded-full bg-ink text-card text-sm px-4 py-2 shadow-lg max-w-[90vw] text-center" role="status">
-      {msg}
+    <div className="fixed inset-x-0 bottom-[max(1.5rem,env(safe-area-inset-bottom))] z-[60] flex justify-center px-4 pointer-events-none">
+      <div key={msg.id} className="rounded-full bg-ink text-card text-sm px-4 py-2 shadow-lg max-w-[90vw] text-center animate-[gf-toast_2.6s_ease-in-out_forwards]" role="status">
+        {msg.text}
+      </div>
     </div>
   );
 }
