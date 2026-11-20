@@ -25,6 +25,7 @@ const DISMISS_DAYS = 7;
 function isStandalone() {
   return (
     window.matchMedia("(display-mode: standalone)").matches ||
+    window.matchMedia("(display-mode: fullscreen)").matches ||
     (navigator as Navigator & { standalone?: boolean }).standalone === true
   );
 }

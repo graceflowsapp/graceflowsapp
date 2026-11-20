@@ -157,7 +157,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </header>
 
-      <main className="mx-auto max-w-3xl px-4 py-5">{children}</main>
+      <main className="mx-auto max-w-3xl px-4 pt-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]">{children}</main>
 
       {/* Mobile burger drawer */}
       <div className={cn("md:hidden fixed inset-0 z-50", menuOpen || drag !== null ? "visible" : "invisible")} aria-hidden={!menuOpen}>

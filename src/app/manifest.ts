@@ -9,7 +9,9 @@ export default function manifest(): MetadataRoute.Manifest {
     description: "Jadwal pelayanan, pengganti, dan servant care untuk gereja.",
     start_url: "/",
     scope: "/",
-    display: "standalone",
+    // fullscreen: Chrome Android ignores theme-color for the bottom nav bar of installed apps (it stayed white
+    // in dark mode), so we hide the system bars instead; swipe from the edge to show them briefly.
+    display: "fullscreen",
     orientation: "portrait",
     // Window colour of the installed app: Chrome also paints it behind the transparent gesture-pill area
     // (and on the splash screen). Static like theme_color, so it can only match one mode → dark.
