@@ -1,0 +1,112 @@
+rules_version = '2';
+
+// Multi-church (multi-tenant) rules.
+//   users/{uid}                      global login account (which churches I belong to) — only the owner
+//   inviteCodes/{code}               code → churchId lookup (get only, never list)
+//   churches/{cid}                   church profile
+//   churches/{cid}/members/{uid}     my role & profile IN THAT CHURCH
+//   churches/{cid}/{ministries|services|assignments|notifications}/...
+// A church's data is readable/writable only by its own active members.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function memberPath(cid) { return /databases/$(database)/documents/churches/$(cid)/members/$(request.auth.uid); }
+    function member(cid) { return get(memberPath(cid)).data; }
+    function isMember(cid) {
+      return signedIn() && exists(memberPath(cid))
+        && member(cid).get('active', true) == true
+        && member(cid).get('deleted', false) == false;
+    }
+    function isChurchAdmin(cid) { return isMember(cid) && member(cid).role == 'superadmin'; }
+    function coordinates(cid, ministryId) {
+      return isMember(cid) && (member(cid).role == 'superadmin'
+        || (member(cid).role == 'coordinator' && ministryId in member(cid).coordinatorOf));
+    }
+    function church(cid) { return get(/databases/$(database)/documents/churches/$(cid)).data; }
+    function onlyChanges(fields) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(fields);
+    }
+
+    // ---------- global ----------
+    match /users/{uid} {
+      // Only the person themself. (Admins create accounts through a secondary app signed in as the new user.)
+      allow read, create, update: if signedIn() && request.auth.uid == uid;
+    }
+
+    match /inviteCodes/{code} {
+      allow get: if signedIn();
+      allow list: if false;
+      allow create: if isChurchAdmin(request.resource.data.churchId);
+      allow delete: if isChurchAdmin(resource.data.churchId);
+    }
+
+    // ---------- per church ----------
+    match /churches/{cid} {
+      allow get: if isMember(cid);
+      allow list: if false;
+      // Anyone signed in may register a NEW church; they must be its creator
+      allow create: if signedIn() && request.resource.data.createdBy == request.auth.uid;
+      allow update: if isChurchAdmin(cid) && request.resource.data.createdBy == resource.data.createdBy;
+      allow delete: if false;
+
+      match /members/{uid} {
+        allow read: if isMember(cid);
+        allow create: if isChurchAdmin(cid)
+          // the creator bootstraps themself as the first Admin
+          || (signedIn() && request.auth.uid == uid
+              && church(cid).createdBy == uid
+              && request.resource.data.role == 'superadmin')
+          // anyone with the current invite code joins as a plain Servant
+          || (signedIn() && request.auth.uid == uid
+              && request.resource.data.role == 'servant'
+              && request.resource.data.coordinatorOf.size() == 0
+              && request.resource.data.get('active', true) == true
+              && request.resource.data.get('deleted', false) == false
+              && request.resource.data.joinedWithCode == church(cid).inviteCode);
+        // Members edit their own profile & availability, never their role/authority/active flag
+        allow update: if isChurchAdmin(cid) || (isMember(cid) && request.auth.uid == uid && onlyChanges(
+          ['name', 'phone', 'photoUrl', 'available', 'unavailableReason', 'unavailableUntil',
+           'unavailableServices', 'disabledPositions']));
+        allow delete: if isChurchAdmin(cid);
+      }
+
+      match /ministries/{id} {
+        allow read: if isMember(cid);
+        allow write: if isChurchAdmin(cid);
+      }
+
+      match /services/{id} {
+        allow read: if isMember(cid);
+        allow create, delete: if isChurchAdmin(cid);
+        allow update: if isChurchAdmin(cid)
+          || (isMember(cid) && member(cid).role == 'coordinator' && onlyChanges(['rehearsals']));
+      }
+
+      match /assignments/{id} {
+        allow read: if isMember(cid);
+        allow create: if coordinates(cid, request.resource.data.ministryId);
+        allow delete: if coordinates(cid, resource.data.ministryId);
+        allow update: if coordinates(cid, resource.data.ministryId)
+          // the assigned servant confirms Hadir / Berhalangan
+          || (isMember(cid) && resource.data.userId == request.auth.uid
+              && request.resource.data.userId == resource.data.userId
+              && request.resource.data.get('status', 'pending') in ['pending', 'confirmed', 'declined']
+              && onlyChanges(['status', 'respondedAt', 'subRequest', 'updatedAt']))
+          // a teammate in the same ministry takes over a declined slot
+          || (isMember(cid) && resource.data.get('subRequest', null) != null
+              && resource.data.ministryId in member(cid).ministries
+              && request.resource.data.userId == request.auth.uid
+              && onlyChanges(['userId', 'status', 'respondedAt', 'subRequest', 'updatedAt']));
+      }
+
+      match /notifications/{id} {
+        allow read: if signedIn() && resource.data.userId == request.auth.uid && isMember(cid);
+        allow create: if isMember(cid);
+        allow update: if signedIn() && resource.data.userId == request.auth.uid && onlyChanges(['read']);
+        allow delete: if signedIn() && resource.data.userId == request.auth.uid;
+      }
+    }
+  }
+}

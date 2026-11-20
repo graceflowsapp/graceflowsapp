@@ -1,0 +1,80 @@
+@import "tailwindcss";
+
+@theme {
+  /* Brand (can be overridden at runtime by the custom accent colour, see src/lib/theme.ts) */
+  --color-brand: #0f766e;
+  --color-brand-dark: #0b514c;
+  --color-brand-soft: #dff5f1;
+
+  /* Status */
+  --color-success: #27856f;
+  --color-success-soft: #e3f3ee;
+  --color-danger: #dc5b5b;
+  --color-danger-soft: #fceaea;
+  --color-danger-ink: #b23e3e; /* darker shade for small text on danger-soft */
+  --color-warning: #d59b3c;
+  --color-warning-soft: #fbf1df;
+  --color-warning-ink: #8a5d17; /* darker shade for small text on warning-soft */
+
+  /* Neutrals */
+  --color-ink: #17302d;
+  --color-ink-soft: #5f7370;
+  --color-line: #e3ebe9;
+  --color-surface: #f4f8f7; /* page background */
+  --color-card: #ffffff; /* cards, sheets, inputs */
+
+  --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+}
+
+:root {
+  color-scheme: light;
+}
+
+/* ---------- Dark mode (set by src/lib/theme.ts on <html data-theme="dark">) ---------- */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --color-brand: #1a9e8f;
+  --color-brand-dark: #148274;
+  --color-brand-soft: color-mix(in oklab, var(--color-brand) 22%, var(--color-card));
+
+  --color-success: #3aa889;
+  --color-success-soft: #173a31;
+  --color-danger: #e06b6b;
+  --color-danger-soft: #3d2222;
+  --color-danger-ink: #f19a9a;
+  --color-warning: #d9a548;
+  --color-warning-soft: #3a2f1a;
+  --color-warning-ink: #ecc579;
+
+  --color-ink: #e4eeec;
+  --color-ink-soft: #93a6a3;
+  --color-line: #263532;
+  --color-surface: #0e1615;
+  --color-card: #162120;
+}
+
+html,
+body {
+  background: var(--color-surface);
+  color: var(--color-ink);
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+  /* never allow sideways scrolling on phones */
+  overflow-x: clip;
+  touch-action: manipulation;
+}
+
+body {
+  font-family: var(--font-sans);
+  transition: background-color 0.2s ease;
+}
+
+.scrollbar-none {
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
