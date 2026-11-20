@@ -11,7 +11,9 @@ export default function manifest(): MetadataRoute.Manifest {
     scope: "/",
     display: "standalone",
     orientation: "portrait",
-    background_color: "#f4f8f7",
+    // Window colour of the installed app: Chrome also paints it behind the transparent gesture-pill area
+    // (and on the splash screen). Static like theme_color, so it can only match one mode → dark.
+    background_color: "#0e1615",
     // Chrome Android colours the installed app's bottom navigation bar from this single, static value
     // (it can't follow prefers-color-scheme and alpha is ignored). Dark = matches the page in dark mode.
     theme_color: "#0e1615",
