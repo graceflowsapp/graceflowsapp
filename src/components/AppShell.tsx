@@ -263,8 +263,8 @@ function useDrawerSwipe(open: boolean, setOpen: (v: boolean) => void) {
       if (document.querySelector('[role="dialog"][aria-modal="true"], [role="alertdialog"]')) return; // a modal is open
       const t = e.touches[0];
       const isOpen = openRef.current;
-      // closed: start in the left 40% of the screen (Android's own back-gesture strip is only ~20px)
-      if (!isOpen && (t.clientX > window.innerWidth * 0.4 || scrollsX(e.target as Element))) return;
+      // closed: a rightward swipe anywhere opens it (the far-left edge belongs to Android's back gesture)
+      if (!isOpen && scrollsX(e.target as Element)) return;
       const drawer = document.querySelector("[data-drawer]") as HTMLElement | null;
       st.current = { x: t.clientX, y: t.clientY, t: Date.now(), w: drawer?.offsetWidth || 300, mode: "pending", from: isOpen };
     };
@@ -275,9 +275,9 @@ function useDrawerSwipe(open: boolean, setOpen: (v: boolean) => void) {
       const dx = t.clientX - s.x;
       const dy = t.clientY - s.y;
       if (s.mode === "pending") {
-        if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return;
+        if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
         // must be clearly horizontal, in the right direction
-        if (Math.abs(dx) < Math.abs(dy) * 1.3 || (!s.from && dx < 0) || (s.from && dx > 0)) {
+        if (Math.abs(dx) < Math.abs(dy) * 1.2 || (!s.from && dx < 0) || (s.from && dx > 0)) {
           s.mode = "ignore";
           return;
         }
@@ -295,7 +295,8 @@ function useDrawerSwipe(open: boolean, setOpen: (v: boolean) => void) {
       const endX = e.changedTouches[0]?.clientX ?? s.x;
       const v = (endX - s.x) / Math.max(1, Date.now() - s.t); // px per ms
       const p = (s.from ? 1 : 0) + (endX - s.x) / s.w;
-      const shouldOpen = v > 0.45 ? true : v < -0.45 ? false : p > 0.5;
+      // forgiving: a short or slow swipe is enough (30% of the drawer width, or a light flick)
+      const shouldOpen = v > 0.3 ? true : v < -0.3 ? false : s.from ? p > 0.7 : p > 0.3;
       if (shouldOpen !== s.from) haptic("tap");
       setOpen(shouldOpen);
       setProgress(null);

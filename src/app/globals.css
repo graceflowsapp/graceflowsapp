@@ -64,7 +64,9 @@ html,
 body {
   /* never allow sideways scrolling on phones */
   overflow-x: clip;
-  touch-action: manipulation;
+  /* vertical scrolling stays native; sideways swipes go to the app (drawer gesture). pan-y also disables double-tap zoom. */
+  touch-action: pan-y;
+  overscroll-behavior-x: none;
 }
 
 body {
@@ -107,4 +109,9 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 1ms !important; animation-delay: 0ms !important; transition-duration: 1ms !important; }
+}
+
+/* horizontal chip rows keep their own sideways scrolling */
+.overflow-x-auto {
+  touch-action: pan-x pan-y;
 }
