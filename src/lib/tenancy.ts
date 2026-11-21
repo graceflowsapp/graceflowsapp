@@ -60,19 +60,41 @@ export async function createChurch(account: Account, data: { name: string; city?
   return id;
 }
 
-/** Joins a church with its invite code as a Servant. The church's admins get a notification. */
+/**
+ * Joins a church with its invite code as a Servant. The church's admins get a notification.
+ * Also works for someone the admin removed earlier: their old (soft-deleted) membership is replaced by a
+ * fresh Servant membership. Don't trust account.churchIds here: a removed member still has the church in
+ * that list, because admins can't edit another person's account doc.
+ */
 export async function joinChurch(account: Account, rawCode: string) {
   const code = rawCode.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
   const invite = await raw.get<{ churchId: string }>(`inviteCodes/${code}`);
   if (!invite) throw new Error("Kode undangan tidak ditemukan. Periksa lagi atau minta kode baru ke admin gerejamu.");
   const cid = invite.churchId;
+  const memberPath = `churches/${cid}/members/${account.id}`;
 
-  if (!account.churchIds?.includes(cid)) {
-    await raw.set(`churches/${cid}/members/${account.id}`, memberProfile(account, "servant", { joinedWithCode: code }));
+  // Firestore only lets ACTIVE members read their membership, so "no access" = not (or no longer) a member.
+  let current: UserProfile | null = null;
+  try {
+    current = await raw.get<UserProfile>(memberPath);
+  } catch {
+    current = null;
+  }
+  const alreadyActive = !!current && !current.deleted && current.active !== false;
+  if (current && !current.deleted && current.active === false) throw new Error(DEACTIVATED_MSG);
+
+  if (!alreadyActive) {
+    const rejoining = account.churchIds?.includes(cid) ?? false;
+    try {
+      await raw.set(memberPath, memberProfile(account, "servant", { joinedWithCode: code }));
+    } catch {
+      // the rules only refuse this for a membership the admin deactivated (not removed)
+      throw new Error(DEACTIVATED_MSG);
+    }
     // now a member → allowed to read members and notify the admins
     const admins = await new Promise<UserProfile[]>((resolve) => {
       const unsub = raw.subscribeCol<UserProfile>(`churches/${cid}/members`, (items) => {
-        resolve(items.filter((m) => m.role === "superadmin" && m.active !== false));
+        resolve(items.filter((m) => m.role === "superadmin" && m.active !== false && !m.deleted));
         queueMicrotask(() => unsub());
       });
     });
@@ -81,8 +103,8 @@ export async function joinChurch(account: Account, rawCode: string) {
         const n: AppNotification = {
           id: rid(),
           userId: a.id,
-          title: "Anggota baru bergabung",
-          body: `${account.name} bergabung lewat kode undangan. Atur bidang pelayanannya di menu Admin → Pelayan.`,
+          title: rejoining ? "Anggota bergabung kembali" : "Anggota baru bergabung",
+          body: `${account.name} ${rejoining ? "bergabung kembali" : "bergabung"} lewat kode undangan. Atur bidang pelayanannya di menu Admin → Pelayan.`,
           read: false,
           createdAt: nowISO(),
           link: "/admin",
@@ -94,6 +116,8 @@ export async function joinChurch(account: Account, rawCode: string) {
   await addChurchToAccount(account, cid);
   return cid;
 }
+
+const DEACTIVATED_MSG = "Akunmu di gereja ini sedang dinonaktifkan oleh admin. Minta admin gereja untuk mengaktifkannya kembali.";
 
 export async function switchChurch(account: Account, churchId: string) {
   await raw.update(`users/${account.id}`, { activeChurchId: churchId });

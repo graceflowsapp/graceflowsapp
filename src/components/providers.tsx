@@ -67,6 +67,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [uid, setUid] = useState<string | null>(null);
   const [account, setAccount] = useState<Account | null | undefined>(undefined);
   const [churchMap, setChurchMap] = useState<Record<string, Church>>({});
+  /** Which churches answered (found OR no access) for the current churchIds list (`key`). */
+  const [settled, setSettled] = useState<{ key: string; ids: Record<string, true> }>({ key: "", ids: {} });
   const [loadedChurch, setLoadedChurch] = useState<string | null>(null);
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [ministries, setMinistries] = useState<Ministry[]>([]);
@@ -115,21 +117,39 @@ export function AppProvider({ children }: { children: ReactNode }) {
       return;
     }
     const ids = churchKey.split(",");
+    setSettled({ key: churchKey, ids: {} });
     const unsubs = ids.map((id) =>
-      raw.subscribeDoc<Church>(`churches/${id}`, (c) =>
+      raw.subscribeDoc<Church>(`churches/${id}`, (c) => {
         setChurchMap((m) => {
           const next = { ...m };
           if (c) next[id] = c;
           else delete next[id];
           return next;
-        }),
-      ),
+        });
+        setSettled((st) => (st.key === churchKey ? { key: churchKey, ids: { ...st.ids, [id]: true } } : st));
+      }),
     );
     return () => unsubs.forEach((u) => u());
   }, [churchKey]);
 
   const ids = account?.churchIds ?? [];
-  const activeChurchId = account?.activeChurchId && ids.includes(account.activeChurchId) ? account.activeChurchId : ids[0] ?? null;
+  // churches that answered "no access" (removed from it / church gone) are skipped
+  const gone = settled.key === churchKey ? ids.filter((id) => settled.ids[id] && !churchMap[id]) : [];
+  const usable = ids.filter((id) => !gone.includes(id));
+  const activeChurchId = account?.activeChurchId && usable.includes(account.activeChurchId) ? account.activeChurchId : usable[0] ?? null;
+  const goneKey = gone.join(",");
+
+  // Self-heal: an admin can't edit another person's account doc, so when someone is removed from a church
+  // the church stays in their own churchIds. Drop it here (the person may edit their own doc) so they land on
+  // another church or the join page, and can rejoin later with a new invite code.
+  useEffect(() => {
+    if (!isFirebaseConfigured || !account || !goneKey) return;
+    const drop = goneKey.split(",");
+    const keep = (account.churchIds ?? []).filter((id) => !drop.includes(id));
+    const active = account.activeChurchId && keep.includes(account.activeChurchId) ? account.activeChurchId : keep[0] ?? null;
+    raw.update(`users/${account.id}`, { churchIds: keep, activeChurchId: active }).catch((e) => console.error("Could not clean up churches", e));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [goneKey, account?.id]);
 
   // --- data of the active church ---
   useEffect(() => {

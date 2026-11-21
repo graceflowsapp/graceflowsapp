@@ -25,6 +25,15 @@ service cloud.firestore {
         || (member(cid).role == 'coordinator' && ministryId in member(cid).coordinatorOf));
     }
     function church(cid) { return get(/databases/$(database)/documents/churches/$(cid)).data; }
+    // A plain Servant membership written by the person themself with the church's CURRENT invite code.
+    function freshServantJoin(cid) {
+      return request.resource.data.role == 'servant'
+        && request.resource.data.coordinatorOf.size() == 0
+        && request.resource.data.get('ministries', []).size() == 0
+        && request.resource.data.get('active', true) == true
+        && request.resource.data.get('deleted', false) == false
+        && request.resource.data.joinedWithCode == church(cid).inviteCode;
+    }
     function onlyChanges(fields) {
       return request.resource.data.diff(resource.data).affectedKeys().hasOnly(fields);
     }
@@ -59,16 +68,16 @@ service cloud.firestore {
               && church(cid).createdBy == uid
               && request.resource.data.role == 'superadmin')
           // anyone with the current invite code joins as a plain Servant
-          || (signedIn() && request.auth.uid == uid
-              && request.resource.data.role == 'servant'
-              && request.resource.data.coordinatorOf.size() == 0
-              && request.resource.data.get('active', true) == true
-              && request.resource.data.get('deleted', false) == false
-              && request.resource.data.joinedWithCode == church(cid).inviteCode);
+          || (signedIn() && request.auth.uid == uid && freshServantJoin(cid));
         // Members edit their own profile & availability, never their role/authority/active flag
         allow update: if isChurchAdmin(cid) || (isMember(cid) && request.auth.uid == uid && onlyChanges(
           ['name', 'phone', 'photoUrl', 'available', 'unavailableReason', 'unavailableUntil',
-           'unavailableServices', 'disabledPositions']));
+           'unavailableServices', 'disabledPositions']))
+          // someone the admin REMOVED may come back with the current invite code, as a fresh Servant
+          // (a DEACTIVATED member, active == false but not deleted, still needs the admin)
+          || (signedIn() && request.auth.uid == uid
+              && resource.data.get('deleted', false) == true
+              && freshServantJoin(cid));
         allow delete: if isChurchAdmin(cid);
       }
 
