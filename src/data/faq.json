@@ -1133,6 +1133,17 @@
     "sumber": "src/app/(app)/admin/page.tsx"
   },
   {
+    "id": "admin-urutan-komisi",
+    "kategori": "Admin: Komisi",
+    "pertanyaan": "Bagaimana cara mengubah urutan komisi?",
+    "variasi": ["urutkan komisi", "pindah urutan komisi", "geser kartu komisi", "reorder komisi", "komisi mau ditaruh paling atas"],
+    "jawaban": "Begini caranya:",
+    "langkah": ["Buka menu Admin, tab \"Komisi\"", "Tekan \"Ubah urutan\"", "Tahan kartu komisi sebentar sampai terangkat, lalu geser ke posisi baru", "Atau pakai tombol panah naik/turun di kartu", "Tekan \"Simpan urutan\" (atau \"Batal\" untuk membatalkan)"],
+    "link": "/admin",
+    "role": "admin",
+    "sumber": "src/components/SortableList.tsx"
+  },
+  {
     "id": "admin-undang-anggota",
     "kategori": "Admin: Gereja",
     "pertanyaan": "Bagaimana cara mengundang anggota ke gereja?",
