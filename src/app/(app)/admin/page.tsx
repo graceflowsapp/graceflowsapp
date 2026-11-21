@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { CalendarPlus, Check, ChevronLeft, ChevronRight, Copy, Lock, MessageCircle, Pencil, Plus, RefreshCw, Search, Trash2, UserPlus } from "lucide-react";
+import { ArrowUpDown, CalendarPlus, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, GripVertical, Copy, Lock, MessageCircle, Pencil, Plus, RefreshCw, Search, Trash2, UserPlus } from "lucide-react";
 import { useApp } from "@/components/providers";
 import { Avatar, Badge, Button, Card, Empty, Field, Modal, SectionTitle, cn, inputCls, toast } from "@/components/ui";
 import { ServiceLabel, serviceLine } from "@/components/duty";
@@ -17,6 +17,7 @@ import { ask, celebrate } from "@/lib/feedback";
 import { authErrorMessage, displayLogin, usernameError } from "@/lib/username";
 import { UsernameField } from "@/components/UsernameField";
 import { PositionsEditor } from "@/components/PositionsEditor";
+import { SortableList } from "@/components/SortableList";
 
 const SESSIONS = ["Sesi 1", "Sesi 2", "Sesi 3", "Sesi Pagi", "Sesi Sore"];
 const LOCATIONS = ["Ruang Ibadah Utama", "Aula Lt. 2", "Ruang Youth", "Online / Live Streaming"];
@@ -647,11 +648,102 @@ Setelah masuk, hubungkan emailmu di menu Profil → Akun & login.`;
 function MinistriesAdmin() {
   const { ministries, users } = useApp();
   const [editing, setEditing] = useState<Ministry | "new" | null>(null);
+  /** Reorder mode: a local copy of the list, saved only on "Simpan urutan". */
+  const [order, setOrder] = useState<Ministry[] | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [announce, setAnnounce] = useState("");
+
+  if (order) {
+    const changed = order.some((m, i) => m.id !== ministries[i]?.id);
+    return (
+      <>
+        <div className="rounded-2xl bg-brand-soft text-brand px-4 py-3 mb-4 flex items-start gap-3">
+          <GripVertical size={20} className="shrink-0 mt-0.5" aria-hidden />
+          <p className="text-[14px] leading-snug">
+            <b>Tahan</b> kartu sebentar sampai terangkat, lalu <b>geser</b> ke posisi baru. Bisa juga pakai tombol panah.
+          </p>
+        </div>
+        <SortableList
+          items={order}
+          getKey={(m) => m.id}
+          className="space-y-2"
+          label="Urutan komisi"
+          onReorder={(next, { item, to }) => {
+            setOrder(next);
+            setAnnounce(`${item.name} dipindah ke urutan ${to + 1}`);
+          }}
+          renderItem={(m, h) => (
+            <Card className={cn("p-3 flex items-center gap-3", h.dragging ? "border-brand" : "")}>
+              <GripVertical size={20} className="shrink-0 text-ink-soft" aria-hidden />
+              <span className="h-3 w-3 rounded-full shrink-0" style={{ background: m.color }} aria-hidden />
+              <div className="flex-1 min-w-0">
+                <div className="font-semibold truncate">{m.name}</div>
+                <div className="text-[12px] text-ink-soft">
+                  Urutan {h.index + 1} · {m.positions.length} posisi
+                </div>
+              </div>
+              <div className="flex gap-1 shrink-0">
+                <button
+                  type="button"
+                  onClick={h.moveUp}
+                  disabled={h.isFirst}
+                  aria-label={`Naikkan ${m.name}`}
+                  className="h-10 w-10 grid place-items-center rounded-xl border border-line bg-card text-ink disabled:opacity-30 active:scale-95"
+                >
+                  <ChevronUp size={18} />
+                </button>
+                <button
+                  type="button"
+                  onClick={h.moveDown}
+                  disabled={h.isLast}
+                  aria-label={`Turunkan ${m.name}`}
+                  className="h-10 w-10 grid place-items-center rounded-xl border border-line bg-card text-ink disabled:opacity-30 active:scale-95"
+                >
+                  <ChevronDown size={18} />
+                </button>
+              </div>
+            </Card>
+          )}
+        />
+        <p className="sr-only" aria-live="polite">
+          {announce}
+        </p>
+        <div className="sticky bottom-[max(1rem,env(safe-area-inset-bottom))] mt-4 grid grid-cols-2 gap-2 rounded-2xl bg-surface/90 backdrop-blur p-1">
+          <Button variant="secondary" onClick={() => setOrder(null)} disabled={saving}>
+            Batal
+          </Button>
+          <Button
+            disabled={saving || !changed}
+            onClick={async () => {
+              setSaving(true);
+              try {
+                await Promise.all(order.map((m, i) => (m.order === i + 1 ? null : store.update("ministries", m.id, { order: i + 1 }))));
+                celebrate("Urutan komisi disimpan");
+                setOrder(null);
+              } catch (e) {
+                toast(`Gagal menyimpan: ${(e as Error).message}`);
+              } finally {
+                setSaving(false);
+              }
+            }}
+          >
+            <Check size={16} /> Simpan urutan
+          </Button>
+        </div>
+      </>
+    );
+  }
+
   return (
     <>
-      <Button className="w-full mb-4" onClick={() => setEditing("new")}>
-        <Plus size={16} /> Tambah komisi
-      </Button>
+      <div className="grid grid-cols-[1fr_auto] gap-2 mb-4">
+        <Button onClick={() => setEditing("new")}>
+          <Plus size={16} /> Tambah komisi
+        </Button>
+        <Button variant="secondary" onClick={() => setOrder(ministries)} disabled={ministries.length < 2}>
+          <ArrowUpDown size={16} /> Ubah urutan
+        </Button>
+      </div>
       <div className="space-y-2">
         {ministries.map((m) => {
           const members = users.filter((u) => u.ministries.includes(m.id)).length;
