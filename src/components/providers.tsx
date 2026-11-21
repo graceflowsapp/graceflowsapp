@@ -1,16 +1,8 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import {
-  GoogleAuthProvider,
-  createUserWithEmailAndPassword,
-  onAuthStateChanged,
-  signInWithEmailAndPassword,
-  signInWithPopup,
-  signOut,
-  updateProfile as fbUpdateProfile,
-  type User,
-} from "firebase/auth";
+import { GoogleAuthProvider, onAuthStateChanged, signInWithEmailAndPassword, signInWithPopup, signOut, type User } from "firebase/auth";
+import { isPlaceholderEmail, registerWithUsername, resolveLoginEmails, syncLoginEmail, usernameFromPlaceholder } from "@/lib/username";
 import { firebaseAuth, isFirebaseConfigured } from "@/lib/firebase";
 import { raw, setChurchScope, store } from "@/lib/store";
 import { nowISO } from "@/lib/dates";
@@ -38,8 +30,10 @@ interface AppState {
   assignments: Assignment[];
   notifications: AppNotification[];
   switchChurch(id: string): Promise<void>;
-  loginEmail(email: string, password: string): Promise<void>;
-  registerEmail(name: string, email: string, password: string): Promise<void>;
+  /** Sign in with an email OR a username. */
+  login(identifier: string, password: string): Promise<void>;
+  /** Create an account with a username (an email can be connected later in Profil). */
+  registerUsername(name: string, username: string, password: string): Promise<void>;
   loginGoogle(): Promise<void>;
   loginDemo(uid: string): void;
   createDemoAccount(name: string): Promise<void>;
@@ -51,10 +45,13 @@ const Ctx = createContext<AppState | null>(null);
 async function ensureAccount(user: User, name?: string) {
   const existing = await raw.get<Account>(`users/${user.uid}`);
   if (existing) return;
+  const username = usernameFromPlaceholder(user.email);
   const account: Account = {
     id: user.uid,
-    email: user.email ?? "",
-    name: name || user.displayName || user.email?.split("@")[0] || "Pelayan",
+    // username-only accounts have a placeholder login email that is never shown
+    email: isPlaceholderEmail(user.email) ? "" : (user.email ?? ""),
+    ...(username ? { username } : {}),
+    name: name || user.displayName || username || user.email?.split("@")[0] || "Pelayan",
     churchIds: [],
     activeChurchId: null,
     createdAt: nowISO(),
@@ -91,6 +88,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (user) {
         try {
           await ensureAccount(user);
+          await syncLoginEmail(user);
         } catch (e) {
           console.error("Could not create account", e);
         }
@@ -228,13 +226,22 @@ export function AppProvider({ children }: { children: ReactNode }) {
       async switchChurch(id) {
         if (account) await switchChurchAction(account, id);
       },
-      async loginEmail(email, password) {
-        await signInWithEmailAndPassword(firebaseAuth(), email, password);
+      async login(identifier, password) {
+        const emails = await resolveLoginEmails(identifier);
+        let lastError: unknown;
+        // a username whose email was just verified may already sign in with the new address
+        for (const email of emails) {
+          try {
+            await signInWithEmailAndPassword(firebaseAuth(), email, password);
+            return;
+          } catch (e) {
+            lastError = e;
+          }
+        }
+        throw lastError;
       },
-      async registerEmail(name, email, password) {
-        const cred = await createUserWithEmailAndPassword(firebaseAuth(), email, password);
-        await fbUpdateProfile(cred.user, { displayName: name });
-        await ensureAccount(cred.user, name);
+      async registerUsername(name, username, password) {
+        await registerWithUsername(name, username, password);
       },
       async loginGoogle() {
         await signInWithPopup(firebaseAuth(), new GoogleAuthProvider());
