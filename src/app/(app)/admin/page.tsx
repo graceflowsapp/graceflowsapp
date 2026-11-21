@@ -7,6 +7,7 @@ import { Avatar, Badge, Button, Card, Empty, Field, Modal, SectionTitle, cn, inp
 import { ServiceLabel, serviceLine } from "@/components/duty";
 import { createAccount, deleteAccount, setAccountActive } from "@/lib/accounts";
 import { store } from "@/lib/store";
+import { assignSlot } from "@/lib/actions";
 import { inviteLink, regenerateInviteCode, updateChurch } from "@/lib/tenancy";
 import { ACCENT_PRESETS } from "@/lib/theme";
 import { formatDateLong, formatMonth, monthKey, todayISO, weekdaysInMonth } from "@/lib/dates";
@@ -171,7 +172,16 @@ function ServiceModal({ service, defaultDate, onClose }: { service?: Service; de
 
   const save = async () => {
     const id = service?.id ?? `svc-${form.date}-${form.time.replace(":", "")}-${Math.random().toString(36).slice(2, 6)}`;
+    // komisi unticked from an existing ibadah: their people would stay scheduled but invisible (and still clash)
+    const dropped = service ? assignments.filter((a) => a.serviceId === service.id && a.userId && !form.ministries.includes(a.ministryId)) : [];
+    if (dropped.length) {
+      const names = [...new Set(dropped.map((a) => ministries.find((m) => m.id === a.ministryId)?.name ?? a.ministryId))].join(", ");
+      if (!(await ask({ title: "Hapus komisi dari ibadah ini?", message: `${dropped.length} pelayan dari ${names} akan dikeluarkan dari ibadah ini dan diberi notifikasi.`, confirmText: "Ya, simpan", tone: "warning" }))) return;
+    }
     await store.set("services", id, { ...form, id, label: form.label || "" });
+    for (const a of dropped) {
+      await assignSlot({ id: a.id, service: { ...form, id }, ministryId: a.ministryId, position: a.position, userId: null, previousUserId: a.userId });
+    }
     celebrate("Ibadah disimpan");
     onClose();
   };
@@ -319,6 +329,7 @@ function BulkModal({ year, month, onClose }: { year: number; month: number; onCl
         className="w-full"
         disabled={!toCreate.length || !sel.length}
         onClick={async () => {
+          if (!(await ask({ title: `Buat ${toCreate.length} ibadah?`, message: `${title} · ${time}, ${toCreate.length} tanggal.`, confirmText: "Buat" }))) return;
           const items: Service[] = toCreate.map((date) => ({
             id: `svc-${date}-${time.replace(":", "")}-${Math.random().toString(36).slice(2, 6)}`,
             date,

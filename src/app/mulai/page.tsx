@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Church as ChurchIcon, KeyRound } from "lucide-react";
 import { useApp } from "@/components/providers";
+import { confirmLogout } from "@/lib/feedback";
 import { Button, Card, Field, cn, inputCls, toast } from "@/components/ui";
 import { Logo } from "@/components/AppShell";
 import { createChurch, joinChurch } from "@/lib/tenancy";
@@ -104,7 +105,7 @@ function Start() {
           </Card>
         )}
 
-        <button onClick={logout} className="block mx-auto mt-6 text-xs text-ink-soft underline">
+        <button onClick={() => confirmLogout(logout)} className="block mx-auto mt-6 text-xs text-ink-soft underline">
           Keluar ({displayLogin(account)})
         </button>
       </div>

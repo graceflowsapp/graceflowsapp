@@ -276,6 +276,17 @@ export function GroupFillModal({ service, ministry, onClose }: { service: Servic
 
   const apply = async () => {
     if (!group) return;
+    const replacing = changes.filter((r) => r.current).map((r) => nameOf(r.current));
+    if (
+      replacing.length &&
+      !(await ask({
+        title: `Ganti ${replacing.length} orang yang sudah terjadwal?`,
+        message: `${replacing.join(", ")} akan dikeluarkan dari slotnya dan diberi notifikasi.`,
+        confirmText: "Ya, jadwalkan",
+        tone: "warning",
+      }))
+    )
+      return;
     setBusy(true);
     try {
       for (const r of rows) {

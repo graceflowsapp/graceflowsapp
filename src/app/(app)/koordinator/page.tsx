@@ -439,6 +439,18 @@ function AssignModal({ slot, onClose }: { slot: Slot; onClose: () => void }) {
                   }))
                 )
                   return;
+                // replacing someone who is already scheduled here
+                if (
+                  current &&
+                  u.id !== current &&
+                  !blockers.length &&
+                  !(await ask({
+                    title: `Ganti ${users.find((x) => x.id === current)?.name ?? "pelayan"}?`,
+                    message: `${u.name} akan menggantikannya sebagai ${slot.position}. Keduanya akan diberi notifikasi.`,
+                    confirmText: "Ganti",
+                  }))
+                )
+                  return;
                 pick(u.id);
               }}
               className={cn("w-full flex items-start gap-3 rounded-xl px-2 py-2 text-left hover:bg-surface", u.id === current && "bg-brand-soft")}
@@ -463,7 +475,10 @@ function AssignModal({ slot, onClose }: { slot: Slot; onClose: () => void }) {
           {showAll ? "Hanya yang sesuai posisi" : "Tampilkan semua anggota komisi"}
         </Button>
         {current && (
-          <Button variant="danger" size="sm" className="ml-auto" onClick={() => pick(null)}>
+          <Button variant="danger" size="sm" className="ml-auto" onClick={async () => {
+              if (!(await ask({ title: "Kosongkan slot ini?", message: `${users.find((x) => x.id === current)?.name ?? "Pelayan"} tidak lagi bertugas sebagai ${slot.position} dan akan diberi notifikasi.`, confirmText: "Kosongkan", tone: "danger" }))) return;
+              pick(null);
+            }}>
             <UserMinus size={14} /> Kosongkan
           </Button>
         )}
@@ -519,6 +534,7 @@ function SmartFillModal({ scope, targets, ministryId, label, onClose }: { scope:
           className="flex-1"
           disabled={!result.length || busy}
           onClick={async () => {
+            if (!(await ask({ title: `Terapkan Smart Fill?`, message: `${result.length} slot akan diisi dan setiap pelayan yang dijadwalkan diberi notifikasi.`, confirmText: "Terapkan" }))) return;
             setBusy(true);
             await saveAssignments(result);
             celebrate(`${result.length} slot terisi`);

@@ -72,3 +72,15 @@ export function celebrate(message?: string) {
   haptic("success");
   window.dispatchEvent(new CustomEvent("gf-celebrate", { detail: message ?? "" }));
 }
+
+/** "Keluar" with a confirmation first. */
+export async function confirmLogout(logout: () => unknown) {
+  const ok = await ask({
+    title: "Keluar dari GraceFlow?",
+    message: "Kamu perlu masuk lagi dengan email/username dan kata sandi.",
+    confirmText: "Keluar",
+    cancelText: "Batal",
+    tone: "danger",
+  });
+  if (ok) await logout();
+}

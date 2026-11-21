@@ -11,7 +11,7 @@ import { useApp, useCoordinatedMinistries } from "@/components/providers";
 import { Badge, Button, Card, Empty, Modal, toast } from "@/components/ui";
 import { PositionsEditor } from "@/components/PositionsEditor";
 import { store } from "@/lib/store";
-import { celebrate } from "@/lib/feedback";
+import { ask, celebrate } from "@/lib/feedback";
 import { todayISO } from "@/lib/dates";
 import type { Ministry } from "@/lib/types";
 
@@ -88,6 +88,7 @@ function RolesModal({ ministry, onClose }: { ministry: Ministry; onClose: () => 
   const affected = assignments.filter((a) => a.ministryId === ministry.id && removed.includes(a.position) && a.userId && (sDate.get(a.serviceId) ?? "") >= today).length;
 
   const save = async () => {
+    if (affected > 0 && !(await ask({ title: "Simpan perubahan posisi?", message: `${affected} jadwal mendatang memakai posisi ${removed.join(", ")} dan tidak akan tampil lagi.`, confirmText: "Simpan", tone: "warning" }))) return;
     setBusy(true);
     try {
       await store.update("ministries", ministry.id, { positions: finalPositions });

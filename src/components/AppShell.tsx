@@ -8,7 +8,7 @@ import { useApp } from "./providers";
 import { Avatar, Button, Empty, Modal, cn } from "./ui";
 import { HelpChatbot } from "./HelpChatbot";
 import { markNotificationsRead } from "@/lib/actions";
-import { haptic } from "@/lib/feedback";
+import { haptic, confirmLogout } from "@/lib/feedback";
 import { relativeDay } from "@/lib/dates";
 
 export function Logo({ className, subtitle }: { className?: string; subtitle?: string }) {
@@ -65,7 +65,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <Link href="/mulai" className="text-sm text-brand font-medium py-2">
               Gabung / daftarkan gereja lain
             </Link>
-            <Button variant="ghost" onClick={logout}>
+            <Button variant="ghost" onClick={() => confirmLogout(logout)}>
               Keluar
             </Button>
           </div>
@@ -209,7 +209,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             })}
           </nav>
           <div className="border-t border-line">{churchSwitcher}</div>
-          <button onClick={logout} className="mt-auto m-3 flex items-center gap-3 rounded-xl px-3 py-3 text-[15px] font-medium text-danger-ink hover:bg-danger-soft">
+          <button onClick={() => confirmLogout(logout)} className="mt-auto m-3 flex items-center gap-3 rounded-xl px-3 py-3 text-[15px] font-medium text-danger-ink hover:bg-danger-soft">
             <LogOut size={20} /> {demo ? "Ganti peran (demo)" : "Keluar"}
           </button>
         </aside>

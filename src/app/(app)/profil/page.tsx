@@ -9,6 +9,7 @@ import { ThemeSettings } from "@/components/ThemeSettings";
 import { AccountLoginSettings } from "@/components/AccountLoginSettings";
 import { displayLogin } from "@/lib/username";
 import { useApp } from "@/components/providers";
+import { confirmLogout } from "@/lib/feedback";
 import { Avatar, Badge, Button, Card, Field, SectionTitle, cn, inputCls, toast } from "@/components/ui";
 import { updateProfile } from "@/lib/actions";
 import { uploadProfilePhoto } from "@/lib/upload";
@@ -196,7 +197,7 @@ export default function ProfilePage() {
 
       <InstallCard />
 
-      <Button variant="danger" className="w-full mt-6" onClick={logout}>
+      <Button variant="danger" className="w-full mt-6" onClick={() => confirmLogout(logout)}>
         <LogOut size={16} /> {demo ? "Ganti peran (demo)" : "Keluar"}
       </Button>
     </div>
