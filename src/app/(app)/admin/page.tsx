@@ -745,6 +745,10 @@ function PositionsEditor({
   };
 
   const suggestions = POSITION_SUGGESTIONS.filter((p) => !has(p));
+  const [showAllSuggestions, setShowAllSuggestions] = useState(false);
+  const PREVIEW = 3;
+  const shownSuggestions = showAllSuggestions ? suggestions : suggestions.slice(0, PREVIEW);
+  const hiddenCount = suggestions.length - shownSuggestions.length;
 
   return (
     <div className="mb-4">
@@ -811,7 +815,7 @@ function PositionsEditor({
         <>
           <span className="block text-[13px] font-medium text-ink-soft mt-3 mb-2">Atau pilih cepat</span>
           <div className="flex flex-wrap gap-2">
-            {suggestions.map((p) => (
+            {shownSuggestions.map((p) => (
               <button
                 key={p}
                 type="button"
@@ -821,6 +825,16 @@ function PositionsEditor({
                 <Plus size={14} /> {p}
               </button>
             ))}
+            {(hiddenCount > 0 || showAllSuggestions) && suggestions.length > PREVIEW && (
+              <button
+                type="button"
+                onClick={() => setShowAllSuggestions((v) => !v)}
+                aria-expanded={showAllSuggestions}
+                className="inline-flex items-center min-h-9 rounded-full px-3 py-1.5 text-[14px] font-semibold text-brand hover:bg-brand-soft active:scale-[.97] transition"
+              >
+                {showAllSuggestions ? "Tampilkan lebih sedikit" : `Lihat semua (+${hiddenCount})`}
+              </button>
+            )}
           </div>
         </>
       )}
