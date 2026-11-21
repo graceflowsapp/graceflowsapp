@@ -144,7 +144,7 @@ function FirebaseLogin() {
               autoCapitalize="none"
               autoCorrect="off"
               spellCheck={false}
-              placeholder="nama@email.com atau grace21"
+              placeholder="nama@email.com atau grace.natalia"
               required
             />
           </Field>

@@ -52,7 +52,9 @@ service cloud.firestore {
       allow create: if signedIn()
         && request.resource.data.uid == request.auth.uid
         && request.resource.data.username == name
-        && name.matches('^[a-z0-9._]{5,20}$') && name.matches('.*[0-9].*');
+        // Instagram-style, same as src/lib/username.ts: 5–30 of a-z 0-9 . _, has a letter, no leading/trailing/double dot
+        && name.matches('^[a-z0-9._]{5,30}$') && name.matches('.*[a-z].*')
+        && !name.matches('^[.].*') && !name.matches('.*[.]$') && !name.matches('.*[.][.].*');
       allow update: if signedIn() && resource.data.uid == request.auth.uid
         && request.resource.data.uid == resource.data.uid
         && request.resource.data.username == resource.data.username;

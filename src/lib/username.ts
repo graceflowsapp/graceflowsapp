@@ -30,7 +30,8 @@ import type { Account } from "./types";
 
 /** "Lebih dari 4" → at least 5 characters. */
 export const USERNAME_MIN = 5;
-export const USERNAME_MAX = 20;
+/** Same maximum as Instagram. */
+export const USERNAME_MAX = 30;
 
 export interface UsernameDoc {
   uid: string;
@@ -45,20 +46,30 @@ export function normalizeUsername(s: string) {
   return s.trim().replace(/^@+/, "").toLowerCase();
 }
 
+/*
+ * Instagram-style usernames (numbers allowed but NOT required):
+ * a–z, 0–9, "." and "_"; at least one letter; no "." at the start or end; no "..".
+ * Keep firestore.rules (match /usernames/{name}) in sync with these rules.
+ */
+const ALLOWED = /^[a-z0-9._]+$/;
+const dotsOk = (u: string) => !u.startsWith(".") && !u.endsWith(".") && !u.includes("..");
+
 /** Live checklist for the form. */
 export function usernameChecks(u: string) {
   return [
-    { ok: u.length >= USERNAME_MIN, label: `Lebih dari 4 karakter` },
-    { ok: /[0-9]/.test(u), label: "Ada angka (0–9)" },
-    { ok: u.length > 0 && u.length <= USERNAME_MAX && /^[a-z0-9._]+$/.test(u), label: "Hanya huruf, angka, titik (.) atau garis bawah (_)" },
+    { ok: u.length >= USERNAME_MIN && u.length <= USERNAME_MAX, label: `Lebih dari 4 karakter (maks. ${USERNAME_MAX})` },
+    { ok: /[a-z]/.test(u), label: "Ada huruf" },
+    { ok: u.length > 0 && ALLOWED.test(u), label: "Hanya huruf, angka, titik (.) atau garis bawah (_)" },
+    { ok: u.length > 0 && dotsOk(u), label: "Titik tidak di awal/akhir dan tidak dobel (..)" },
   ];
 }
 
 export function usernameError(u: string): string | null {
   if (u.length < USERNAME_MIN) return "Username harus lebih dari 4 karakter.";
   if (u.length > USERNAME_MAX) return `Username maksimal ${USERNAME_MAX} karakter.`;
-  if (!/^[a-z0-9._]+$/.test(u)) return "Username hanya boleh berisi huruf, angka, titik (.) atau garis bawah (_), tanpa spasi.";
-  if (!/[0-9]/.test(u)) return "Username harus mengandung angka, misalnya budi77.";
+  if (!ALLOWED.test(u)) return "Username hanya boleh berisi huruf, angka, titik (.) atau garis bawah (_), tanpa spasi.";
+  if (!/[a-z]/.test(u)) return "Username harus mengandung huruf, tidak boleh angka semua.";
+  if (!dotsOk(u)) return "Titik (.) tidak boleh di awal atau akhir username, dan tidak boleh dua titik berurutan.";
   return null;
 }
 
