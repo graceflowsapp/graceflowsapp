@@ -216,7 +216,7 @@ export function HelpChatbot() {
 
   if (!me) return null;
 
-  const chip = "rounded-full border border-brand/40 bg-card text-brand px-3.5 py-2 text-[15px] font-medium text-left hover:bg-brand-soft active:scale-[.98] transition";
+  const chip = "rounded-full border border-brand/40 bg-card text-brand px-3 py-1.5 text-[13.5px] sm:px-3.5 sm:py-2 sm:text-[15px] font-medium text-left hover:bg-brand-soft active:scale-[.98] transition";
 
   const renderBot = (m: Extract<Msg, { from: "bot" }>) => {
     if (m.kind === "welcome") {
@@ -225,7 +225,7 @@ export function HelpChatbot() {
           <p>
             Halo, {me.name.split(" ")[0]}! 👋 Saya asisten bantuan GraceFlow. Mau tanya cara memakai aplikasi ini? Ketik pertanyaanmu, atau pilih di bawah:
           </p>
-          <p className="mt-3 text-[13px] font-semibold text-ink-soft">Pertanyaan populer</p>
+          <p className="mt-2.5 text-[12px] sm:mt-3 sm:text-[13px] font-semibold text-ink-soft">Pertanyaan populer</p>
           <div className="mt-1.5 flex flex-col gap-2">
             {popular.map((id) => (
               <button key={id} className={chip} onClick={() => pick(id)}>
@@ -233,10 +233,10 @@ export function HelpChatbot() {
               </button>
             ))}
           </div>
-          <p className="mt-3 text-[13px] font-semibold text-ink-soft">Atau pilih topik</p>
+          <p className="mt-2.5 text-[12px] sm:mt-3 sm:text-[13px] font-semibold text-ink-soft">Atau pilih topik</p>
           <div className="mt-1.5 flex flex-wrap gap-2">
             {categories.map((k) => (
-              <button key={k} className={cn(chip, "py-1.5 text-[14px]")} onClick={() => pickCategory(k)}>
+              <button key={k} className={cn(chip, "py-1 text-[13px] sm:py-1.5 sm:text-[14px]")} onClick={() => pickCategory(k)}>
                 {k}
               </button>
             ))}
@@ -273,7 +273,7 @@ export function HelpChatbot() {
                 </button>
               ))}
             <button
-              className="text-[14px] text-ink-soft underline text-left px-1 py-1"
+              className="text-[13px] sm:text-[14px] text-ink-soft underline text-left px-1 py-1"
               onClick={() => {
                 push({ from: "user", text: "Bukan semuanya" });
                 replyLater({ from: "bot", kind: "unknown" });
@@ -292,17 +292,17 @@ export function HelpChatbot() {
           <p>Maaf, saya belum paham 🙏</p>
           {sem.state === "idle" && (
             <div className="mt-2 rounded-xl border border-brand/30 bg-brand-soft p-3">
-              <p className="text-[14px]">Mau saya pakai pemahaman bahasa yang lebih pintar? Saya jadi lebih mengerti pertanyaan dengan kata-kata sendiri.</p>
+              <p className="text-[13px] sm:text-[14px]">Mau saya pakai pemahaman bahasa yang lebih pintar? Saya jadi lebih mengerti pertanyaan dengan kata-kata sendiri.</p>
               <button
                 onClick={() => enableSmart(m.q)}
-                className="mt-2 w-full inline-flex items-center justify-center gap-2 rounded-xl bg-brand text-white px-4 py-2.5 text-[15px] font-semibold hover:bg-brand-dark active:scale-[.98] transition"
+                className="mt-2 w-full inline-flex items-center justify-center gap-2 rounded-xl bg-brand text-white px-4 py-2 text-[14px] sm:py-2.5 sm:text-[15px] font-semibold hover:bg-brand-dark active:scale-[.98] transition"
               >
                 <Sparkles size={17} /> Aktifkan
               </button>
               <p className="mt-1.5 text-[12px] text-ink-soft text-center">Unduh ±145 MB, sekali saja. Sebaiknya pakai Wi-Fi.</p>
             </div>
           )}
-          {sem.state === "loading" && <p className="mt-2 text-[14px] text-ink-soft">Sedang menyiapkan pemahaman bahasa… lihat progres di atas.</p>}
+          {sem.state === "loading" && <p className="mt-2 text-[13px] sm:text-[14px] text-ink-soft">Sedang menyiapkan pemahaman bahasa… lihat progres di atas.</p>}
           <p className="mt-1">Coba tanyakan dengan kata lain yang lebih singkat, misalnya “cara konfirmasi hadir”. Kalau masih bingung, silakan hubungi sekretariat atau admin gereja.</p>
           <div className="mt-2 flex flex-wrap gap-2">
             {popular.slice(0, 3).map((id) => (
@@ -323,11 +323,11 @@ export function HelpChatbot() {
         {f.langkah.length > 0 && (
           <ol className="mt-2 space-y-2">
             {f.langkah.map((s, i) => (
-              <li key={i} className="flex gap-2.5">
-                <span className="grid place-items-center h-7 w-7 shrink-0 rounded-full bg-brand text-white text-[14px] font-bold" aria-hidden>
+              <li key={i} className="flex gap-2 sm:gap-2.5">
+                <span className="grid place-items-center h-6 w-6 text-[12.5px] sm:h-7 sm:w-7 sm:text-[14px] shrink-0 rounded-full bg-brand text-white font-bold" aria-hidden>
                   {i + 1}
                 </span>
-                <span className="pt-0.5">{s}</span>
+                <span className="sm:pt-0.5">{s}</span>
               </li>
             ))}
           </ol>
@@ -335,14 +335,14 @@ export function HelpChatbot() {
         {f.link && (
           <button
             onClick={() => go(f.link!)}
-            className="mt-3 w-full inline-flex items-center justify-center gap-2 rounded-xl bg-brand text-white px-4 py-3 text-[16px] font-semibold hover:bg-brand-dark active:scale-[.98] transition"
+            className="mt-3 w-full inline-flex items-center justify-center gap-2 rounded-xl bg-brand text-white px-4 py-2.5 text-[14.5px] sm:py-3 sm:text-[16px] font-semibold hover:bg-brand-dark active:scale-[.98] transition"
           >
-            Bawa saya ke sana <ArrowRight size={18} />
+            Bawa saya ke sana <ArrowRight size={18} className="size-4 sm:size-[18px]" />
           </button>
         )}
         {more.length > 0 && (
           <>
-            <p className="mt-3 text-[13px] font-semibold text-ink-soft">Pertanyaan terkait</p>
+            <p className="mt-2.5 text-[12px] sm:mt-3 sm:text-[13px] font-semibold text-ink-soft">Pertanyaan terkait</p>
             <div className="mt-1.5 flex flex-col gap-2">
               {more.map((r) => (
                 <button key={r.id} className={chip} onClick={() => pick(r.id)}>
@@ -364,9 +364,9 @@ export function HelpChatbot() {
           onClick={() => setOpen(true)}
           aria-label="Buka bantuan: tanya cara memakai aplikasi"
           aria-haspopup="dialog"
-          className="fixed z-40 right-4 bottom-[max(1rem,env(safe-area-inset-bottom))] md:right-6 md:bottom-6 [html[data-install-banner]_&]:bottom-[calc(max(0.75rem,env(safe-area-inset-bottom))+5.75rem)] h-14 w-14 rounded-full bg-brand text-white shadow-lg grid place-items-center hover:bg-brand-dark active:scale-95 transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand/40"
+          className="fixed z-40 right-4 bottom-[max(1rem,env(safe-area-inset-bottom))] md:right-6 md:bottom-6 [html[data-install-banner]_&]:bottom-[calc(max(0.75rem,env(safe-area-inset-bottom))+5.75rem)] h-12 w-12 sm:h-14 sm:w-14 rounded-full bg-brand text-white shadow-lg grid place-items-center hover:bg-brand-dark active:scale-95 transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand/40"
         >
-          <MessageCircleQuestion size={28} />
+          <MessageCircleQuestion size={28} className="size-6 sm:size-7" />
         </button>
       )}
 
@@ -383,22 +383,22 @@ export function HelpChatbot() {
           )}
         >
           {/* header */}
-          <div className="flex items-center gap-3 px-4 h-16 bg-brand text-white shrink-0">
-            <HelpCircle size={26} aria-hidden />
+          <div className="flex items-center gap-2.5 px-3.5 h-14 sm:gap-3 sm:px-4 sm:h-16 bg-brand text-white shrink-0">
+            <HelpCircle size={26} className="size-[22px] sm:size-[26px]" aria-hidden />
             <div className="flex-1 min-w-0">
-              <h2 className="font-bold text-[17px] leading-tight">Bantuan</h2>
-              <p className="text-[13px] opacity-90 truncate">Tanya cara memakai GraceFlow</p>
+              <h2 className="font-bold text-[15.5px] sm:text-[17px] leading-tight">Bantuan</h2>
+              <p className="text-[12px] sm:text-[13px] opacity-90 truncate">Tanya cara memakai GraceFlow</p>
             </div>
             <button onClick={reset} className="p-2 rounded-xl hover:bg-white/15" aria-label="Mulai percakapan baru">
               <RotateCcw size={20} />
             </button>
             <button onClick={close} className="p-2 -mr-1 rounded-xl hover:bg-white/15" aria-label="Tutup bantuan">
-              <X size={24} />
+              <X size={24} className="size-[22px] sm:size-6" />
             </button>
           </div>
 
           {sem.state === "loading" && (
-            <div className="flex items-center gap-2 px-4 py-2 text-[13px] bg-brand-soft text-brand shrink-0" role="status">
+            <div className="flex items-center gap-2 px-3.5 py-1.5 text-[12px] sm:px-4 sm:py-2 sm:text-[13px] bg-brand-soft text-brand shrink-0" role="status">
               <Loader2 size={15} className="animate-spin shrink-0" />
               <span className="flex-1">
                 {sem.stage === "download" ? "Menyiapkan pemahaman bahasa (sekali saja)" : "Mempelajari daftar pertanyaan"}… {sem.pct}%
@@ -407,21 +407,21 @@ export function HelpChatbot() {
           )}
 
           {/* messages */}
-          <div ref={listRef} className="flex-1 overflow-y-auto px-3 py-4 space-y-3 text-[16px] leading-relaxed" aria-live="polite">
+          <div ref={listRef} className="flex-1 overflow-y-auto px-2.5 py-3 space-y-2.5 text-[14.5px] leading-relaxed sm:px-3 sm:py-4 sm:space-y-3 sm:text-[16px]" aria-live="polite">
             {msgs.map((m) =>
               m.from === "user" ? (
                 <div key={m.id} className="flex justify-end">
-                  <div className="max-w-[85%] rounded-2xl rounded-br-md bg-brand text-white px-4 py-2.5 break-words">{m.text}</div>
+                  <div className="max-w-[85%] rounded-2xl rounded-br-md bg-brand text-white px-3.5 py-2 sm:px-4 sm:py-2.5 break-words">{m.text}</div>
                 </div>
               ) : (
                 <div key={m.id} className="flex">
-                  <div className="max-w-[92%] rounded-2xl rounded-bl-md bg-card border border-line px-4 py-3 break-words">{renderBot(m)}</div>
+                  <div className="max-w-[92%] rounded-2xl rounded-bl-md bg-card border border-line px-3.5 py-2.5 sm:px-4 sm:py-3 break-words">{renderBot(m)}</div>
                 </div>
               ),
             )}
             {typing && (
               <div className="flex" role="status" aria-label="Sedang mengetik">
-                <div className="rounded-2xl rounded-bl-md bg-card border border-line px-4 py-3 text-ink-soft text-[15px] flex items-center gap-2">
+                <div className="rounded-2xl rounded-bl-md bg-card border border-line px-3.5 py-2.5 sm:px-4 sm:py-3 text-ink-soft text-[13.5px] sm:text-[15px] flex items-center gap-2">
                   <span className="flex gap-1" aria-hidden>
                     {[0, 1, 2].map((i) => (
                       <span key={i} className="h-2 w-2 rounded-full bg-ink-soft animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
@@ -435,7 +435,7 @@ export function HelpChatbot() {
 
           {/* input */}
           <form
-            className="flex items-center gap-2 p-3 border-t border-line bg-card shrink-0"
+            className="flex items-center gap-2 p-2.5 sm:p-3 border-t border-line bg-card shrink-0"
             onSubmit={(e) => {
               e.preventDefault();
               ask(input);
@@ -453,15 +453,15 @@ export function HelpChatbot() {
               autoComplete="off"
               enterKeyHint="send"
               maxLength={200}
-              className="flex-1 min-w-0 rounded-xl border border-line bg-surface px-4 py-3 text-[16px] text-ink outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
+              className="flex-1 min-w-0 rounded-xl border border-line bg-surface px-3.5 py-2.5 sm:px-4 sm:py-3 text-[16px] text-ink outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
             />
             <button
               type="submit"
               disabled={!input.trim() || typing}
               aria-label="Kirim pertanyaan"
-              className="h-12 w-12 shrink-0 rounded-xl bg-brand text-white grid place-items-center hover:bg-brand-dark disabled:opacity-40 active:scale-95 transition"
+              className="h-11 w-11 sm:h-12 sm:w-12 shrink-0 rounded-xl bg-brand text-white grid place-items-center hover:bg-brand-dark disabled:opacity-40 active:scale-95 transition"
             >
-              <Send size={20} />
+              <Send size={20} className="size-[18px] sm:size-5" />
             </button>
           </form>
         </div>
