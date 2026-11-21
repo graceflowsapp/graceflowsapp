@@ -6,6 +6,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Bell, CalendarDays, Check, Home, LayoutGrid, LogOut, Menu, Plus, ShieldCheck, ToggleRight, User, X } from "lucide-react";
 import { useApp } from "./providers";
 import { Avatar, Button, Empty, Modal, cn } from "./ui";
+import { HelpChatbot } from "./HelpChatbot";
 import { markNotificationsRead } from "@/lib/actions";
 import { haptic } from "@/lib/feedback";
 import { relativeDay } from "@/lib/dates";
@@ -157,7 +158,10 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </header>
 
-      <main className="mx-auto max-w-3xl px-4 pt-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]">{children}</main>
+      <main className="mx-auto max-w-3xl px-4 pt-5 pb-[max(5.5rem,calc(env(safe-area-inset-bottom)+4.5rem))]">{children}</main>
+
+      {/* Floating help chatbot (bottom-right) */}
+      <HelpChatbot />
 
       {/* Mobile burger drawer */}
       <div className={cn("md:hidden fixed inset-0 z-50", menuOpen || drag !== null ? "visible" : "invisible")} aria-hidden={!menuOpen}>
