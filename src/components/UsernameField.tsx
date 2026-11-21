@@ -17,7 +17,7 @@ export function UsernameField({ value, onChange, label = "Username" }: { value: 
           className={cn(inputCls, "pl-7")}
           value={value}
           onChange={(e) => onChange(normalizeUsername(e.target.value).replace(/\s+/g, "").slice(0, USERNAME_MAX))}
-          placeholder="mis. grace21"
+          placeholder="mis. grace.natalia"
           autoComplete="username"
           autoCapitalize="none"
           autoCorrect="off"
