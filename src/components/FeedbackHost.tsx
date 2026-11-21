@@ -76,7 +76,7 @@ export function ConfirmHost() {
           <Icon size={22} />
         </div>
         <h3 className="font-semibold text-ink text-[17px] leading-snug">{req.title}</h3>
-        {req.message && <p className="text-sm text-ink-soft mt-1.5 leading-relaxed">{req.message}</p>}
+        {req.message && <p className="text-sm text-ink-soft mt-1.5 leading-relaxed whitespace-pre-line">{req.message}</p>}
         <div className="grid grid-cols-2 gap-2 mt-5">
           <Button variant="secondary" onClick={() => finish(false)}>
             {req.cancelText ?? "Batal"}

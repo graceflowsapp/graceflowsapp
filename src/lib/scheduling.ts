@@ -1,5 +1,5 @@
 import type { Assignment, Ministry, Service, Slot, UserProfile } from "./types";
-import { monthKey, nowISO, todayISO } from "./dates";
+import { formatDateShort, monthKey, nowISO, todayISO } from "./dates";
 
 export function assignmentId(serviceId: string, ministryId: string, position: string) {
   return `${serviceId}__${ministryId}__${position.replace(/[\/\s]+/g, "-")}`;
@@ -140,6 +140,7 @@ export function smartFill(input: SmartFillInput): Assignment[] {
       const candidates = users
         .filter((u) => canFill(u, slot.ministry.id, slot.position))
         .filter((u) => isAvailableForService(u, service))
+        .filter((u) => !declinedService(u.id, service.id, working))
         .filter((u) => findConflicts(u.id, service, allServices, working).length === 0)
         .map((u) => ({ u, load: loadFor(u.id, month), last: lastServed(u.id, service.date), r: Math.random() }))
         .sort((a, b) => a.load - b.load || a.last.localeCompare(b.last) || a.r - b.r);
@@ -211,4 +212,63 @@ export function statsFor(userId: string, services: Service[], assignments: Assig
     declined,
     pending: mine.length - confirmed - declined,
   };
+}
+
+/** True when this person answered "Berhalangan" for any slot of this service (they were taken off it). */
+export function declinedService(userId: string, serviceId: string, assignments: Assignment[]) {
+  return assignments.some((a) => a.serviceId === serviceId && a.subRequest?.requestedBy === userId);
+}
+
+export type NoteKind = "conflict" | "off" | "declined" | "info";
+export interface AvailabilityNote {
+  kind: NoteKind;
+  text: string;
+}
+
+/**
+ * Why someone may not be a good pick for `service`, in words for the coordinator:
+ * where they're already booked, why they're OFF, or that they declined this service.
+ */
+export function availabilityNotes(
+  user: UserProfile,
+  service: Service,
+  ctx: { services: Service[]; assignments: Assignment[]; ministries: Ministry[]; ignoreAssignmentId?: string; ministryId?: string; position?: string },
+): AvailabilityNote[] {
+  const notes: AvailabilityNote[] = [];
+  const mName = (id: string) => ctx.ministries.find((m) => m.id === id)?.name ?? id;
+  const sById = new Map(ctx.services.map((x) => [x.id, x]));
+
+  // declined (this service)
+  const declined = ctx.assignments.find((a) => a.serviceId === service.id && a.subRequest?.requestedBy === user.id);
+  if (declined) {
+    notes.push({ kind: "declined", text: `Berhalangan untuk ibadah ini${declined.subRequest?.reason ? `: “${declined.subRequest.reason}”` : ""}` });
+  }
+
+  // already booked at the same time / in the same service
+  for (const { assignment: a, service: s } of findConflicts(user.id, service, ctx.services, ctx.assignments, ctx.ignoreAssignmentId)) {
+    notes.push({
+      kind: "conflict",
+      text: s.id === service.id ? `Sudah bertugas di ibadah ini: ${a.position} (${mName(a.ministryId)})` : `Sudah bertugas ${a.position} (${mName(a.ministryId)}) di ${s.title} ${s.time}`,
+    });
+  }
+
+  // OFF
+  if (!isAvailableOn(user, service.date)) {
+    const until = user.unavailableUntil ? ` sampai ${formatDateShort(user.unavailableUntil)}` : "";
+    notes.push({ kind: "off", text: `OFF: ${user.unavailableReason || "sedang tidak tersedia"}${until}` });
+  } else if ((user.unavailableServices ?? []).includes(service.id)) {
+    notes.push({ kind: "off", text: "OFF untuk ibadah ini (diatur sendiri di Ketersediaan)" });
+  }
+  if (ctx.ministryId && ctx.position && !isPositionOn(user, ctx.ministryId, ctx.position)) {
+    notes.push({ kind: "off", text: `Mematikan peran ${ctx.position}` });
+  }
+
+  // same day, different time: not a clash, but useful to know
+  for (const a of ctx.assignments) {
+    if (a.userId !== user.id || a.id === ctx.ignoreAssignmentId) continue;
+    const s = sById.get(a.serviceId);
+    if (!s || s.id === service.id || s.date !== service.date || s.time === service.time) continue;
+    notes.push({ kind: "info", text: `Juga bertugas hari ini: ${a.position} di ${s.title} ${s.time}` });
+  }
+  return notes;
 }

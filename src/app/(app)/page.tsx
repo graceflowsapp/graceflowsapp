@@ -33,7 +33,7 @@ export default function HomePage() {
     const today = todayISO();
     const sById = new Map(services.map((s) => [s.id, s]));
     return assignments
-      .filter((a) => a.subRequest && a.userId !== me.id && canFill(me, a.ministryId, a.position))
+      .filter((a) => a.subRequest && a.userId !== me.id && a.subRequest.requestedBy !== me.id && canFill(me, a.ministryId, a.position))
       .map((a) => ({ a, s: sById.get(a.serviceId)! }))
       .filter(({ s }) => s && s.date >= today)
       .filter(({ a, s }) => findConflicts(me.id, s, services, assignments, a.id).length === 0)
@@ -92,7 +92,7 @@ export default function HomePage() {
           <SectionTitle>Butuh pengganti</SectionTitle>
           <div className="space-y-2">
             {openRequests.map(({ a, s }) => {
-              const requester = users.find((u) => u.id === a.userId);
+              const requester = users.find((u) => u.id === (a.subRequest?.requestedBy ?? a.userId));
               const m = ministries.find((x) => x.id === a.ministryId);
               return (
                 <Card key={a.id} className="p-3 flex items-center gap-3">

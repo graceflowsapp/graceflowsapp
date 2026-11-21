@@ -103,6 +103,12 @@ service cloud.firestore {
               && request.resource.data.userId == resource.data.userId
               && request.resource.data.get('status', 'pending') in ['pending', 'confirmed', 'declined']
               && onlyChanges(['status', 'respondedAt', 'subRequest', 'updatedAt']))
+          // ...or answers Berhalangan, which takes them off the slot (coordinator picks a replacement)
+          || (isMember(cid) && resource.data.userId == request.auth.uid
+              && request.resource.data.userId == null
+              && request.resource.data.status == 'declined'
+              && request.resource.data.subRequest.requestedBy == request.auth.uid
+              && onlyChanges(['userId', 'status', 'respondedAt', 'subRequest', 'updatedAt']))
           // a teammate in the same ministry takes over a declined slot
           || (isMember(cid) && resource.data.get('subRequest', null) != null
               && resource.data.ministryId in member(cid).ministries

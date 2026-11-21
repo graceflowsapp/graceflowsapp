@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AlertTriangle, Copy, MapPin, Download, ImageIcon, MessageCircle, Moon, Music2, UserMinus, Wand2 } from "lucide-react";
+import { AlertTriangle, CalendarClock, Copy, Info, MapPin, Download, ImageIcon, MessageCircle, Moon, Music2, UserMinus, UserX, Wand2 } from "lucide-react";
 import { toPng } from "html-to-image";
 import { useApp, useCoordinatedMinistries } from "@/components/providers";
 import { Avatar, Badge, Button, Card, Empty, Field, Modal, SectionTitle, cn, inputCls, toast } from "@/components/ui";
@@ -11,7 +11,7 @@ import { POSTER_H, POSTER_W, Poster } from "@/components/Poster";
 import { assignSlot, saveAssignments } from "@/lib/actions";
 import { store } from "@/lib/store";
 import { formatDateLong, formatMonth, monthKey, todayISO } from "@/lib/dates";
-import { canFill, findConflicts, isActive, isAvailableForService, isAvailableOn, isPositionOn, slotsForService, smartFill } from "@/lib/scheduling";
+import { availabilityNotes, canFill, isActive, slotsForService, smartFill, type AvailabilityNote } from "@/lib/scheduling";
 import { openWhatsApp, scheduleToWhatsAppText } from "@/lib/whatsapp";
 import type { Assignment, Service, Slot } from "@/lib/types";
 import { ask, celebrate, haptic } from "@/lib/feedback";
@@ -30,8 +30,23 @@ export default function CoordinatorPage() {
   const [exportOpen, setExportOpen] = useState(false);
   const [view, setView] = useState<"calendar" | "list">("calendar");
 
+  // opened from a notification: /koordinator?tanggal=YYYY-MM-DD&komisi=<ministryId>
+  const deepLink = useRef<{ date: string | null; ministry: string | null } | null>(null);
   useEffect(() => {
-    if (!ministryId && mine[0]) setMinistryId(mine[0].id);
+    const q = new URLSearchParams(window.location.search);
+    const date = q.get("tanggal");
+    deepLink.current = { date, ministry: q.get("komisi") };
+    if (date && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      setSelected(date);
+      setCursor({ y: Number(date.slice(0, 4)), m: Number(date.slice(5, 7)) - 1 });
+      setView("calendar");
+    }
+  }, []);
+
+  useEffect(() => {
+    if (ministryId || !mine[0]) return;
+    const wanted = deepLink.current?.ministry;
+    setMinistryId(mine.find((m) => m.id === wanted)?.id ?? mine[0].id);
   }, [mine, ministryId]);
 
   const ministry = ministries.find((m) => m.id === ministryId);
@@ -233,18 +248,34 @@ function ServiceSlots({ service, ministryId, onPick, showDate }: { service: Serv
       <ul className="space-y-1">
         {slots.map((slot) => {
           const u = users.find((x) => x.id === slot.assignment?.userId);
-          const conflict = u ? findConflicts(u.id, service, services, assignments, slot.assignmentId).length > 0 : false;
+          const sub = slot.assignment?.subRequest;
+          const decliner = sub && !u ? users.find((x) => x.id === sub.requestedBy) : undefined;
+          // already booked elsewhere at this time / OFF, for the person in this slot
+          const notes = u
+            ? availabilityNotes(u, service, { services, assignments, ministries, ignoreAssignmentId: slot.assignmentId }).filter((n) => n.kind === "conflict" || n.kind === "off")
+            : [];
           return (
             <li key={slot.assignmentId}>
               <button onClick={() => onPick(slot)} className="w-full flex items-center gap-3 rounded-xl px-2 py-2 hover:bg-surface text-left">
                 <Avatar name={u?.name ?? "?"} src={u?.photoUrl} size={36} className={!u ? "opacity-25" : ""} />
                 <div className="flex-1 min-w-0">
                   <div className="text-[11px] text-ink-soft">{slot.position}</div>
-                  <div className={cn("text-sm truncate", u ? "font-medium" : "text-danger italic")}>{u?.name ?? "Kosong — ketuk untuk isi"}</div>
+                  <div className={cn("text-sm truncate", u ? "font-medium" : "text-danger italic")}>
+                    {u?.name ?? (sub ? "Kosong — pilih pengganti" : "Kosong — ketuk untuk isi")}
+                  </div>
+                  {sub && !u && (
+                    <div className="text-[11px] text-warning-ink truncate">
+                      {decliner?.name ?? "Pelayan"} berhalangan{sub.reason ? `: “${sub.reason}”` : ""}
+                    </div>
+                  )}
+                  <NoteLines notes={notes} compact />
                 </div>
                 {u && <StatusBadge status={slot.assignment?.status} />}
-                {u && !isAvailableForService(u, service) && <Badge className="bg-surface text-ink-soft">OFF</Badge>}
-                {conflict && <Badge className="bg-danger-soft text-danger-ink">Bentrok</Badge>}
+                {sub && !u && (
+                  <Badge className="bg-warning-soft text-warning-ink">
+                    <UserX size={11} /> Butuh pengganti
+                  </Badge>
+                )}
               </button>
             </li>
           );
@@ -297,26 +328,41 @@ function RehearsalModal({ service, ministryId, onClose }: { service: Service; mi
 }
 
 function AssignModal({ slot, onClose }: { slot: Slot; onClose: () => void }) {
-  const { users, services, assignments } = useApp();
+  const { users, services, assignments, ministries } = useApp();
   const [showAll, setShowAll] = useState(false);
   const month = monthKey(slot.service.date);
   const sById = new Map(services.map((s) => [s.id, s]));
   const current = slot.assignment?.userId ?? null;
+  const sub = slot.assignment?.subRequest;
+  const decliner = sub ? users.find((u) => u.id === sub.requestedBy) : undefined;
 
   const rows = users
     .filter((u) => (showAll ? isActive(u) && u.ministries.includes(slot.ministry.id) : canFill(u, slot.ministry.id, slot.position)))
     .map((u) => {
       const load = assignments.filter((a) => a.userId === u.id && monthKey(sById.get(a.serviceId)?.date ?? "") === month).length;
-      const available = isAvailableForService(u, slot.service);
-      const offReason = !isAvailableOn(u, slot.service.date) ? u.unavailableReason || "OFF" : "OFF ibadah ini";
-      const roleOn = isPositionOn(u, slot.ministry.id, slot.position);
-      const conflicts = findConflicts(u.id, slot.service, services, assignments, slot.assignmentId);
-      return { u, load, available, offReason, roleOn, conflicts, skilled: canFill(u, slot.ministry.id, slot.position) };
+      const notes = availabilityNotes(u, slot.service, {
+        services,
+        assignments,
+        ministries,
+        ignoreAssignmentId: slot.assignmentId,
+        ministryId: slot.ministry.id,
+        position: slot.position,
+      });
+      const blockers = notes.filter((n) => n.kind !== "info");
+      return { u, load, notes, blockers, free: blockers.length === 0, skilled: canFill(u, slot.ministry.id, slot.position) };
     })
-    .sort((a, b) => Number(b.available) - Number(a.available) || a.conflicts.length - b.conflicts.length || a.load - b.load);
+    .sort((a, b) => Number(b.free) - Number(a.free) || a.blockers.length - b.blockers.length || a.load - b.load);
 
   const pick = async (userId: string | null) => {
-    await assignSlot({ id: slot.assignmentId, service: slot.service, ministryId: slot.ministry.id, position: slot.position, userId, previousUserId: current });
+    await assignSlot({
+      id: slot.assignmentId,
+      service: slot.service,
+      ministryId: slot.ministry.id,
+      position: slot.position,
+      userId,
+      previousUserId: current,
+      replacing: userId && decliner ? decliner.name : undefined,
+    });
     if (userId) haptic("success");
     toast(userId ? "Pelayan dijadwalkan & diberi notifikasi" : "Slot dikosongkan");
     onClose();
@@ -325,33 +371,41 @@ function AssignModal({ slot, onClose }: { slot: Slot; onClose: () => void }) {
   return (
     <Modal open onClose={onClose} title={`${slot.position} · ${slot.service.title}`}>
       <p className="text-[13px] text-ink-soft mb-3">{formatDateLong(slot.service.date)} · diurutkan dari yang tersedia & paling jarang melayani bulan ini.</p>
-      {slot.assignment?.subRequest && (
-        <div className="rounded-xl bg-warning-soft text-warning-ink text-[13px] px-3 py-2 mb-3">Berhalangan: “{slot.assignment.subRequest.reason}” — pilih pengganti di bawah.</div>
+      {sub && !current && (
+        <div className="rounded-xl bg-warning-soft text-warning-ink text-[13px] px-3 py-2 mb-3">
+          <b>{decliner?.name ?? "Pelayan"}</b> berhalangan{sub.reason ? ` (“${sub.reason}”)` : ""} dan sudah dikeluarkan dari slot ini. Pilih pengganti yang tersedia. Dia akan diminta konfirmasi.
+        </div>
       )}
       <ul className="space-y-1 -mx-2">
-        {rows.map(({ u, load, available, offReason, roleOn, conflicts, skilled }) => (
+        {rows.map(({ u, load, notes, blockers, free, skilled }) => (
           <li key={u.id}>
             <button
               onClick={async () => {
-                if (conflicts.length && !(await ask({ title: "Jadwal bentrok", message: `${u.name} sudah bertugas di waktu yang sama. Tetap jadwalkan?`, confirmText: "Tetap jadwalkan", tone: "warning" }))) return;
-                if (!available && !(await ask({ title: `${u.name} sedang OFF`, message: `Alasan: ${offReason}. Tetap jadwalkan?`, confirmText: "Tetap jadwalkan", tone: "warning" }))) return;
+                if (
+                  blockers.length &&
+                  u.id !== current &&
+                  !(await ask({
+                    title: blockers.some((n) => n.kind === "conflict") ? "Jadwal bentrok" : `${u.name} sedang tidak tersedia`,
+                    message: `${blockers.map((n) => "• " + n.text).join("\n")}\n\nTetap jadwalkan ${u.name}?`,
+                    confirmText: "Tetap jadwalkan",
+                    tone: "warning",
+                  }))
+                )
+                  return;
                 pick(u.id);
               }}
-              className={cn("w-full flex items-center gap-3 rounded-xl px-2 py-2 text-left hover:bg-surface", u.id === current && "bg-brand-soft", (!available || conflicts.length > 0) && "opacity-60")}
+              className={cn("w-full flex items-start gap-3 rounded-xl px-2 py-2 text-left hover:bg-surface", u.id === current && "bg-brand-soft")}
             >
-              <Avatar name={u.name} src={u.photoUrl} size={36} />
+              <Avatar name={u.name} src={u.photoUrl} size={36} className={cn(!free && "opacity-60")} />
               <div className="flex-1 min-w-0">
-                <div className="text-sm font-medium truncate">{u.name}</div>
-                <div className="text-[11px] text-ink-soft">{load}× bulan ini</div>
+                <div className={cn("text-sm font-medium truncate", !free && "text-ink-soft")}>{u.name}</div>
+                <div className="text-[11px] text-ink-soft">
+                  {load}× bulan ini{free && <span className="text-success font-medium"> · Tersedia</span>}
+                </div>
+                <NoteLines notes={notes} />
               </div>
               {u.id === current && <Badge className="bg-brand text-white">Saat ini</Badge>}
-              {!available && (
-                <Badge className="bg-surface text-ink-soft">
-                  <Moon size={10} /> {offReason}
-                </Badge>
-              )}
-              {conflicts.length > 0 && <Badge className="bg-danger-soft text-danger-ink">Bentrok</Badge>}
-              {!roleOn ? <Badge>Peran OFF</Badge> : !skilled && <Badge>Bukan posisinya</Badge>}
+              {!skilled && <Badge>Bukan posisinya</Badge>}
             </button>
           </li>
         ))}
@@ -588,5 +642,30 @@ function ExportModal({
         </>
       )}
     </Modal>
+  );
+}
+
+const NOTE_STYLE: Record<AvailabilityNote["kind"], { cls: string; Icon: typeof Info }> = {
+  conflict: { cls: "text-danger-ink", Icon: CalendarClock },
+  declined: { cls: "text-warning-ink", Icon: UserX },
+  off: { cls: "text-ink-soft", Icon: Moon },
+  info: { cls: "text-ink-soft", Icon: Info },
+};
+
+/** Small explanation lines under a person: where they're already booked / why they're unavailable. */
+function NoteLines({ notes, compact }: { notes: AvailabilityNote[]; compact?: boolean }) {
+  if (!notes.length) return null;
+  return (
+    <ul className="mt-0.5 space-y-0.5">
+      {notes.map((n, i) => {
+        const { cls, Icon } = NOTE_STYLE[n.kind];
+        return (
+          <li key={i} className={cn("flex items-start gap-1 text-[11px] leading-snug", cls)}>
+            <Icon size={11} className="mt-[2px] shrink-0" aria-hidden />
+            <span className={cn(compact && "truncate")}>{n.text}</span>
+          </li>
+        );
+      })}
+    </ul>
   );
 }
