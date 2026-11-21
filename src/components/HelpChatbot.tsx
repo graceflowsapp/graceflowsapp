@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { ArrowRight, HelpCircle, Loader2, MessageCircleQuestion, RotateCcw, Send, X } from "lucide-react";
+import { ArrowRight, HelpCircle, Sparkles, Loader2, MessageCircleQuestion, RotateCcw, Send, X } from "lucide-react";
 import { useApp } from "./providers";
 import { cn } from "./ui";
 import faqData from "@/data/faq.json";
@@ -12,6 +12,16 @@ import { getSemanticStatus, onSemanticStatus, semanticScores, startSemantic, typ
 
 const ALL_FAQ = faqData as FaqItem[];
 const STORAGE_KEY = "graceflow-help-chat";
+/** "1" once the user chose the smarter (semantic) mode; the ~145 MB download is opt-in, never automatic. */
+const SMART_KEY = "graceflow-help-smart";
+
+function smartChosen() {
+  try {
+    return localStorage.getItem(SMART_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
 /** Short "sedang mengetik..." pause so answers don't feel abrupt. */
 const TYPING_MS = 550;
 /** Shown as buttons in the welcome message (first ones the user's role can see). */
@@ -22,7 +32,8 @@ type Msg =
   | { id: number; from: "bot"; kind: "welcome" }
   | { id: number; from: "bot"; kind: "answer"; faqId: string }
   | { id: number; from: "bot"; kind: "clarify"; options: string[] }
-  | { id: number; from: "bot"; kind: "unknown" }
+  | { id: number; from: "bot"; kind: "unknown"; q?: string }
+  | { id: number; from: "bot"; kind: "note"; text: string }
   | { id: number; from: "bot"; kind: "category"; kategori: string };
 /** A message before it gets its id (Omit distributed over the union). */
 type NewMsg = Msg extends infer M ? (M extends Msg ? Omit<M, "id"> : never) : never;
@@ -58,6 +69,9 @@ export function HelpChatbot() {
   const fabRef = useRef<HTMLButtonElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const nextId = useRef(1);
+  /** Question to answer again once the smarter mode has finished loading. */
+  const retryQ = useRef<string | null>(null);
+  const waitingSmart = useRef(false);
 
   // FAQ visible to this user's role
   const roles = faqRolesFor(me?.role, (me?.coordinatorOf.length ?? 0) > 0);
@@ -90,11 +104,12 @@ export function HelpChatbot() {
     requestAnimationFrame(() => fabRef.current?.focus());
   }, []);
 
-  // first open: welcome message + lazy-load the semantic model
+  // first open: welcome message. The semantic model only loads if the user opted in earlier
+  // (then it comes from the browser cache, no new download).
   useEffect(() => {
     if (!open) return;
     if (!msgs.length) push({ from: "bot", kind: "welcome" });
-    startSemantic(ALL_FAQ);
+    if (smartChosen()) startSemantic(ALL_FAQ);
     const t = setTimeout(() => inputRef.current?.focus(), 50);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -122,11 +137,13 @@ export function HelpChatbot() {
     }, TYPING_MS);
   };
 
-  const ask = async (text: string) => {
+  const ask = async (text: string, echo = true) => {
     const q = text.trim();
     if (!q || typing) return;
-    setInput("");
-    push({ from: "user", text: q });
+    if (echo) {
+      setInput("");
+      push({ from: "user", text: q });
+    }
     setTyping(true);
     const started = Date.now();
     const semantic = await semanticScores(q);
@@ -136,9 +153,36 @@ export function HelpChatbot() {
       setTyping(false);
       if (r.kind === "answer") push({ from: "bot", kind: "answer", faqId: r.best.item.id });
       else if (r.kind === "clarify") push({ from: "bot", kind: "clarify", options: r.options.map((o) => o.item.id) });
-      else push({ from: "bot", kind: "unknown" });
+      else push({ from: "bot", kind: "unknown", q });
     }, wait);
   };
+
+  /** Opt-in: download the language model (once), then answer the question that wasn't understood. */
+  const enableSmart = (q?: string) => {
+    try {
+      localStorage.setItem(SMART_KEY, "1");
+    } catch {
+      /* ignore */
+    }
+    retryQ.current = q ?? null;
+    waitingSmart.current = true;
+    startSemantic(ALL_FAQ);
+  };
+
+  // smarter mode finished loading (or failed) after the user turned it on
+  useEffect(() => {
+    if (!waitingSmart.current || (sem.state !== "ready" && sem.state !== "off")) return;
+    waitingSmart.current = false;
+    const q = retryQ.current;
+    retryQ.current = null;
+    if (sem.state === "off") {
+      push({ from: "bot", kind: "note", text: "Maaf, pemahaman yang lebih pintar tidak bisa dipakai di perangkat ini (" + sem.reason + "). Coba tanyakan dengan kata lain ya." });
+      return;
+    }
+    push({ from: "bot", kind: "note", text: q ? "Sudah siap! Saya coba jawab lagi pertanyaanmu…" : "Sudah siap! Silakan tanyakan lagi pertanyaanmu." });
+    if (q) setTimeout(() => ask(q, false), 300);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sem]);
 
   /** A button with a known FAQ: show it as if the user asked that question. */
   const pick = (faqId: string) => {
@@ -241,10 +285,24 @@ export function HelpChatbot() {
         </>
       );
     }
+    if (m.kind === "note") return <p>{m.text}</p>;
     if (m.kind === "unknown") {
       return (
         <>
           <p>Maaf, saya belum paham 🙏</p>
+          {sem.state === "idle" && (
+            <div className="mt-2 rounded-xl border border-brand/30 bg-brand-soft p-3">
+              <p className="text-[14px]">Mau saya pakai pemahaman bahasa yang lebih pintar? Saya jadi lebih mengerti pertanyaan dengan kata-kata sendiri.</p>
+              <button
+                onClick={() => enableSmart(m.q)}
+                className="mt-2 w-full inline-flex items-center justify-center gap-2 rounded-xl bg-brand text-white px-4 py-2.5 text-[15px] font-semibold hover:bg-brand-dark active:scale-[.98] transition"
+              >
+                <Sparkles size={17} /> Aktifkan
+              </button>
+              <p className="mt-1.5 text-[12px] text-ink-soft text-center">Unduh ±145 MB, sekali saja. Sebaiknya pakai Wi-Fi.</p>
+            </div>
+          )}
+          {sem.state === "loading" && <p className="mt-2 text-[14px] text-ink-soft">Sedang menyiapkan pemahaman bahasa… lihat progres di atas.</p>}
           <p className="mt-1">Coba tanyakan dengan kata lain yang lebih singkat, misalnya “cara konfirmasi hadir”. Kalau masih bingung, silakan hubungi sekretariat atau admin gereja.</p>
           <div className="mt-2 flex flex-wrap gap-2">
             {popular.slice(0, 3).map((id) => (
@@ -306,7 +364,7 @@ export function HelpChatbot() {
           onClick={() => setOpen(true)}
           aria-label="Buka bantuan: tanya cara memakai aplikasi"
           aria-haspopup="dialog"
-          className="fixed z-40 right-4 bottom-[max(1rem,env(safe-area-inset-bottom))] md:right-6 md:bottom-6 h-14 w-14 rounded-full bg-brand text-white shadow-lg grid place-items-center hover:bg-brand-dark active:scale-95 transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand/40"
+          className="fixed z-40 right-4 bottom-[max(1rem,env(safe-area-inset-bottom))] md:right-6 md:bottom-6 [html[data-install-banner]_&]:bottom-[calc(max(0.75rem,env(safe-area-inset-bottom))+5.75rem)] h-14 w-14 rounded-full bg-brand text-white shadow-lg grid place-items-center hover:bg-brand-dark active:scale-95 transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand/40"
         >
           <MessageCircleQuestion size={28} />
         </button>

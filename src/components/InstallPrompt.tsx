@@ -117,6 +117,16 @@ export function InstallBanner() {
     return () => clearTimeout(t);
   }, [ready, available]);
 
+  // lets other floating UI (the help chat button) move up while the banner is on screen
+  useEffect(() => {
+    const r = document.documentElement;
+    if (visible) r.dataset.installBanner = "";
+    else delete r.dataset.installBanner;
+    return () => {
+      delete r.dataset.installBanner;
+    };
+  }, [visible]);
+
   const dismiss = () => {
     setVisible(false);
     try {

@@ -1,8 +1,8 @@
 "use client";
 
 /**
- * Talks to faq.worker.ts. The worker (and the ~120 MB model) is only started when `startSemantic()` is called —
- * the chat panel does that the first time it is opened. If anything fails, the chatbot keeps working with the
+ * Talks to faq.worker.ts. The worker (and the ~120 MB model) is only started when `startSemantic()` is called:
+ * only after the user taps "Aktifkan" (opt-in, see HelpChatbot) or has done so before. If anything fails, the chatbot keeps working with the
  * lexical layer (Fuse.js) only.
  */
 import type { FaqItem, SemanticScores } from "./types";
