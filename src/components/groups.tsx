@@ -6,14 +6,15 @@
  * Every person still gets their own slot, so Hadir / Berhalangan / tukar jadwal keep working per person.
  */
 import { useMemo, useState } from "react";
-import { ArrowLeft, Pencil, Plus, Trash2, UserX, Users } from "lucide-react";
+import { ArrowLeft, ChevronRight, Pencil, Plus, Trash2, UserX, Users } from "lucide-react";
 import { useApp } from "./providers";
 import { Avatar, Badge, Button, Modal, cn, inputCls, toast } from "./ui";
+import { PersonPicker } from "./PersonPicker";
 import { assignSlot, saveGroups } from "@/lib/actions";
 import { ask, celebrate, haptic } from "@/lib/feedback";
 import { formatDateLong } from "@/lib/dates";
 import { assignmentId, availabilityNotes, canFill, declinedService, findConflicts, isActive, isAvailableForService, type AvailabilityNote } from "@/lib/scheduling";
-import type { Ministry, MinistryGroup, Service, UserProfile } from "@/lib/types";
+import type { Ministry, MinistryGroup, Service } from "@/lib/types";
 
 function rid() {
   return Math.random().toString(36).slice(2, 8) + Date.now().toString(36).slice(-4);
@@ -78,6 +79,7 @@ function GroupEditor({ ministry, group, onBack, onSaved }: { ministry: Ministry;
   // posisi → userId ("" = not in this group)
   const [seats, setSeats] = useState<Record<string, string>>(() => Object.fromEntries((group?.slots ?? []).map((s) => [s.position, s.userId])));
   const [busy, setBusy] = useState(false);
+  const [pickingFor, setPickingFor] = useState<string | null>(null);
   const members = useMemo(
     () => users.filter((u) => isActive(u) && u.ministries.includes(ministry.id)).sort((a, b) => a.name.localeCompare(b.name)),
     [users, ministry.id],
@@ -137,29 +139,66 @@ function GroupEditor({ ministry, group, onBack, onSaved }: { ministry: Ministry;
           const v = seats[p] ?? "";
           const picked = members.find((m) => m.id === v);
           return (
-            <li key={p} className="flex items-center gap-3">
-              <span className="w-28 shrink-0 text-[14px] font-medium truncate" title={p}>
-                {p}
-              </span>
-              <select
-                className={cn(inputCls, "flex-1 min-w-0 text-[15px]", dupes.has(v) && "border-danger")}
-                value={v}
-                onChange={(e) => setSeats((s) => ({ ...s, [p]: e.target.value }))}
-                aria-label={`Orang untuk ${p}`}
+            <li key={p}>
+              <button
+                type="button"
+                onClick={() => setPickingFor(p)}
+                aria-label={`${p}: ${picked ? picked.name : "belum dipilih"}. Ketuk untuk memilih`}
+                className={cn(
+                  "w-full flex items-center gap-3 rounded-2xl border px-3 py-2.5 text-left active:scale-[.99] transition",
+                  picked ? "border-line bg-card hover:border-brand" : "border-dashed border-line bg-surface hover:border-brand",
+                  dupes.has(v) && "border-danger",
+                )}
               >
-                <option value="">— tidak ada —</option>
-                {members.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.name}
-                    {canFill(m, ministry.id, p) ? "" : " (bukan posisinya)"}
-                  </option>
-                ))}
-              </select>
-              {picked && <Avatar name={picked.name} src={picked.photoUrl} size={30} className="shrink-0" />}
+                {picked ? (
+                  <Avatar name={picked.name} src={picked.photoUrl} size={40} className="shrink-0" />
+                ) : (
+                  <span className="h-10 w-10 rounded-full border-2 border-dashed border-line grid place-items-center text-ink-soft shrink-0">
+                    <Plus size={18} />
+                  </span>
+                )}
+                <span className="flex-1 min-w-0">
+                  <span className="block text-[12px] text-ink-soft">{p}</span>
+                  <span className={cn("block text-[16px] truncate", picked ? "font-semibold" : "text-ink-soft")}>{picked ? picked.name : "Pilih orang"}</span>
+                  {picked && !canFill(picked, ministry.id, p) && <span className="block text-[12px] text-warning-ink">Biasanya bukan posisinya</span>}
+                </span>
+                <ChevronRight size={18} className="text-ink-soft shrink-0" />
+              </button>
             </li>
           );
         })}
       </ul>
+      <PersonPicker
+        open={pickingFor !== null}
+        title={pickingFor ? `Pilih ${pickingFor}` : ""}
+        subtitle={name.trim() || "Grup baru"}
+        selectedId={pickingFor ? seats[pickingFor] || null : null}
+        clearLabel="Kosongkan posisi ini"
+        people={members.map((m) => {
+          const elsewhere = Object.entries(seats).find(([pos, id]) => id === m.id && pos !== pickingFor)?.[0];
+          const skilled = pickingFor ? canFill(m, ministry.id, pickingFor) : true;
+          return {
+            user: m,
+            muted: !skilled,
+            notes: [
+              ...(elsewhere ? [`Sekarang di ${elsewhere} (akan dipindah)`] : []),
+              ...(!skilled ? ["Biasanya bukan posisinya"] : []),
+            ],
+          };
+        })}
+        emptyText="Belum ada anggota di komisi ini."
+        onPick={(id) => {
+          if (!pickingFor) return;
+          setSeats((s) => {
+            const next = { ...s };
+            // picking someone already seated elsewhere in this group moves them here
+            if (id) for (const [pos, uid] of Object.entries(next)) if (uid === id) next[pos] = "";
+            next[pickingFor] = id ?? "";
+            return next;
+          });
+        }}
+        onClose={() => setPickingFor(null)}
+      />
       {problem && (name || chosen.length > 0) && <p className="text-[13px] text-danger-ink mb-3">{problem}</p>}
 
       <div className="flex gap-2">
@@ -188,6 +227,7 @@ export function GroupFillModal({ service, ministry, onClose }: { service: Servic
   const [groupId, setGroupId] = useState(groups[0]?.id ?? "");
   const [choices, setChoices] = useState<Record<string, Choice>>({});
   const [busy, setBusy] = useState(false);
+  const [pickRow, setPickRow] = useState<string | null>(null);
   const group = groups.find((g) => g.id === groupId);
   const aMap = useMemo(() => new Map(assignments.map((a) => [a.id, a])), [assignments]);
   const nameOf = (id?: string | null) => users.find((u) => u.id === id)?.name ?? "—";
@@ -311,7 +351,7 @@ export function GroupFillModal({ service, ministry, onClose }: { service: Servic
                   <div className={cn("text-[15px] font-medium truncate", r.blocked && "text-ink-soft line-through decoration-1")}>{r.u?.name ?? "Anggota dihapus"}</div>
                   <NoteList notes={r.notes} />
                   {r.same ? (
-                    <div className="text-[12px] text-success mt-0.5">Sudah terjadwal di slot ini</div>
+                    <div className={cn("text-[12px] mt-0.5", r.blocked ? "text-ink-soft" : "text-success")}>Sudah terjadwal di slot ini</div>
                   ) : (
                     r.current &&
                     targets[i] &&
@@ -322,7 +362,8 @@ export function GroupFillModal({ service, ministry, onClose }: { service: Servic
               </div>
 
               {/* every row: fill with the member (if available), skip, or switch with someone else */}
-              {!r.same && (
+              {/* already in this slot and fine → nothing to choose; already in it but unavailable → can still switch */}
+              {(!r.same || r.blocked) && (
                 <div className={cn("mt-2.5 grid gap-2", r.blocked ? "grid-cols-2" : "grid-cols-3")}>
                   {!r.blocked && (
                     <button
@@ -341,7 +382,7 @@ export function GroupFillModal({ service, ministry, onClose }: { service: Servic
                     Lewati
                   </button>
                   <button
-                    onClick={() => options[0] && setChoice(r, { mode: "replace", userId: c.mode === "replace" ? c.userId : options[0].id })}
+                    onClick={() => options.length && setPickRow(r.slotId)}
                     disabled={!options.length && c.mode !== "replace"}
                     aria-pressed={c.mode === "replace"}
                     className={cn(
@@ -352,19 +393,32 @@ export function GroupFillModal({ service, ministry, onClose }: { service: Servic
                     {options.length || c.mode === "replace" ? "Ganti" : "Tak ada pengganti"}
                   </button>
                   {c.mode === "replace" && (
-                    <select
-                      className={cn(inputCls, "text-[15px]", r.blocked ? "col-span-2" : "col-span-3")}
-                      value={c.userId}
-                      onChange={(e) => setChoice(r, { mode: "replace", userId: e.target.value })}
-                      aria-label={`Pengganti untuk ${r.s.position}`}
+                    <button
+                      type="button"
+                      onClick={() => setPickRow(r.slotId)}
+                      className={cn(
+                        "flex items-center gap-3 rounded-2xl border border-brand/40 bg-brand-soft px-3 py-2 text-left active:scale-[.99] transition",
+                        r.blocked ? "col-span-2" : "col-span-3",
+                      )}
                     >
-                      {options.map((o: UserProfile) => (
-                        <option key={o.id} value={o.id}>
-                          {o.name}
-                        </option>
-                      ))}
-                    </select>
+                      <Avatar name={nameOf(c.userId)} src={users.find((u) => u.id === c.userId)?.photoUrl} size={36} className="shrink-0" />
+                      <span className="flex-1 min-w-0">
+                        <span className="block text-[12px] text-brand">Pengganti</span>
+                        <span className="block text-[15px] font-semibold truncate">{nameOf(c.userId)}</span>
+                      </span>
+                      <span className="text-[13px] font-semibold text-brand shrink-0">Ubah</span>
+                    </button>
                   )}
+                  <PersonPicker
+                    open={pickRow === r.slotId}
+                    title={`Pengganti ${r.s.position}`}
+                    subtitle={`untuk ${r.u?.name ?? "anggota"} · ${formatDateLong(service.date)}`}
+                    selectedId={c.mode === "replace" ? c.userId : null}
+                    people={options.map((o) => ({ user: o, notes: ["Tersedia"] }))}
+                    emptyText="Tidak ada orang lain yang tersedia untuk posisi ini."
+                    onPick={(id) => id && setChoice(r, { mode: "replace", userId: id })}
+                    onClose={() => setPickRow(null)}
+                  />
                   {c.mode === "skip" && (
                     <p className={cn("text-[12px] text-ink-soft", r.blocked ? "col-span-2" : "col-span-3")}>
                       Slot {r.s.position} dibiarkan seperti sekarang{r.current ? ` (${nameOf(r.current)})` : " (kosong)"}.
