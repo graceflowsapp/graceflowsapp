@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Bell, CalendarDays, Check, Home, LayoutGrid, LogOut, Menu, Plus, ShieldCheck, ToggleRight, User, X } from "lucide-react";
+import { Bell, CalendarDays, Check, Home, LayoutGrid, LogOut, Menu, Plus, ShieldCheck, Tags, ToggleRight, User, X } from "lucide-react";
 import { useApp } from "./providers";
 import { Avatar, Button, Empty, Modal, cn } from "./ui";
 import { HelpChatbot } from "./HelpChatbot";
@@ -103,6 +103,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     { href: "/jadwal", label: "Jadwal", icon: CalendarDays },
     ...(me.ministries.length > 0 ? [{ href: "/ketersediaan", label: "Ketersediaan", icon: ToggleRight }] : []),
     ...(isCoord ? [{ href: "/koordinator", label: "Atur Jadwal", icon: LayoutGrid }] : []),
+    ...(isCoord ? [{ href: "/roles", label: "Peran", icon: Tags }] : []),
     ...(me.role === "superadmin" ? [{ href: "/admin", label: "Admin", icon: ShieldCheck }] : []),
     { href: "/profil", label: "Profil", icon: User },
   ];

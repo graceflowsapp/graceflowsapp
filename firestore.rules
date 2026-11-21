@@ -104,8 +104,8 @@ service cloud.firestore {
       match /ministries/{id} {
         allow read: if isMember(cid);
         allow write: if isChurchAdmin(cid);
-        // the komisi's coordinators manage its groups (Atur Jadwal → Grup), nothing else
-        allow update: if coordinates(cid, id) && onlyChanges(['groups']);
+        // the komisi's coordinators manage its posisi (Peran page) and groups (Atur Jadwal → Grup), nothing else
+        allow update: if coordinates(cid, id) && onlyChanges(['positions', 'groups']);
       }
 
       match /services/{id} {
