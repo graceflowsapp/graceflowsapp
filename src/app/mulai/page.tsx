@@ -7,6 +7,7 @@ import { useApp } from "@/components/providers";
 import { Button, Card, Field, cn, inputCls, toast } from "@/components/ui";
 import { Logo } from "@/components/AppShell";
 import { createChurch, joinChurch } from "@/lib/tenancy";
+import { displayLogin } from "@/lib/username";
 
 const PENDING_CODE_KEY = "graceflow-pending-invite";
 
@@ -104,7 +105,7 @@ function Start() {
         )}
 
         <button onClick={logout} className="block mx-auto mt-6 text-xs text-ink-soft underline">
-          Keluar ({account.email})
+          Keluar ({displayLogin(account)})
         </button>
       </div>
     </div>
