@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { CalendarPlus, Check, ChevronLeft, ChevronRight, Copy, Lock, MessageCircle, Pencil, Plus, RefreshCw, Search, Trash2, UserPlus } from "lucide-react";
+import { useMemo, useRef, useState } from "react";
+import { CalendarPlus, Check, ChevronLeft, ChevronRight, Copy, Lock, MessageCircle, Pencil, Plus, RefreshCw, Search, Trash2, UserPlus, X } from "lucide-react";
 import { useApp } from "@/components/providers";
 import { Avatar, Badge, Button, Card, Empty, Field, Modal, SectionTitle, cn, inputCls, toast } from "@/components/ui";
 import { ServiceLabel, serviceLine } from "@/components/duty";
@@ -12,7 +12,7 @@ import { ACCENT_PRESETS } from "@/lib/theme";
 import { formatDateLong, formatMonth, monthKey, todayISO, weekdaysInMonth } from "@/lib/dates";
 import { isAvailableNow } from "@/lib/scheduling";
 import type { Ministry, Role, Service, UserProfile } from "@/lib/types";
-import { ask, celebrate } from "@/lib/feedback";
+import { ask, celebrate, haptic } from "@/lib/feedback";
 
 const SESSIONS = ["Sesi 1", "Sesi 2", "Sesi 3", "Sesi Pagi", "Sesi Sore"];
 const LOCATIONS = ["Ruang Ibadah Utama", "Aula Lt. 2", "Ruang Youth", "Online / Live Streaming"];
@@ -630,7 +630,10 @@ function MinistryModal({ ministry, onClose }: { ministry?: Ministry; onClose: ()
   const { ministries } = useApp();
   const [name, setName] = useState(ministry?.name ?? "");
   const [color, setColor] = useState(ministry?.color ?? "#14a08f");
-  const [positions, setPositions] = useState((ministry?.positions ?? []).join("\n"));
+  const [positions, setPositions] = useState<string[]>(ministry?.positions ?? []);
+  const [draft, setDraft] = useState("");
+  const typed = draft.trim().replace(/s+/g, " ");
+  const finalPositions = typed && !positions.some((p) => p.toLowerCase() === typed.toLowerCase()) ? [...positions, typed] : positions;
 
   return (
     <Modal open onClose={onClose} title={ministry ? "Ubah komisi" : "Tambah komisi"}>
@@ -642,9 +645,7 @@ function MinistryModal({ ministry, onClose }: { ministry?: Ministry; onClose: ()
           <input type="color" className="h-[42px] w-14 rounded-xl border border-line" value={color} onChange={(e) => setColor(e.target.value)} />
         </Field>
       </div>
-      <Field label="Posisi / slot (satu per baris)" hint="Mengubah nama posisi akan memutus jadwal lama untuk posisi tersebut.">
-        <textarea className={inputCls} rows={5} value={positions} onChange={(e) => setPositions(e.target.value)} placeholder={"Worship Leader\nSinger 1"} />
-      </Field>
+      <PositionsEditor value={positions} onChange={setPositions} original={ministry?.positions ?? []} draft={draft} setDraft={setDraft} />
       <div className="flex gap-2">
         {ministry && (
           <Button
@@ -660,14 +661,14 @@ function MinistryModal({ ministry, onClose }: { ministry?: Ministry; onClose: ()
         )}
         <Button
           className="flex-1"
-          disabled={!name.trim()}
+          disabled={!name.trim() || finalPositions.length === 0}
           onClick={async () => {
             const id = ministry?.id ?? name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
             const data: Ministry = {
               id,
               name: name.trim(),
               color,
-              positions: [...new Set(positions.split("\n").map((p) => p.trim()).filter(Boolean))],
+              positions: finalPositions,
               order: ministry?.order ?? ministries.length + 1,
             };
             await store.set("ministries", id, data);
@@ -679,6 +680,151 @@ function MinistryModal({ ministry, onClose }: { ministry?: Ministry; onClose: ()
         </Button>
       </div>
     </Modal>
+  );
+}
+
+const POSITION_SUGGESTIONS = [
+  "Worship Leader",
+  "Singer",
+  "Keyboard",
+  "Gitar",
+  "Bass",
+  "Drum",
+  "MC",
+  "Pembaca Firman",
+  "Doa Syafaat",
+  "Usher",
+  "Kolektan",
+  "Sound System",
+  "Operator Slide",
+  "Kamera",
+  "Live Streaming",
+  "Guru Sekolah Minggu",
+];
+
+/** Posisi as removable chips (shown above the field) + an input with a "Tambah" button + quick suggestions. */
+function PositionsEditor({
+  value,
+  onChange,
+  original,
+  draft,
+  setDraft,
+}: {
+  value: string[];
+  onChange: (v: string[]) => void;
+  original: string[];
+  draft: string;
+  setDraft: (v: string) => void;
+}) {
+  const [error, setError] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+  const has = (p: string) => value.some((x) => x.toLowerCase() === p.toLowerCase());
+
+  const add = (raw: string) => {
+    const names = raw
+      .split("\n")
+      .map((p) => p.trim().replace(/\s+/g, " "))
+      .filter(Boolean);
+    if (!names.length) return;
+    const dupes = names.filter(has);
+    const fresh = [...new Set(names.filter((p) => !has(p)))];
+    if (fresh.length) {
+      onChange([...value, ...fresh]);
+      haptic("tap");
+    }
+    setError(dupes.length ? `“${dupes[0]}” sudah ada.` : "");
+    setDraft("");
+    inputRef.current?.focus();
+  };
+
+  const remove = async (p: string) => {
+    // removing a posisi that already exists hides its old schedule — make sure that's intended
+    if (original.includes(p) && !(await ask({ title: `Hapus posisi “${p}”?`, message: "Jadwal lama untuk posisi ini tidak akan tampil lagi setelah disimpan.", confirmText: "Hapus", tone: "danger" }))) return;
+    onChange(value.filter((x) => x !== p));
+    haptic("tap");
+  };
+
+  const suggestions = POSITION_SUGGESTIONS.filter((p) => !has(p));
+
+  return (
+    <div className="mb-4">
+      <span className="block text-sm font-medium text-ink-soft mb-2">
+        Posisi / slot <span className="font-normal">({value.length})</span>
+      </span>
+
+      {/* added posisi */}
+      {value.length > 0 ? (
+        <ul className="flex flex-wrap gap-2 mb-3" aria-label="Posisi yang sudah ditambahkan">
+          {value.map((p) => (
+            <li key={p} className="inline-flex items-center gap-1 min-h-10 rounded-full bg-brand-soft text-brand border border-brand/30 pl-4 pr-1 text-[15px] font-medium animate-[gf-pop_0.18s_ease-out]">
+              {p}
+              <button type="button" onClick={() => remove(p)} aria-label={`Hapus ${p}`} className="grid place-items-center h-8 w-8 rounded-full hover:bg-brand/15 active:scale-90 transition">
+                <X size={16} strokeWidth={2.5} />
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-[14px] text-ink-soft rounded-xl bg-surface px-3 py-2.5 mb-3">Belum ada posisi. Tambahkan di bawah.</p>
+      )}
+
+      {/* add one */}
+      <div className="flex gap-2">
+        <input
+          ref={inputRef}
+          className={cn(inputCls, "flex-1 min-w-0 text-[16px]")}
+          value={draft}
+          onChange={(e) => {
+            setDraft(e.target.value);
+            setError("");
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              add(draft);
+            }
+          }}
+          onPaste={(e) => {
+            // pasting a list (one per line) adds them all at once
+            const text = e.clipboardData.getData("text");
+            if (text.includes("\n")) {
+              e.preventDefault();
+              add(text);
+            }
+          }}
+          placeholder="Nama posisi, mis. Gitar"
+          enterKeyHint="done"
+          aria-label="Nama posisi baru"
+        />
+        <Button type="button" onClick={() => add(draft)} disabled={!draft.trim()} className="shrink-0">
+          <Plus size={16} /> Tambah
+        </Button>
+      </div>
+      {error ? (
+        <p className="text-[13px] text-danger-ink mt-1.5">{error}</p>
+      ) : (
+        original.length > 0 && <p className="text-[12px] text-ink-soft mt-1.5">Menghapus atau mengganti nama posisi akan memutus jadwal lama untuk posisi tersebut.</p>
+      )}
+
+      {/* or just choose */}
+      {suggestions.length > 0 && (
+        <>
+          <span className="block text-[13px] font-medium text-ink-soft mt-3 mb-2">Atau pilih cepat</span>
+          <div className="flex flex-wrap gap-2">
+            {suggestions.map((p) => (
+              <button
+                key={p}
+                type="button"
+                onClick={() => add(p)}
+                className="inline-flex items-center gap-1 min-h-9 rounded-full border border-dashed border-line bg-card px-3.5 py-1.5 text-[14px] text-ink hover:border-brand hover:text-brand active:scale-[.97] transition"
+              >
+                <Plus size={14} /> {p}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
   );
 }
 
