@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { CalendarPlus, ChevronLeft, ChevronRight, Copy, Lock, MessageCircle, Pencil, Plus, RefreshCw, Search, Trash2, UserPlus } from "lucide-react";
+import { CalendarPlus, Check, ChevronLeft, ChevronRight, Copy, Lock, MessageCircle, Pencil, Plus, RefreshCw, Search, Trash2, UserPlus } from "lucide-react";
 import { useApp } from "@/components/providers";
 import { Avatar, Badge, Button, Card, Empty, Field, Modal, SectionTitle, cn, inputCls, toast } from "@/components/ui";
 import { ServiceLabel, serviceLine } from "@/components/duty";
@@ -126,7 +126,7 @@ function CalendarAdmin() {
 function MinistryPicker({ value, onChange }: { value: string[]; onChange: (v: string[]) => void }) {
   const { ministries } = useApp();
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex flex-wrap gap-2.5">
       {ministries.map((m) => {
         const on = value.includes(m.id);
         return (
@@ -134,9 +134,14 @@ function MinistryPicker({ value, onChange }: { value: string[]; onChange: (v: st
             key={m.id}
             type="button"
             onClick={() => onChange(on ? value.filter((x) => x !== m.id) : [...value, m.id])}
-            className={cn("rounded-full border px-3 py-1 text-xs font-medium", on ? "text-white border-transparent" : "border-line text-ink-soft")}
+            aria-pressed={on}
+            className={cn(
+              "inline-flex items-center gap-1.5 min-h-10 rounded-full border px-4 py-2 text-[15px] font-medium active:scale-[.97] transition",
+              on ? "text-white border-transparent shadow-sm" : "bg-card border-line text-ink",
+            )}
             style={on ? { background: m.color } : undefined}
           >
+            {on ? <Check size={16} strokeWidth={3} aria-hidden /> : <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ background: m.color }} aria-hidden />}
             {m.name}
           </button>
         );
@@ -218,7 +223,7 @@ function ServiceModal({ service, defaultDate, onClose }: { service?: Service; de
         </datalist>
       </Field>
       <div className="mb-3">
-        <span className="block text-xs font-medium text-ink-soft mb-2">Komisi yang bertugas</span>
+        <span className="block text-sm font-medium text-ink-soft mb-2">Komisi yang bertugas</span>
         <MinistryPicker value={form.ministries} onChange={(v) => set({ ministries: v })} />
       </div>
       <Field label="Catatan">
@@ -301,7 +306,7 @@ function BulkModal({ year, month, onClose }: { year: number; month: number; onCl
         </datalist>
       </Field>
       <div className="mb-4">
-        <span className="block text-xs font-medium text-ink-soft mb-2">Komisi yang bertugas</span>
+        <span className="block text-sm font-medium text-ink-soft mb-2">Komisi yang bertugas</span>
         <MinistryPicker value={sel} onChange={setSel} />
       </div>
       <p className="text-[13px] text-ink-soft mb-3">
@@ -363,7 +368,8 @@ function ServantsAdmin() {
           <button
             key={m.id}
             onClick={() => setFilter(m.id)}
-            className={cn("shrink-0 rounded-full border px-3 py-1 text-xs font-medium", filter === m.id ? "bg-brand text-white border-brand" : "bg-card border-line text-ink-soft")}
+            aria-pressed={filter === m.id}
+            className={cn("shrink-0 min-h-10 rounded-full border px-4 py-2 text-[15px] font-medium active:scale-[.97] transition", filter === m.id ? "bg-brand text-white border-brand shadow-sm" : "bg-card border-line text-ink")}
           >
             {m.name}
           </button>
@@ -437,19 +443,19 @@ function UserModal({ user, onClose }: { user: UserProfile; onClose: () => void }
         </select>
       </Field>
       <div className="mb-3">
-        <span className="block text-xs font-medium text-ink-soft mb-2">Melayani di komisi</span>
+        <span className="block text-sm font-medium text-ink-soft mb-2">Melayani di komisi</span>
         <MinistryPicker value={form.ministries} onChange={(v) => set({ ministries: v })} />
       </div>
       {form.role !== "servant" && (
         <div className="mb-3">
-          <span className="block text-xs font-medium text-ink-soft mb-2">Otoritas koordinator (boleh mengatur jadwal)</span>
+          <span className="block text-sm font-medium text-ink-soft mb-2">Otoritas koordinator (boleh mengatur jadwal)</span>
           <MinistryPicker value={form.coordinatorOf} onChange={(v) => set({ coordinatorOf: v })} />
         </div>
       )}
       {positions.length > 0 && (
         <div className="mb-4">
-          <span className="block text-xs font-medium text-ink-soft mb-2">Posisi yang bisa diisi (kosong = semua)</span>
-          <div className="flex flex-wrap gap-1.5">
+          <span className="block text-sm font-medium text-ink-soft mb-2">Posisi yang bisa diisi (kosong = semua)</span>
+          <div className="flex flex-wrap gap-2">
             {[...new Set(positions)].map((p) => {
               const on = form.skills.includes(p);
               return (
@@ -457,8 +463,13 @@ function UserModal({ user, onClose }: { user: UserProfile; onClose: () => void }
                   key={p}
                   type="button"
                   onClick={() => set({ skills: on ? form.skills.filter((x) => x !== p) : [...form.skills, p] })}
-                  className={cn("rounded-full border px-2.5 py-1 text-[11px]", on ? "border-brand bg-brand-soft text-brand" : "border-line text-ink-soft")}
+                  aria-pressed={on}
+                  className={cn(
+                    "inline-flex items-center gap-1 min-h-9 rounded-full border px-3.5 py-1.5 text-[14px] font-medium active:scale-[.97] transition",
+                    on ? "border-brand bg-brand-soft text-brand" : "border-line text-ink",
+                  )}
                 >
+                  {on && <Check size={14} strokeWidth={3} aria-hidden />}
                   {p}
                 </button>
               );
@@ -559,12 +570,12 @@ function AddAccountModal({ onClose }: { onClose: () => void }) {
           </select>
         </Field>
         <div className="mb-3">
-          <span className="block text-xs font-medium text-ink-soft mb-2">Melayani di bidang</span>
+          <span className="block text-sm font-medium text-ink-soft mb-2">Melayani di bidang</span>
           <MinistryPicker value={ministryIds} onChange={setMinistryIds} />
         </div>
         {role !== "servant" && (
           <div className="mb-3">
-            <span className="block text-xs font-medium text-ink-soft mb-2">Koordinator untuk bidang</span>
+            <span className="block text-sm font-medium text-ink-soft mb-2">Koordinator untuk bidang</span>
             <MinistryPicker value={coordOf} onChange={setCoordOf} />
           </div>
         )}
