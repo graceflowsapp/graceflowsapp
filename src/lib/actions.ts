@@ -1,7 +1,7 @@
 "use client";
 
 import { store } from "./store";
-import type { AppNotification, Assignment, Service, UserProfile } from "./types";
+import type { AppNotification, Assignment, MinistryGroup, Service, UserProfile } from "./types";
 import { formatDateShort, nowISO } from "./dates";
 
 function rid() {
@@ -22,12 +22,14 @@ export async function assignSlot(params: {
   previousUserId?: string | null;
   /** Name of the person who declined this slot, when the coordinator is picking their replacement */
   replacing?: string;
+  /** Filled via "Isi dengan grup" */
+  groupId?: string | null;
 }) {
-  const { id, service, ministryId, position, userId, previousUserId, replacing } = params;
+  const { id, service, ministryId, position, userId, previousUserId, replacing, groupId } = params;
   if (userId === null) {
     await store.remove("assignments", id);
   } else {
-    const a: Assignment = { id, serviceId: service.id, ministryId, position, userId, status: "pending", subRequest: null, updatedAt: nowISO() };
+    const a: Assignment = { id, serviceId: service.id, ministryId, position, userId, status: "pending", subRequest: null, groupId: groupId ?? null, updatedAt: nowISO() };
     await store.set("assignments", id, a);
   }
   const when = `${service.title} · ${formatDateShort(service.date)} ${service.time}`;
@@ -168,4 +170,9 @@ export async function rejectSwap(a: Assignment, me: UserProfile, service: Servic
   if (from) {
     await notify(from, "Tukar jadwal ditolak", `${me.name} tidak bisa menggantikan sebagai ${a.position} di ${whenOf(service)}. Pilih pengganti lain.`, "/jadwal");
   }
+}
+
+/** Coordinators save the groups of one komisi. */
+export async function saveGroups(ministryId: string, groups: MinistryGroup[]) {
+  await store.update("ministries", ministryId, { groups });
 }

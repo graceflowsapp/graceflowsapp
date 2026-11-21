@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AlertTriangle, CalendarClock, Copy, Info, MapPin, Download, ImageIcon, MessageCircle, Moon, Music2, UserMinus, UserX, Wand2 } from "lucide-react";
+import { AlertTriangle, CalendarClock, Copy, Info, MapPin, Download, ImageIcon, MessageCircle, Moon, Music2, UserMinus, Users, UserX, Wand2 } from "lucide-react";
 import { toPng } from "html-to-image";
 import { useApp, useCoordinatedMinistries } from "@/components/providers";
+import { GroupFillModal, GroupsModal } from "@/components/groups";
 import { Avatar, Badge, Button, Card, Empty, Field, Modal, SectionTitle, cn, inputCls, toast } from "@/components/ui";
 import { ServiceLabel, StatusBadge, serviceLine } from "@/components/duty";
 import { LegendDot, MonthCalendar, type DayMark } from "@/components/MonthCalendar";
@@ -29,6 +30,7 @@ export default function CoordinatorPage() {
   const [fillScope, setFillScope] = useState<"day" | "month" | null>(null);
   const [exportOpen, setExportOpen] = useState(false);
   const [view, setView] = useState<"calendar" | "list">("calendar");
+  const [groupsOpen, setGroupsOpen] = useState(false);
 
   // opened from a notification: /koordinator?tanggal=YYYY-MM-DD&komisi=<ministryId>
   const deepLink = useRef<{ date: string | null; ministry: string | null } | null>(null);
@@ -110,6 +112,25 @@ export default function CoordinatorPage() {
           </button>
         ))}
       </div>
+
+      {ministry && (
+        <button
+          onClick={() => setGroupsOpen(true)}
+          className="w-full mb-3 flex items-center gap-3 rounded-xl border border-line bg-card px-3 py-2.5 text-left hover:border-brand active:scale-[.99] transition"
+        >
+          <span className="h-9 w-9 shrink-0 rounded-xl grid place-items-center text-white" style={{ background: ministry.color }}>
+            <Users size={18} />
+          </span>
+          <span className="flex-1 min-w-0">
+            <span className="block text-[15px] font-semibold">Grup {ministry.name}</span>
+            <span className="block text-[13px] text-ink-soft truncate">
+              {ministry.groups?.length ? ministry.groups.map((g) => g.name).join(" · ") : "Buat tim tetap, mis. Singer Grup A"}
+            </span>
+          </span>
+          <span className="text-[13px] font-semibold text-brand shrink-0">Kelola</span>
+        </button>
+      )}
+      {groupsOpen && ministry && <GroupsModal ministry={ministry} onClose={() => setGroupsOpen(false)} />}
 
       <div className="grid grid-cols-2 bg-card border border-line rounded-xl p-1 mb-3">
         {[
@@ -223,6 +244,9 @@ function ServiceSlots({ service, ministryId, onPick, showDate }: { service: Serv
   const map = useMemo(() => new Map(assignments.map((a) => [a.id, a])), [assignments]);
   const slots = slotsForService(service, ministries, map, [ministryId]);
   const rehearsal = service.rehearsals?.[ministryId];
+  const ministry = ministries.find((m) => m.id === ministryId);
+  const groups = ministry?.groups ?? [];
+  const [fillGroup, setFillGroup] = useState(false);
   const filled = slots.filter((x) => x.assignment?.userId).length;
   const confirmed = slots.filter((x) => x.assignment?.userId && x.assignment.status === "confirmed").length;
 
@@ -241,10 +265,20 @@ function ServiceSlots({ service, ministryId, onPick, showDate }: { service: Serv
           <MapPin size={12} /> {service.location}
         </div>
       )}
-      <button onClick={() => setEditRehearsal(true)} className="text-[12px] text-ink-soft flex items-center gap-1 mb-3 hover:text-brand">
-        <Music2 size={12} />
-        {rehearsal ? `Latihan ${rehearsal.at.replace("T", " ")}${rehearsal.place ? ` @ ${rehearsal.place}` : ""}` : "Atur jadwal latihan"}
-      </button>
+      <div className="flex items-center gap-2 mb-3">
+        <button onClick={() => setEditRehearsal(true)} className="text-[12px] text-ink-soft flex items-center gap-1 hover:text-brand min-w-0">
+          <Music2 size={12} className="shrink-0" />
+          <span className="truncate">{rehearsal ? `Latihan ${rehearsal.at.replace("T", " ")}${rehearsal.place ? ` @ ${rehearsal.place}` : ""}` : "Atur jadwal latihan"}</span>
+        </button>
+        {groups.length > 0 && (
+          <button
+            onClick={() => setFillGroup(true)}
+            className="ml-auto shrink-0 inline-flex items-center gap-1.5 min-h-9 rounded-full border border-brand/40 bg-brand-soft text-brand px-3.5 text-[14px] font-semibold active:scale-[.97] transition"
+          >
+            <Users size={15} /> Isi dengan grup
+          </button>
+        )}
+      </div>
       <ul className="space-y-1">
         {slots.map((slot) => {
           const u = users.find((x) => x.id === slot.assignment?.userId);
@@ -259,7 +293,14 @@ function ServiceSlots({ service, ministryId, onPick, showDate }: { service: Serv
               <button onClick={() => onPick(slot)} className="w-full flex items-center gap-3 rounded-xl px-2 py-2 hover:bg-surface text-left">
                 <Avatar name={u?.name ?? "?"} src={u?.photoUrl} size={36} className={!u ? "opacity-25" : ""} />
                 <div className="flex-1 min-w-0">
-                  <div className="text-[11px] text-ink-soft">{slot.position}</div>
+                  <div className="text-[11px] text-ink-soft">
+                    {slot.position}
+                    {u && slot.assignment?.groupId && groups.find((g) => g.id === slot.assignment!.groupId) && (
+                      <span className="ml-1.5 font-semibold" style={{ color: ministry?.color }}>
+                        · {groups.find((g) => g.id === slot.assignment!.groupId)!.name}
+                      </span>
+                    )}
+                  </div>
                   <div className={cn("text-sm truncate", u ? "font-medium" : "text-danger italic")}>
                     {u?.name ?? (sub ? "Kosong — pilih pengganti" : "Kosong — ketuk untuk isi")}
                   </div>
@@ -287,6 +328,7 @@ function ServiceSlots({ service, ministryId, onPick, showDate }: { service: Serv
         })}
       </ul>
       {editRehearsal && <RehearsalModal service={service} ministryId={ministryId} onClose={() => setEditRehearsal(false)} />}
+      {fillGroup && ministry && <GroupFillModal service={service} ministry={ministry} onClose={() => setFillGroup(false)} />}
     </Card>
   );
 }

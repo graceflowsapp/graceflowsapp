@@ -62,12 +62,27 @@ export interface UserProfile {
   createdAt: string;
 }
 
+/** One seat of a group: who fills which posisi when the group is scheduled. */
+export interface MinistryGroupSlot {
+  position: string;
+  userId: string;
+}
+
+/** A fixed team inside a komisi (e.g. "Singer Grup A", "Choir B"), scheduled in one go by the coordinator. */
+export interface MinistryGroup {
+  id: string;
+  name: string;
+  slots: MinistryGroupSlot[];
+}
+
 export interface Ministry {
   id: string;
   name: string;
   color: string;
   positions: string[];
   order: number;
+  /** Managed by the komisi's coordinators (Atur Jadwal → Grup). */
+  groups?: MinistryGroup[];
 }
 
 export interface Rehearsal {
@@ -119,6 +134,8 @@ export interface Assignment {
   subRequest?: SubRequest | null;
   /** Pending "please replace me" request to one person; the slot stays with `userId` until they accept. */
   swapRequest?: SwapRequest | null;
+  /** Set when the slot was filled with "Isi dengan grup" (label only; the person is still in userId). */
+  groupId?: string | null;
   updatedAt: string;
 }
 

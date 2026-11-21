@@ -232,7 +232,16 @@ export interface AvailabilityNote {
 export function availabilityNotes(
   user: UserProfile,
   service: Service,
-  ctx: { services: Service[]; assignments: Assignment[]; ministries: Ministry[]; ignoreAssignmentId?: string; ministryId?: string; position?: string },
+  ctx: {
+    services: Service[];
+    assignments: Assignment[];
+    ministries: Ministry[];
+    ignoreAssignmentId?: string;
+    /** Slots being re-filled right now (e.g. by "Isi dengan grup"): sitting in one of them isn't a clash. */
+    ignoreAssignmentIds?: string[];
+    ministryId?: string;
+    position?: string;
+  },
 ): AvailabilityNote[] {
   const notes: AvailabilityNote[] = [];
   const mName = (id: string) => ctx.ministries.find((m) => m.id === id)?.name ?? id;
@@ -246,6 +255,7 @@ export function availabilityNotes(
 
   // already booked at the same time / in the same service
   for (const { assignment: a, service: s } of findConflicts(user.id, service, ctx.services, ctx.assignments, ctx.ignoreAssignmentId)) {
+    if (ctx.ignoreAssignmentIds?.includes(a.id)) continue;
     notes.push({
       kind: "conflict",
       text: s.id === service.id ? `Sudah bertugas di ibadah ini: ${a.position} (${mName(a.ministryId)})` : `Sudah bertugas ${a.position} (${mName(a.ministryId)}) di ${s.title} ${s.time}`,

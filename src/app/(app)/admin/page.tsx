@@ -707,6 +707,7 @@ function MinistryModal({ ministry, onClose }: { ministry?: Ministry; onClose: ()
           onClick={async () => {
             const id = ministry?.id ?? name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
             const data: Ministry = {
+              ...(ministry ?? {}), // keeps the coordinators' groups
               id,
               name: name.trim(),
               color,
