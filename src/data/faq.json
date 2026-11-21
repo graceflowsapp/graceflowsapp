@@ -115,9 +115,9 @@
     "id": "login-email",
     "kategori": "Masuk & Akun",
     "pertanyaan": "Bagaimana cara masuk ke aplikasi?",
-    "variasi": ["cara login", "gmn cara masuk", "mau login pakai email", "masuk akun gimana", "cara sign in"],
+    "variasi": ["cara login", "gmn cara masuk", "login pakai username", "masuk pake email", "cara sign in", "masuk akun gimana"],
     "jawaban": "Begini caranya:",
-    "langkah": ["Buka halaman masuk GraceFlow", "Isi Email dan Kata sandi", "Tekan tombol \"Masuk\"", "Atau tekan \"Masuk dengan Google\" kalau akunmu memakai Google"],
+    "langkah": ["Buka halaman masuk GraceFlow", "Isi \"Email atau username\" dan Kata sandi", "Tekan tombol \"Masuk\"", "Atau tekan \"Masuk dengan Google\" kalau akunmu memakai Google"],
     "link": null,
     "role": "jemaat",
     "sumber": "src/app/login/page.tsx"
@@ -128,7 +128,7 @@
     "pertanyaan": "Bagaimana cara membuat akun baru?",
     "variasi": ["cara daftar", "belum punya akun", "registrasi gimana", "bikin akun baru", "sign up"],
     "jawaban": "Bisa! Begini caranya:",
-    "langkah": ["Di halaman masuk, tekan tulisan \"Daftar\" di bawah", "Isi Nama lengkap, Email, dan Kata sandi (minimal 6 karakter)", "Tekan tombol \"Daftar\"", "Setelah itu, gabung ke gerejamu dengan kode undangan dari admin"],
+    "langkah": ["Di halaman masuk, tekan tulisan \"Daftar\" di bawah", "Isi Nama lengkap", "Buat Username: lebih dari 4 karakter dan harus ada angka (mis. grace21)", "Isi Kata sandi (minimal 6 karakter), lalu tekan \"Daftar\"", "Setelah itu, gabung ke gerejamu dengan kode undangan dari admin"],
     "link": null,
     "role": "jemaat",
     "sumber": "src/app/login/page.tsx"
@@ -145,12 +145,56 @@
     "sumber": "src/app/login/page.tsx"
   },
   {
+    "id": "syarat-username",
+    "kategori": "Masuk & Akun",
+    "pertanyaan": "Apa syarat membuat username?",
+    "variasi": ["username harus apa", "kenapa username ditolak", "username harus ada angka", "aturan username", "username minimal berapa huruf", "username tidak bisa dipakai"],
+    "jawaban": "Username harus lebih dari 4 karakter dan harus ada angkanya, misalnya grace21 atau budi.77. Hanya boleh huruf, angka, titik (.) dan garis bawah (_), tanpa spasi. Saat mengetik, syarat yang sudah terpenuhi akan tercentang hijau.",
+    "langkah": [],
+    "link": null,
+    "role": "jemaat",
+    "sumber": "src/lib/username.ts"
+  },
+  {
+    "id": "hubungkan-email",
+    "kategori": "Masuk & Akun",
+    "pertanyaan": "Bagaimana cara menghubungkan email ke akun username saya?",
+    "variasi": ["tambah email", "sambungkan email", "connect email", "akun saya belum ada email", "mau login pakai email juga", "pasang email di akun"],
+    "jawaban": "Bisa! Setelah terhubung, kamu bisa masuk pakai email atau username. Begini caranya:",
+    "langkah": ["Buka menu Profil, cari bagian \"Akun & login\"", "Pada baris Email, tekan \"Hubungkan\"", "Isi email dan kata sandi saat ini, lalu tekan \"Kirim link verifikasi\"", "Buka email-mu dan klik link dari GraceFlow", "Kamu akan keluar otomatis; masuk lagi pakai email atau username"],
+    "link": "/profil",
+    "role": "jemaat",
+    "sumber": "src/components/AccountLoginSettings.tsx"
+  },
+  {
+    "id": "tambah-username",
+    "kategori": "Masuk & Akun",
+    "pertanyaan": "Saya daftar pakai email, bisakah menambahkan username?",
+    "variasi": ["tambah username", "bikin username", "akun email mau pakai username", "login google mau pakai username", "buat username di profil"],
+    "jawaban": "Bisa! Begini caranya:",
+    "langkah": ["Buka menu Profil, cari bagian \"Akun & login\"", "Pada baris Username, tekan \"Tambah\"", "Ketik username (lebih dari 4 karakter dan ada angkanya)", "Kalau akunmu masuk lewat Google, buat juga kata sandi", "Tekan \"Simpan username\""],
+    "link": "/profil",
+    "role": "jemaat",
+    "sumber": "src/components/AccountLoginSettings.tsx"
+  },
+  {
+    "id": "verifikasi-email",
+    "kategori": "Masuk & Akun",
+    "pertanyaan": "Link verifikasi email belum masuk, bagaimana?",
+    "variasi": ["email verifikasi tidak ada", "link tidak datang", "belum dapat email verifikasi", "menunggu verifikasi terus", "kirim ulang link"],
+    "jawaban": "Coba langkah ini:",
+    "langkah": ["Cek folder Spam atau Promosi di email-mu", "Pastikan alamat email yang diketik sudah benar", "Buka Profil, bagian \"Akun & login\", tekan \"Ubah\" untuk mengirim ulang", "Kalau tetap tidak ada, hubungi admin gereja"],
+    "link": "/profil",
+    "role": "jemaat",
+    "sumber": "src/components/AccountLoginSettings.tsx"
+  },
+  {
     "id": "error-sandi-salah",
     "kategori": "Masalah Umum",
-    "pertanyaan": "Muncul tulisan \"Email atau kata sandi salah\", bagaimana?",
+    "pertanyaan": "Muncul tulisan \"Username/email atau kata sandi salah\", bagaimana?",
     "variasi": ["tidak bisa login", "gak bisa masuk", "password salah terus", "login gagal", "ga bisa login padahal udah bener"],
-    "jawaban": "Artinya email atau kata sandi tidak cocok. Coba langkah ini:",
-    "langkah": ["Periksa ejaan email, jangan ada spasi", "Ketik ulang kata sandi pelan-pelan (huruf besar/kecil berpengaruh)", "Kalau dulu daftar pakai Google, tekan \"Masuk dengan Google\"", "Kalau tetap gagal, hubungi admin gereja"],
+    "jawaban": "Artinya username/email atau kata sandi tidak cocok. Coba langkah ini:",
+    "langkah": ["Periksa ejaan username atau email, jangan ada spasi", "Ketik ulang kata sandi pelan-pelan (huruf besar/kecil berpengaruh)", "Kalau dulu daftar pakai Google, tekan \"Masuk dengan Google\"", "Kalau tetap gagal, hubungi admin gereja"],
     "link": null,
     "role": "jemaat",
     "sumber": "src/app/login/page.tsx"
@@ -178,12 +222,12 @@
     "sumber": "src/app/(app)/profil/page.tsx"
   },
   {
-    "id": "error-email-terdaftar",
+    "id": "error-username-dipakai",
     "kategori": "Masalah Umum",
-    "pertanyaan": "Muncul tulisan \"Email sudah terdaftar\" saat daftar",
-    "variasi": ["email sudah dipakai", "gak bisa daftar email terdaftar", "email udah ada", "daftar gagal email"],
-    "jawaban": "Artinya email itu sudah punya akun. Jangan daftar ulang, cukup masuk:",
-    "langkah": ["Tekan tulisan \"Masuk\" di bawah formulir", "Isi email dan kata sandi lamamu", "Tekan tombol \"Masuk\""],
+    "pertanyaan": "Muncul tulisan \"Username sudah dipakai\" saat daftar",
+    "variasi": ["username sudah ada", "username dipakai", "gak bisa daftar username", "username udah diambil", "email sudah terdaftar"],
+    "jawaban": "Artinya username itu sudah dipakai orang lain. Pilih username lain, misalnya tambahkan angka lain (grace21 jadi grace2104). Kalau itu memang akunmu, jangan daftar ulang, cukup tekan \"Masuk\".",
+    "langkah": [],
     "link": null,
     "role": "jemaat",
     "sumber": "src/app/login/page.tsx"
@@ -993,9 +1037,9 @@
     "id": "admin-tambah-akun",
     "kategori": "Admin: Pelayan",
     "pertanyaan": "Bagaimana cara membuatkan akun untuk pelayan?",
-    "variasi": ["tambah akun baru", "daftarkan pelayan", "buat akun jemaat", "tambah anggota", "bikinin akun"],
+    "variasi": ["tambah akun baru", "daftarkan pelayan", "buat akun jemaat", "tambah anggota", "bikinin akun", "buat username untuk pelayan"],
     "jawaban": "Begini caranya:",
-    "langkah": ["Buka menu Admin, tab \"Pelayan\"", "Tekan \"Tambah akun baru\"", "Isi Nama lengkap, Email, Kata sandi awal, dan No. WhatsApp", "Pilih Hak akses dan bidang pelayanannya", "Tekan \"Buat akun\""],
+    "langkah": ["Buka menu Admin, tab \"Pelayan\"", "Tekan \"Tambah akun baru\"", "Isi Nama lengkap, Username (lebih dari 4 karakter dan ada angka), Kata sandi awal, dan No. WhatsApp", "Pilih Hak akses dan bidang pelayanannya, lalu tekan \"Buat akun\"", "Berikan username dan kata sandi ke pelayan lewat tombol \"Salin\" atau \"Kirim via WA\"", "Pelayan menghubungkan emailnya sendiri nanti di Profil"],
     "link": "/admin",
     "role": "admin",
     "sumber": "src/app/(app)/admin/page.tsx"
