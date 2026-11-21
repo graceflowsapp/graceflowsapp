@@ -364,10 +364,15 @@ export function HelpChatbot() {
           onClick={() => setOpen(true)}
           aria-label="Buka bantuan: tanya cara memakai aplikasi"
           aria-haspopup="dialog"
-          className="fixed z-40 right-4 bottom-[max(1rem,env(safe-area-inset-bottom))] md:right-6 md:bottom-6 [html[data-install-banner]_&]:bottom-[calc(max(0.75rem,env(safe-area-inset-bottom))+5.75rem)] h-12 w-12 sm:h-14 sm:w-14 rounded-full bg-brand text-white shadow-lg grid place-items-center hover:bg-brand-dark active:scale-95 transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand/40"
+          className="fixed z-40 right-4 bottom-[max(1rem,env(safe-area-inset-bottom))] md:right-6 md:bottom-6 [html[data-install-banner]_&]:bottom-[calc(max(0.75rem,env(safe-area-inset-bottom))+5.75rem)] h-14 w-14 rounded-full bg-brand text-white shadow-lg grid place-items-center hover:bg-brand-dark active:scale-95 transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand/40"
         >
-          <MessageCircleQuestion size={28} className="size-6 sm:size-7" />
+          <MessageCircleQuestion size={28} />
         </button>
+      )}
+
+      {open && (
+        // phone: dim the page behind the floating panel; tapping it closes the chat
+        <div className="fixed inset-0 z-50 bg-black/30 sm:hidden animate-[gf-fade_.2s_ease-out]" onClick={close} aria-hidden />
       )}
 
       {open && (
@@ -377,8 +382,8 @@ export function HelpChatbot() {
           aria-label="Bantuan GraceFlow"
           className={cn(
             "fixed z-50 flex flex-col bg-surface text-ink shadow-2xl animate-[gf-up_.2s_ease-out]",
-            // phone: (almost) full screen; desktop: floating panel bottom-right
-            "inset-0 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]",
+            // phone: floating panel above the bottom edge (not full screen); desktop: panel bottom-right
+            "inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] h-[min(560px,calc(100dvh-5rem))] rounded-3xl border border-line overflow-hidden",
             "sm:inset-auto sm:right-6 sm:bottom-6 sm:w-[400px] sm:h-[min(680px,calc(100dvh-3rem))] sm:rounded-3xl sm:border sm:border-line sm:p-0 sm:overflow-hidden",
           )}
         >
