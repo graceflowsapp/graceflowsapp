@@ -13,6 +13,8 @@ import { formatDateLong, formatMonth, monthKey, todayISO, weekdaysInMonth } from
 import { isAvailableNow } from "@/lib/scheduling";
 import type { Ministry, Role, Service, UserProfile } from "@/lib/types";
 import { ask, celebrate } from "@/lib/feedback";
+import { authErrorMessage, displayLogin, usernameError } from "@/lib/username";
+import { UsernameField } from "@/components/UsernameField";
 
 const SESSIONS = ["Sesi 1", "Sesi 2", "Sesi 3", "Sesi Pagi", "Sesi Sore"];
 const LOCATIONS = ["Ruang Ibadah Utama", "Aula Lt. 2", "Ruang Youth", "Online / Live Streaming"];
@@ -420,7 +422,7 @@ function UserModal({ user, onClose }: { user: UserProfile; onClose: () => void }
         <Avatar name={form.name} src={form.photoUrl} size={48} />
         <div className="min-w-0">
           <div className="font-semibold truncate">{form.name}</div>
-          <div className="text-xs text-ink-soft truncate">{form.email}</div>
+          <div className="text-xs text-ink-soft truncate">{displayLogin(form)}</div>
         </div>
       </div>
       <Field label="Nama">
@@ -511,7 +513,7 @@ function UserModal({ user, onClose }: { user: UserProfile; onClose: () => void }
 function AddAccountModal({ onClose }: { onClose: () => void }) {
   const { demo, church } = useApp();
   const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [phone, setPhone] = useState("");
   const [role, setRole] = useState<Role>("servant");
@@ -519,6 +521,48 @@ function AddAccountModal({ onClose }: { onClose: () => void }) {
   const [coordOf, setCoordOf] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [created, setCreated] = useState<{ name: string; username: string; password: string; phone: string } | null>(null);
+
+  if (created) {
+    const text = `Halo ${created.name.split(" ")[0]}! Akun GraceFlow ${church?.name ?? ""} kamu sudah dibuat 🙏
+
+Buka: ${window.location.origin}/login
+Username: ${created.username}
+Kata sandi: ${created.password}
+
+Setelah masuk, hubungkan emailmu di menu Profil → Akun & login.`;
+    const wa = created.phone.replace(/\D/g, "").replace(/^0/, "62");
+    return (
+      <Modal open onClose={onClose} title="Akun berhasil dibuat">
+        <p className="text-sm text-ink-soft mb-3">Berikan data masuk ini ke {created.name}. Emailnya bisa ia hubungkan sendiri nanti di Profil.</p>
+        <div className="rounded-xl bg-brand-soft p-4 space-y-1.5 text-sm">
+          <p>
+            Username: <b className="font-mono">{created.username}</b>
+          </p>
+          <p>
+            Kata sandi: <b className="font-mono">{created.password}</b>
+          </p>
+        </div>
+        <div className="grid grid-cols-2 gap-2 mt-4">
+          <Button
+            variant="secondary"
+            onClick={async () => {
+              await navigator.clipboard.writeText(text);
+              toast("Data masuk disalin");
+            }}
+          >
+            <Copy size={15} /> Salin
+          </Button>
+          <Button variant="whatsapp" onClick={() => window.open(`https://wa.me/${wa}?text=${encodeURIComponent(text)}`, "_blank", "noopener")}>
+            <MessageCircle size={15} /> Kirim via WA
+          </Button>
+        </div>
+        <Button variant="ghost" className="w-full mt-2" onClick={onClose}>
+          Selesai
+        </Button>
+      </Modal>
+    );
+  }
 
   return (
     <Modal open onClose={onClose} title="Tambah akun baru">
@@ -528,12 +572,11 @@ function AddAccountModal({ onClose }: { onClose: () => void }) {
           setBusy(true);
           setError("");
           try {
-            await createAccount(church!.id, { name: name.trim(), email: email.trim(), password, phone: phone.trim(), role, ministries: ministryIds, coordinatorOf: coordOf });
+            await createAccount(church!.id, { name: name.trim(), username, password, phone: phone.trim(), role, ministries: ministryIds, coordinatorOf: coordOf });
             celebrate(`Akun ${name} dibuat`);
-            onClose();
+            setCreated({ name: name.trim(), username, password, phone: phone.trim() });
           } catch (err) {
-            const code = (err as { code?: string }).code ?? (err as Error).message;
-            setError(code.includes("email-already-in-use") ? "Email sudah terdaftar." : code.includes("weak-password") ? "Kata sandi minimal 6 karakter." : code);
+            setError(authErrorMessage(err));
           } finally {
             setBusy(false);
           }
@@ -542,10 +585,8 @@ function AddAccountModal({ onClose }: { onClose: () => void }) {
         <Field label="Nama lengkap">
           <input className={inputCls} value={name} onChange={(e) => setName(e.target.value)} required />
         </Field>
-        <Field label="Email">
-          <input type="email" className={inputCls} value={email} onChange={(e) => setEmail(e.target.value)} required />
-        </Field>
-        <Field label="Kata sandi awal" hint={demo ? "Mode demo: kata sandi tidak dipakai." : "Minimal 6 karakter. Minta pelayan menggantinya setelah masuk."}>
+        <UsernameField value={username} onChange={setUsername} />
+        <Field label="Kata sandi awal" hint={demo ? "Mode demo: kata sandi tidak dipakai." : "Minimal 6 karakter. Akan ditampilkan setelah akun dibuat untuk diberikan ke pelayan."}>
           <input type="text" className={inputCls} value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} autoComplete="new-password" />
         </Field>
         <Field label="No. WhatsApp">
@@ -569,9 +610,10 @@ function AddAccountModal({ onClose }: { onClose: () => void }) {
           </div>
         )}
         {error && <p className="text-sm text-danger-ink mb-3">{error}</p>}
-        <Button className="w-full" disabled={busy}>
+        <Button className="w-full" disabled={busy || !!usernameError(username) || password.length < 6}>
           <UserPlus size={16} /> Buat akun
         </Button>
+        <p className="text-[12px] text-ink-soft text-center mt-2">Pelayan menghubungkan emailnya sendiri nanti di Profil.</p>
       </form>
     </Modal>
   );

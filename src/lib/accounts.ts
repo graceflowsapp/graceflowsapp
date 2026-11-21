@@ -7,10 +7,12 @@ import { firebaseApp, isFirebaseConfigured } from "./firebase";
 import { raw, store } from "./store";
 import { nowISO } from "./dates";
 import type { Account, Assignment, UserProfile } from "./types";
+import { normalizeUsername, placeholderEmail, usernameError, type UsernameDoc } from "./username";
 
 export interface NewAccount {
   name: string;
-  email: string;
+  /** Login username; the person connects their own email later (Profil → Akun & login). */
+  username: string;
   password: string;
   phone?: string;
   role: UserProfile["role"];
@@ -18,17 +20,26 @@ export interface NewAccount {
   coordinatorOf: string[];
 }
 
+const taken = () => Object.assign(new Error("Username sudah dipakai, coba yang lain."), { code: "app/username-taken" });
+
 /**
- * A church Admin registers a new user directly into their church.
- * Firebase: the Auth account is created in a *secondary* app instance so the admin stays signed in;
- * that instance (signed in as the new user) writes the user's own global account doc, then the
- * admin writes the church membership (allowed for church admins by firestore.rules).
+ * A church Admin registers a new user directly into their church, with a USERNAME (no email).
+ * Firebase: the Auth account (placeholder login email, see lib/username.ts) is created in a *secondary* app
+ * instance so the admin stays signed in; that instance (signed in as the new user) claims usernames/{username}
+ * and writes the user's own global account doc, then the admin writes the church membership
+ * (allowed for church admins by firestore.rules).
  */
 export async function createAccount(churchId: string, data: NewAccount): Promise<string> {
+  const u = normalizeUsername(data.username);
+  const problem = usernameError(u);
+  if (problem) throw Object.assign(new Error(problem), { code: "app/invalid-username" });
+  if (await raw.get(`usernames/${u}`)) throw taken();
+
   let uid: string;
   const account = (id: string): Account => ({
     id,
-    email: data.email,
+    email: "",
+    username: u,
     name: data.name,
     churchIds: [churchId],
     activeChurchId: churchId,
@@ -39,22 +50,39 @@ export async function createAccount(churchId: string, data: NewAccount): Promise
     const secondary = initializeApp(firebaseApp().options, `create-${Date.now()}`);
     try {
       const auth = getAuth(secondary);
-      const cred = await createUserWithEmailAndPassword(auth, data.email, data.password);
+      const email = placeholderEmail(u);
+      let cred;
+      try {
+        cred = await createUserWithEmailAndPassword(auth, email, data.password);
+      } catch (e) {
+        if ((e as { code?: string }).code?.includes("email-already-in-use")) throw taken();
+        throw e;
+      }
       uid = cred.user.uid;
-      await setDoc(doc(getFirestore(secondary), "users", uid), account(uid));
+      const db = getFirestore(secondary);
+      try {
+        await setDoc(doc(db, "usernames", u), { uid, username: u, email } satisfies UsernameDoc);
+      } catch {
+        // claimed by someone else a moment earlier → undo the half-created login
+        await cred.user.delete().catch(() => undefined);
+        throw taken();
+      }
+      await setDoc(doc(db, "users", uid), account(uid));
       await signOut(auth);
     } finally {
       await deleteApp(secondary);
     }
   } else {
     uid = `u-${Math.random().toString(36).slice(2, 10)}`;
+    await raw.set(`usernames/${u}`, { uid, username: u, email: "" } satisfies UsernameDoc);
     await raw.set(`users/${uid}`, account(uid));
   }
 
   const profile: UserProfile = {
     id: uid,
     name: data.name,
-    email: data.email,
+    email: "",
+    username: u,
     phone: data.phone,
     role: data.role,
     ministries: data.ministries,
