@@ -272,3 +272,17 @@ export function availabilityNotes(
   }
   return notes;
 }
+
+/** People who could take over `a` for its current servant: same ministry & position, available, no clash. */
+export function swapCandidates(a: Assignment, service: Service, users: UserProfile[], services: Service[], assignments: Assignment[]) {
+  const month = monthKey(service.date);
+  const sById = new Map(services.map((s) => [s.id, s]));
+  return users
+    .filter((u) => u.id !== a.userId && !u.deleted)
+    .filter((u) => canFill(u, a.ministryId, a.position))
+    .filter((u) => isAvailableForService(u, service))
+    .filter((u) => findConflicts(u.id, service, services, assignments, a.id).length === 0)
+    .filter((u) => !declinedService(u.id, service.id, assignments))
+    .map((u) => ({ u, load: assignments.filter((x) => x.userId === u.id && monthKey(sById.get(x.serviceId)?.date ?? "") === month).length }))
+    .sort((x, y) => x.load - y.load || x.u.name.localeCompare(y.u.name));
+}

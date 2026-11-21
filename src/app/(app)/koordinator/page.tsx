@@ -268,6 +268,11 @@ function ServiceSlots({ service, ministryId, onPick, showDate }: { service: Serv
                       {decliner?.name ?? "Pelayan"} berhalangan{sub.reason ? `: “${sub.reason}”` : ""}
                     </div>
                   )}
+                  {u && slot.assignment?.swapRequest && (
+                    <div className="text-[11px] text-warning-ink truncate">
+                      Minta ditukar dengan {users.find((x) => x.id === slot.assignment!.swapRequest!.to)?.name ?? "pelayan lain"} · menunggu jawaban
+                    </div>
+                  )}
                   <NoteLines notes={notes} compact />
                 </div>
                 {u && <StatusBadge status={slot.assignment?.status} />}

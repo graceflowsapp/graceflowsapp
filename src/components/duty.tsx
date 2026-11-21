@@ -1,14 +1,14 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Check, Clock, MapPin, Music2, Sparkles, Users, X } from "lucide-react";
+import { Check, Clock, MapPin, Music2, Repeat2, Sparkles, Users, X } from "lucide-react";
 import { useApp } from "./providers";
 import { Avatar, Badge, Button, Card, Field, Modal, cn, inputCls, toast } from "./ui";
-import { respondAttendance } from "@/lib/actions";
+import { cancelSwap, requestSwap, respondAttendance } from "@/lib/actions";
 import { formatDateLong, formatDateTimeLocal, relativeDay, todayISO } from "@/lib/dates";
-import { slotsForService, sortServices } from "@/lib/scheduling";
+import { slotsForService, sortServices, swapCandidates } from "@/lib/scheduling";
 import type { Assignment, AttendanceStatus, Ministry, Service } from "@/lib/types";
-import { celebrate, haptic } from "@/lib/feedback";
+import { ask, celebrate, haptic } from "@/lib/feedback";
 
 export interface Duty {
   assignment: Assignment;
@@ -75,6 +75,7 @@ export function DutyCard({ duty, highlight }: { duty: Duty; highlight?: boolean 
   const rehearsal = service.rehearsals?.[ministry.id];
   const status = assignment.status ?? "pending";
   const isPast = service.date < todayISO();
+  const swapTo = assignment.swapRequest ? users.find((u) => u.id === assignment.swapRequest!.to) ?? { name: "pengganti" } : null;
 
   const confirm = async () => {
     if (!me) return;
@@ -133,7 +134,31 @@ export function DutyCard({ duty, highlight }: { duty: Duty; highlight?: boolean 
         </div>
 
         {/* Attendance */}
-        {!isPast && (
+        {!isPast && swapTo && (
+          <div className="mt-4 rounded-xl bg-warning-soft text-warning-ink text-[13px] px-3 py-2 flex items-center gap-2">
+            <Repeat2 size={15} className="shrink-0" />
+            <span className="flex-1">
+              Menunggu <b>{swapTo.name}</b> menerima permintaan tukar. Kamu masih terjadwal sampai dia menerima.
+            </span>
+            <button
+              className="text-[12px] underline shrink-0"
+              disabled={busy}
+              onClick={async () => {
+                if (!(await ask({ title: "Batalkan permintaan tukar?", message: `${swapTo.name} tidak jadi diminta menggantikan.`, confirmText: "Batalkan permintaan" }))) return;
+                setBusy(true);
+                try {
+                  await cancelSwap(assignment);
+                  toast("Permintaan tukar dibatalkan");
+                } finally {
+                  setBusy(false);
+                }
+              }}
+            >
+              Batalkan
+            </button>
+          </div>
+        )}
+        {!isPast && !swapTo && (
           <div className="mt-4">
             {status === "pending" && (
               <>
@@ -230,16 +255,53 @@ export function TeamModal({ open, onClose, service, focusMinistry }: { open: boo
   );
 }
 
+/**
+ * "Berhalangan": the servant finds their own replacement — they pick an available teammate, who gets a swap
+ * request to accept. Only if nobody can, they hand it to the coordinator (taken off the slot).
+ */
 function DeclineModal({ open, onClose, duty }: { open: boolean; onClose: () => void; duty: Duty }) {
-  const { me, users } = useApp();
+  const { me, users, services, assignments } = useApp();
   const [reason, setReason] = useState("");
+  const [pickId, setPickId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const presets = ["Sakit", "Ujian / tugas kampus", "Di luar kota", "Acara keluarga", "Pekerjaan"];
+  const candidates = useMemo(
+    () => (open ? swapCandidates(duty.assignment, duty.service, users, services, assignments) : []),
+    [open, duty, users, services, assignments],
+  );
+  const picked = candidates.find((c) => c.u.id === pickId)?.u;
+
+  const sendSwap = async () => {
+    if (!me || !picked) return;
+    setBusy(true);
+    try {
+      await requestSwap({ a: duty.assignment, me, to: picked, service: duty.service, reason: reason.trim() });
+      haptic("success");
+      toast(`Permintaan tukar dikirim ke ${picked.name}`);
+      onClose();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handToCoordinator = async () => {
+    if (!me) return;
+    if (!(await ask({ title: "Serahkan ke koordinator?", message: "Kamu akan dikeluarkan dari tugas ini dan koordinator akan mencari pengganti.", confirmText: "Serahkan", tone: "warning" }))) return;
+    setBusy(true);
+    try {
+      await respondAttendance({ a: duty.assignment, me, service: duty.service, status: "declined", reason: reason.trim(), users });
+      haptic("warning");
+      toast("Koordinator sudah diberi tahu 🙏");
+      onClose();
+    } finally {
+      setBusy(false);
+    }
+  };
 
   return (
     <Modal open={open} onClose={onClose} title="Berhalangan hadir">
       <p className="text-sm text-ink-soft mb-4">
-        {duty.assignment.position} · {formatDateLong(duty.service.date)}. Koordinator akan langsung diberi tahu, dan rekan setim bisa menawarkan diri untuk menggantikan.
+        {duty.assignment.position} · {formatDateLong(duty.service.date)}. Pilih pengganti yang tersedia. Kamu tetap terjadwal sampai dia menerima.
       </p>
       <div className="flex flex-wrap gap-2 mb-3">
         {presets.map((p) => (
@@ -251,23 +313,59 @@ function DeclineModal({ open, onClose, duty }: { open: boolean; onClose: () => v
       <Field label="Alasan (opsional)">
         <textarea className={inputCls} rows={2} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Ceritakan singkat…" />
       </Field>
-      <Button
-        className="w-full"
-        disabled={busy || !me}
-        onClick={async () => {
-          setBusy(true);
-          try {
-            await respondAttendance({ a: duty.assignment, me: me!, service: duty.service, status: "declined", reason: reason.trim(), users });
-            haptic("warning");
-            toast("Koordinator sudah diberi tahu 🙏");
-            onClose();
-          } finally {
-            setBusy(false);
-          }
-        }}
+
+      <p className="text-[13px] font-semibold mb-2 flex items-center gap-1.5">
+        <Repeat2 size={14} /> Tukar dengan yang tersedia
+      </p>
+      {candidates.length ? (
+        <ul className="space-y-1 -mx-1 mb-4 max-h-60 overflow-y-auto" role="radiogroup" aria-label="Pilih pengganti">
+          {candidates.map(({ u, load }) => (
+            <li key={u.id}>
+              <button
+                role="radio"
+                aria-checked={pickId === u.id}
+                onClick={() => {
+                  haptic("select");
+                  setPickId(u.id);
+                }}
+                className={cn(
+                  "w-full flex items-center gap-3 rounded-xl px-2 py-2 text-left border",
+                  pickId === u.id ? "border-brand bg-brand-soft" : "border-transparent hover:bg-surface",
+                )}
+              >
+                <Avatar name={u.name} src={u.photoUrl} size={34} />
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium truncate">{u.name}</div>
+                  <div className="text-[11px] text-ink-soft">
+                    <span className="text-success font-medium">Tersedia</span> · {load}× bulan ini
+                  </div>
+                </div>
+                <span className={cn("h-5 w-5 rounded-full border-2 grid place-items-center shrink-0", pickId === u.id ? "border-brand" : "border-line")}>
+                  {pickId === u.id && <span className="h-2.5 w-2.5 rounded-full bg-brand" />}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-[13px] text-ink-soft rounded-xl bg-surface px-3 py-2 mb-4">Tidak ada pelayan lain yang tersedia untuk posisi ini di jadwal tersebut.</p>
+      )}
+
+      {candidates.length > 0 && (
+        <Button className="w-full" disabled={busy || !picked} onClick={sendSwap}>
+          <Repeat2 size={16} /> {picked ? `Minta ${picked.name.split(" ")[0]} menggantikan` : "Pilih pengganti dulu"}
+        </Button>
+      )}
+      <button
+        className={cn(
+          "w-full text-center",
+          candidates.length ? "mt-3 text-[12px] text-ink-soft underline" : "rounded-xl bg-warning text-white py-2.5 text-sm font-semibold",
+        )}
+        disabled={busy}
+        onClick={handToCoordinator}
       >
-        Kirim
-      </Button>
+        {candidates.length ? "Tidak ada yang bisa? Serahkan ke koordinator" : "Serahkan ke koordinator"}
+      </button>
     </Modal>
   );
 }

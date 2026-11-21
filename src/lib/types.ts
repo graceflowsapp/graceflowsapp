@@ -89,6 +89,14 @@ export interface SubRequest {
 }
 
 /** Servant's response to an assignment */
+/** The assigned servant can't come and asks a specific available person to take over the slot. */
+export interface SwapRequest {
+  from: string;
+  to: string;
+  reason: string;
+  requestedAt: string;
+}
+
 export type AttendanceStatus = "pending" | "confirmed" | "declined";
 
 export interface Assignment {
@@ -102,6 +110,8 @@ export interface Assignment {
   respondedAt?: string;
   /** Set when the servant answers "Berhalangan" — teammates can offer to replace */
   subRequest?: SubRequest | null;
+  /** Pending "please replace me" request to one person; the slot stays with `userId` until they accept. */
+  swapRequest?: SwapRequest | null;
   updatedAt: string;
 }
 

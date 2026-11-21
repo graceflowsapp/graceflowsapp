@@ -6,10 +6,10 @@ import { CalendarCheck, HandHeart, Moon, Repeat2 } from "lucide-react";
 import { useApp } from "@/components/providers";
 import { Avatar, Badge, Button, Card, Empty, SectionTitle, toast } from "@/components/ui";
 import { DutyCard, useMyDuties } from "@/components/duty";
-import { takeSubstitute } from "@/lib/actions";
+import { acceptSwap, rejectSwap, takeSubstitute } from "@/lib/actions";
 import { formatDateLong, formatDateShort, todayISO } from "@/lib/dates";
 import { canFill, findConflicts, isAvailableNow, statsFor } from "@/lib/scheduling";
-import { ask, celebrate } from "@/lib/feedback";
+import { ask, celebrate, haptic } from "@/lib/feedback";
 
 const VERSES = [
   ["Marilah kepada-Ku, semua yang letih lesu dan berbeban berat, Aku akan memberi kelegaan kepadamu.", "Matius 11:28"],
@@ -40,6 +40,18 @@ export default function HomePage() {
       .sort((x, y) => x.s.date.localeCompare(y.s.date));
   }, [me, services, assignments]);
 
+  // someone asked ME to take over their slot
+  const swapRequests = (() => {
+    if (!me) return [];
+    const today = todayISO();
+    const sById = new Map(services.map((s) => [s.id, s]));
+    return assignments
+      .filter((a) => a.swapRequest?.to === me.id)
+      .map((a) => ({ a, s: sById.get(a.serviceId)! }))
+      .filter(({ s }) => s && s.date >= today)
+      .sort((x, y) => x.s.date.localeCompare(y.s.date));
+  })();
+
   if (!me) return null;
   const stats = statsFor(me.id, services, assignments);
   const available = isAvailableNow(me);
@@ -66,6 +78,69 @@ export default function HomePage() {
             </div>
           </Card>
         </Link>
+      )}
+
+      {swapRequests.length > 0 && (
+        <>
+          <SectionTitle>Permintaan tukar jadwal</SectionTitle>
+          <div className="space-y-2 mb-2">
+            {swapRequests.map(({ a, s }) => {
+              const from = users.find((u) => u.id === a.swapRequest!.from);
+              const m = ministries.find((x) => x.id === a.ministryId);
+              const clash = findConflicts(me.id, s, services, assignments, a.id);
+              return (
+                <Card key={a.id} className="p-3 border-brand/40 animate-[gf-up_0.25s_ease-out]">
+                  <div className="flex items-start gap-3">
+                    <Avatar name={from?.name} src={from?.photoUrl} size={38} />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm">
+                        <b>{from?.name ?? "Seseorang"}</b> minta kamu menggantikan
+                      </div>
+                      <div className="text-[12px] text-ink-soft">
+                        {a.position} · {m?.name} · {formatDateShort(s.date)} {s.time}
+                      </div>
+                      {a.swapRequest?.reason && <div className="text-[12px] text-ink-soft italic">“{a.swapRequest.reason}”</div>}
+                      {clash.length > 0 && <div className="text-[12px] text-danger-ink mt-0.5">Kamu sudah bertugas di waktu yang sama.</div>}
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 mt-3">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={async () => {
+                        if (!(await ask({ title: "Tolak permintaan tukar?", message: `${from?.name ?? "Dia"} akan diminta mencari pengganti lain.`, confirmText: "Tolak", tone: "danger" }))) return;
+                        await rejectSwap(a, me, s);
+                        haptic("warning");
+                        toast("Permintaan ditolak");
+                      }}
+                    >
+                      Tolak
+                    </Button>
+                    <Button
+                      variant="success"
+                      size="sm"
+                      onClick={async () => {
+                        if (
+                          !(await ask({
+                            title: `Gantikan sebagai ${a.position}?`,
+                            message: `${formatDateLong(s.date)} · ${s.title} ${s.time}${clash.length ? "\nKamu sudah bertugas di waktu yang sama." : ""}`,
+                            confirmText: "Terima",
+                            tone: clash.length ? "warning" : "primary",
+                          }))
+                        )
+                          return;
+                        await acceptSwap(a, me, s, users);
+                        celebrate("Terima kasih sudah menolong! 🙌");
+                      }}
+                    >
+                      <Repeat2 size={14} /> Terima
+                    </Button>
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+        </>
       )}
 
       <SectionTitle>Tugas berikutnya</SectionTitle>

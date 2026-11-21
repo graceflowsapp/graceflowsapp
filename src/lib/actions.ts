@@ -115,3 +115,57 @@ export async function updateProfile(id: string, data: Partial<UserProfile>) {
 export async function markNotificationsRead(ids: string[]) {
   await Promise.all(ids.map((id) => store.update("notifications", id, { read: true })));
 }
+
+/* ---------------- Swap: the assigned servant finds their own replacement ---------------- */
+
+const whenOf = (service: Service) => `${service.title} · ${formatDateShort(service.date)} ${service.time}`;
+
+/** "Berhalangan" + ask one available person to take over. The slot stays mine until they accept. */
+export async function requestSwap(params: { a: Assignment; me: UserProfile; to: UserProfile; service: Service; reason?: string }) {
+  const { a, me, to, service, reason } = params;
+  await store.update("assignments", a.id, {
+    swapRequest: { from: me.id, to: to.id, reason: reason || "Berhalangan", requestedAt: nowISO() },
+    updatedAt: nowISO(),
+  });
+  await notify(
+    to.id,
+    "🔁 Permintaan tukar jadwal",
+    `${me.name} berhalangan (${reason || "-"}) dan meminta kamu menggantikan sebagai ${a.position} di ${whenOf(service)}. Terima atau tolak di Beranda.`,
+    "/",
+  );
+}
+
+export async function cancelSwap(a: Assignment) {
+  const to = a.swapRequest?.to;
+  await store.update("assignments", a.id, { swapRequest: null, updatedAt: nowISO() });
+  if (to) await notify(to, "Permintaan tukar dibatalkan", `Permintaan untuk menggantikan sebagai ${a.position} sudah dibatalkan.`, "/");
+}
+
+/** The asked person accepts: they take the slot (confirmed); the requester and coordinators are told. */
+export async function acceptSwap(a: Assignment, me: UserProfile, service: Service, users: UserProfile[]) {
+  const from = a.swapRequest?.from ?? a.userId;
+  await store.update("assignments", a.id, {
+    userId: me.id,
+    status: "confirmed",
+    respondedAt: nowISO(),
+    swapRequest: null,
+    subRequest: null,
+    updatedAt: nowISO(),
+  });
+  const fromName = users.find((u) => u.id === from)?.name ?? "Pelayan";
+  if (from) await notify(from, "Tukar jadwal diterima 🙌", `${me.name} menggantikanmu sebagai ${a.position} di ${whenOf(service)}.`, "/jadwal");
+  await Promise.all(
+    coordinatorsOf(a.ministryId, users)
+      .filter((c) => c.id !== me.id)
+      .map((c) => notify(c.id, "🔁 Tukar jadwal", `${me.name} menggantikan ${fromName} sebagai ${a.position} di ${whenOf(service)}.`, scheduleLink(service, a.ministryId))),
+  );
+}
+
+/** The asked person can't either: the requester must pick someone else. */
+export async function rejectSwap(a: Assignment, me: UserProfile, service: Service) {
+  const from = a.swapRequest?.from;
+  await store.update("assignments", a.id, { swapRequest: null, updatedAt: nowISO() });
+  if (from) {
+    await notify(from, "Tukar jadwal ditolak", `${me.name} tidak bisa menggantikan sebagai ${a.position} di ${whenOf(service)}. Pilih pengganti lain.`, "/jadwal");
+  }
+}
