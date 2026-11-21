@@ -6,6 +6,8 @@ import { CalendarDays, Camera, Download, LogOut } from "lucide-react";
 import { IOSInstallSteps, useInstall } from "@/components/InstallPrompt";
 import { serviceLine, useMyDuties } from "@/components/duty";
 import { ThemeSettings } from "@/components/ThemeSettings";
+import { AccountLoginSettings } from "@/components/AccountLoginSettings";
+import { displayLogin } from "@/lib/username";
 import { useApp } from "@/components/providers";
 import { Avatar, Badge, Button, Card, Field, SectionTitle, cn, inputCls, toast } from "@/components/ui";
 import { updateProfile } from "@/lib/actions";
@@ -82,7 +84,7 @@ export default function ProfilePage() {
         ) : (
           <>
             <h1 className="mt-3 text-lg font-bold">{me.name}</h1>
-            <p className="text-sm text-ink-soft">{me.email}</p>
+            <p className="text-sm text-ink-soft">{displayLogin(me)}</p>
             {me.phone && <p className="text-sm text-ink-soft">{me.phone}</p>}
             <div className="mt-2 flex flex-wrap justify-center gap-1.5">
               <Badge className="bg-brand-soft text-brand capitalize">{me.role}</Badge>
@@ -111,6 +113,8 @@ export default function ProfilePage() {
           </>
         )}
       </Card>
+
+      <AccountLoginSettings />
 
       <SectionTitle>Ketersediaan</SectionTitle>
       <Link href="/ketersediaan">

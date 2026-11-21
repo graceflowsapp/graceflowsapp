@@ -44,6 +44,21 @@ service cloud.firestore {
       allow read, create, update: if signedIn() && request.auth.uid == uid;
     }
 
+    // username → { uid, username, email (current login email), pendingEmail? }
+    // Read by exact name BEFORE sign-in (login with username), never listable. Only the owner writes it.
+    match /usernames/{name} {
+      allow get: if true;
+      allow list: if false;
+      allow create: if signedIn()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.username == name
+        && name.matches('^[a-z0-9._]{5,20}$') && name.matches('.*[0-9].*');
+      allow update: if signedIn() && resource.data.uid == request.auth.uid
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.username == resource.data.username;
+      allow delete: if signedIn() && resource.data.uid == request.auth.uid;
+    }
+
     match /inviteCodes/{code} {
       allow get: if signedIn();
       allow list: if false;
@@ -73,6 +88,11 @@ service cloud.firestore {
         allow update: if isChurchAdmin(cid) || (isMember(cid) && request.auth.uid == uid && onlyChanges(
           ['name', 'phone', 'photoUrl', 'available', 'unavailableReason', 'unavailableUntil',
            'unavailableServices', 'disabledPositions']))
+          // login details copied from the account (Profil → Akun & login): only their own verified email / owned username
+          || (isMember(cid) && request.auth.uid == uid && onlyChanges(['email', 'username'])
+              && request.resource.data.get('email', '') in [resource.data.get('email', ''), request.auth.token.get('email', '')]
+              && (request.resource.data.get('username', null) == resource.data.get('username', null)
+                  || get(/databases/$(database)/documents/usernames/$(request.resource.data.username)).data.uid == request.auth.uid))
           // someone the admin REMOVED may come back with the current invite code, as a fresh Servant
           // (a DEACTIVATED member, active == false but not deleted, still needs the admin)
           || (signedIn() && request.auth.uid == uid

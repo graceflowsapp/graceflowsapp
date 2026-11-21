@@ -9,6 +9,8 @@ import { Logo } from "@/components/AppShell";
 import { DEMO_CHURCHES } from "@/lib/seed";
 import { resetDemoData } from "@/lib/store";
 import { ask } from "@/lib/feedback";
+import { UsernameField } from "@/components/UsernameField";
+import { authErrorMessage, usernameError } from "@/lib/username";
 
 export default function LoginPage() {
   const { ready, uid, demo } = useApp();
@@ -95,13 +97,15 @@ function DemoLogin() {
 }
 
 function FirebaseLogin() {
-  const { loginEmail, registerEmail, loginGoogle } = useApp();
+  const { login, registerUsername, loginGoogle } = useApp();
   const [mode, setMode] = useState<"login" | "register">("login");
   const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const usernameOk = !usernameError(username);
 
   const run = async (fn: () => Promise<void>) => {
     setBusy(true);
@@ -109,16 +113,7 @@ function FirebaseLogin() {
     try {
       await fn();
     } catch (e) {
-      const msg = (e as { code?: string; message?: string }).code ?? (e as Error).message;
-      setError(
-        msg.includes("invalid-credential") || msg.includes("wrong-password")
-          ? "Email atau kata sandi salah."
-          : msg.includes("email-already-in-use")
-            ? "Email sudah terdaftar."
-            : msg.includes("weak-password")
-              ? "Kata sandi minimal 6 karakter."
-              : msg,
-      );
+      setError(authErrorMessage(e));
     } finally {
       setBusy(false);
     }
@@ -129,17 +124,31 @@ function FirebaseLogin() {
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          run(() => (mode === "login" ? loginEmail(email, password) : registerEmail(name, email, password)));
+          run(() => (mode === "login" ? login(identifier, password) : registerUsername(name, username, password)));
         }}
       >
-        {mode === "register" && (
-          <Field label="Nama lengkap">
-            <input className={inputCls} value={name} onChange={(e) => setName(e.target.value)} required />
+        {mode === "register" ? (
+          <>
+            <Field label="Nama lengkap">
+              <input className={inputCls} value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" required />
+            </Field>
+            <UsernameField value={username} onChange={setUsername} />
+          </>
+        ) : (
+          <Field label="Email atau username">
+            <input
+              className={inputCls}
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
+              autoComplete="username"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              placeholder="nama@email.com atau grace21"
+              required
+            />
           </Field>
         )}
-        <Field label="Email">
-          <input className={inputCls} type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-        </Field>
         <Field label="Kata sandi">
           <input
             className={inputCls}
@@ -152,9 +161,10 @@ function FirebaseLogin() {
           />
         </Field>
         {error && <p className="text-sm text-danger-ink mb-3">{error}</p>}
-        <Button className="w-full" disabled={busy}>
+        <Button className="w-full" disabled={busy || (mode === "register" && !usernameOk)}>
           {mode === "login" ? "Masuk" : "Daftar"}
         </Button>
+        {mode === "register" && <p className="text-[12px] text-ink-soft text-center mt-2">Email bisa dihubungkan nanti di menu Profil.</p>}
       </form>
       <div className="flex items-center gap-3 my-4 text-xs text-ink-soft">
         <div className="h-px flex-1 bg-line" /> atau <div className="h-px flex-1 bg-line" />
@@ -170,7 +180,13 @@ function FirebaseLogin() {
       </Button>
       <p className="text-center text-sm text-ink-soft mt-4">
         {mode === "login" ? "Belum punya akun? " : "Sudah punya akun? "}
-        <button className="text-brand font-medium" onClick={() => setMode(mode === "login" ? "register" : "login")}>
+        <button
+          className="text-brand font-medium"
+          onClick={() => {
+            setMode(mode === "login" ? "register" : "login");
+            setError("");
+          }}
+        >
           {mode === "login" ? "Daftar" : "Masuk"}
         </button>
       </p>

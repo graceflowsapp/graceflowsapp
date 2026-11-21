@@ -16,7 +16,12 @@ export interface Church {
 /** Global login account (users/{uid}). Church-specific role & data live in churches/{cid}/members/{uid}. */
 export interface Account {
   id: string;
+  /** Real email, or "" for an account created with only a username (until an email is connected). */
   email: string;
+  /** Login username (lowercase, unique via usernames/{username}). */
+  username?: string;
+  /** Email waiting for the user to click Firebase's verification link. */
+  pendingEmail?: string | null;
   name: string;
   churchIds: string[];
   activeChurchId?: string | null;
@@ -27,7 +32,9 @@ export interface Account {
 export interface UserProfile {
   id: string;
   name: string;
+  /** "" when the person signed up with a username only */
   email: string;
+  username?: string;
   phone?: string;
   photoUrl?: string;
   role: Role;

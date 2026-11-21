@@ -26,6 +26,7 @@ function memberProfile(account: Account, role: UserProfile["role"], extra: Parti
     id: account.id,
     name: account.name,
     email: account.email,
+    ...(account.username ? { username: account.username } : {}),
     role,
     ministries: [],
     coordinatorOf: [],
