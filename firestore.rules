@@ -103,6 +103,14 @@ service cloud.firestore {
               && request.resource.data.ministries is list
               && request.resource.data.ministries.toSet().difference(resource.data.get('ministries', []).toSet()).hasOnly(member(cid).coordinatorOf)
               && resource.data.get('ministries', []).toSet().difference(request.resource.data.ministries.toSet()).hasOnly(member(cid).coordinatorOf))
+          // a coordinator sets which posisi a member fills in THEIR komisi (Peran → Anggota → Posisi);
+          // only the entries for komisi they coordinate may change, and only for members of that komisi
+          || (isMember(cid) && member(cid).role == 'coordinator'
+              && resource.data.get('deleted', false) == false
+              && onlyChanges(['positionsByMinistry'])
+              && request.resource.data.positionsByMinistry is map
+              && request.resource.data.positionsByMinistry.diff(resource.data.get('positionsByMinistry', {})).affectedKeys().hasOnly(member(cid).coordinatorOf)
+              && request.resource.data.positionsByMinistry.diff(resource.data.get('positionsByMinistry', {})).affectedKeys().hasOnly(resource.data.get('ministries', [])))
           // someone the admin REMOVED may come back with the current invite code, as a fresh Servant
           // (a DEACTIVATED member, active == false but not deleted, still needs the admin)
           || (signedIn() && request.auth.uid == uid

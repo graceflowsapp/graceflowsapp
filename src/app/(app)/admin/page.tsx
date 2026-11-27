@@ -491,6 +491,7 @@ function UserModal({ user, onClose }: { user: UserProfile; onClose: () => void }
               );
             })}
           </div>
+          <p className="text-[length:calc(12px*var(--fs))] text-ink-soft mt-2">{tr("Koordinator bisa mengatur posisi per komisi di menu Peran. Pengaturan itu yang dipakai untuk komisinya.")}</p>
         </div>
       )}
       <Button

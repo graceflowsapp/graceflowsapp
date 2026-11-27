@@ -44,6 +44,9 @@ export interface UserProfile {
   coordinatorOf: string[];
   /** Optional: positions this person can fill, e.g. ["Keyboard", "Drum"]. Empty = any position. */
   skills: string[];
+  /** Posisi per komisi, set by that komisi's coordinator (Peran → Anggota). Wins over `skills` for that komisi.
+   *  ["*"] = every posisi; missing or [] = not set (Admin's global `skills` apply). */
+  positionsByMinistry?: Record<string, string[]>;
   available: boolean;
   /** Season of life, e.g. "Ujian Kampus", "Cuti", "Di Luar Kota" */
   unavailableReason?: string;

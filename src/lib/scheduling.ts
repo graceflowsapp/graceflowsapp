@@ -35,11 +35,28 @@ export function isPositionOn(user: UserProfile, ministryId: string, position: st
   return !(user.disabledPositions ?? []).includes(positionKey(ministryId, position));
 }
 
-/** Roles this person can serve in, grouped by ministry (their skills, or every position if no skills set). */
+/** Stored in positionsByMinistry when the coordinator picked every posisi (also covers posisi added later). */
+export const ALL_POSITIONS = "*";
+
+/**
+ * Posisi this person may fill in one komisi; null = all of them.
+ * The komisi's own setting (positionsByMinistry, set by its coordinator) wins over the global `skills` (set by Admin).
+ */
+export function positionsFor(user: UserProfile, ministryId: string): string[] | null {
+  const own = user.positionsByMinistry?.[ministryId];
+  if (own?.includes(ALL_POSITIONS)) return null;
+  if (own?.length) return own;
+  return user.skills.length ? user.skills : null;
+}
+
+/** Roles this person can serve in, grouped by ministry. */
 export function rolesFor(user: UserProfile, ministries: Ministry[]) {
   return ministries
     .filter((m) => user.ministries.includes(m.id))
-    .map((m) => ({ ministry: m, positions: m.positions.filter((p) => user.skills.length === 0 || user.skills.includes(p)) }))
+    .map((m) => {
+      const allowed = positionsFor(user, m.id);
+      return { ministry: m, positions: m.positions.filter((p) => !allowed || allowed.includes(p)) };
+    })
     .filter((g) => g.positions.length > 0);
 }
 
@@ -70,7 +87,7 @@ export function canFill(user: UserProfile, ministryId: string, position: string)
   return (
     isActive(user) &&
     user.ministries.includes(ministryId) &&
-    (user.skills.length === 0 || user.skills.includes(position)) &&
+    (positionsFor(user, ministryId)?.includes(position) ?? true) &&
     isPositionOn(user, ministryId, position)
   );
 }

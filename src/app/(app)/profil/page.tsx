@@ -14,7 +14,7 @@ import { Avatar, Badge, Button, Card, Field, SectionTitle, cn, inputCls, toast }
 import { updateProfile } from "@/lib/actions";
 import { uploadProfilePhoto } from "@/lib/upload";
 import { formatDateShort } from "@/lib/dates";
-import { isAvailableNow, statsFor } from "@/lib/scheduling";
+import { isAvailableNow, rolesFor, statsFor } from "@/lib/scheduling";
 import { tr } from "@/lib/i18n";
 
 export default function ProfilePage() {
@@ -30,6 +30,9 @@ export default function ProfilePage() {
   const stats = statsFor(me.id, services, assignments);
   const available = isAvailableNow(me);
   const maxCount = Math.max(1, ...stats.byMinistry.map((b) => b.count));
+  // posisi only when someone narrowed them down (Admin globally, or a coordinator per komisi)
+  const restricted = me.skills.length > 0 || Object.values(me.positionsByMinistry ?? {}).some((l) => l.length > 0 && !l.includes("*"));
+  const myPositions = restricted ? [...new Set(rolesFor(me, ministries).flatMap((g) => g.positions))] : [];
 
   const onPhoto = async (file?: File) => {
     if (!file) return;
@@ -99,7 +102,7 @@ export default function ProfilePage() {
                 ) : null;
               })}
             </div>
-            {me.skills.length > 0 && <p className="text-[length:calc(12px*var(--fs))] text-ink-soft mt-2">{tr("Posisi:")} {me.skills.join(", ")}</p>}
+            {myPositions.length > 0 && <p className="text-[length:calc(12px*var(--fs))] text-ink-soft mt-2">{tr("Posisi:")} {myPositions.join(", ")}</p>}
             <Button
               variant="primary"
               size="sm"

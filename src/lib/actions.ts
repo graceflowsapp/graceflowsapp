@@ -3,6 +3,7 @@
 import { store } from "./store";
 import type { AppNotification, Assignment, Ministry, MinistryGroup, Service, UserProfile } from "./types";
 import { formatDateShort, nowISO } from "./dates";
+import { ALL_POSITIONS } from "./scheduling";
 import { nm, tr, trIn, type Msg } from "@/lib/i18n";
 
 function rid() {
@@ -192,6 +193,16 @@ export async function addToMinistry(user: UserProfile, ministry: Ministry) {
   if (user.ministries.includes(ministry.id)) return;
   await store.update("users", user.id, { ministries: [...user.ministries, ministry.id] });
   await notify(user.id, nm("Kamu ditambahkan ke {name}", { name: ministry.name }), nm("Koordinator menambahkanmu sebagai anggota {name}. Jadwalmu akan muncul di menu Jadwal.", { name: ministry.name }), "/jadwal");
+}
+
+/**
+ * Coordinator sets which posisi someone fills in their komisi (Peran → Anggota).
+ * Choosing every posisi is stored as ["*"], so posisi added later are included and Admin's global list no longer limits it.
+ */
+export async function setMinistryPositions(user: UserProfile, ministry: Ministry, positions: string[]) {
+  const all = ministry.positions.every((p) => positions.includes(p));
+  const value = all ? [ALL_POSITIONS] : ministry.positions.filter((p) => positions.includes(p));
+  await store.update("users", user.id, { positionsByMinistry: { ...(user.positionsByMinistry ?? {}), [ministry.id]: value } });
 }
 
 /** Coordinator removes someone from a komisi. Their existing schedule in it stays until the coordinator changes it. */

@@ -461,6 +461,12 @@ export const EN: Record<string, string> = {
   "Tambah ke {name}": "Add to {name}",
   "Pilih jemaat yang akan melayani di komisi ini": "Choose who will serve in this ministry",
   "Semua jemaat sudah menjadi anggota.": "Everyone is already a member.",
+  "{name} ditambahkan": "{name} added",
+  "Semua posisi": "All positions",
+  "Posisi yang bisa diisi {name} di {name2}:": "Positions {name} can fill in {name2}:",
+  "Hanya posisi yang dipilih yang muncul untuknya di Atur Jadwal dan Smart Fill.": "Only the selected positions are offered for them in Manage Schedule and Smart Fill.",
+  "Pilih minimal satu posisi.": "Choose at least one position.",
+  "Koordinator bisa mengatur posisi per komisi di menu Peran. Pengaturan itu yang dipakai untuk komisinya.": "Coordinators can set positions per ministry in Roles. That setting is used for their ministry.",
 
   /* ---------- Login & onboarding ---------- */
   "Melayani tanpa bentrok, tanpa burnout.": "Serve without clashes, without burnout.",

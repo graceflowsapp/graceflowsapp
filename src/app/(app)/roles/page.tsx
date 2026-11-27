@@ -3,18 +3,20 @@
 /**
  * "Peran": coordinators manage the komisi they coordinate.
  * - Posisi: only `positions` changes on the komisi (firestore.rules lets its coordinators update positions & groups).
- * - Anggota: adds/removes this komisi in members' `ministries` (rules: only komisi the coordinator owns).
+ * - Anggota: adds/removes this komisi in members' `ministries` (rules: only komisi the coordinator owns),
+ *   and sets which posisi each member fills in it (`positionsByMinistry[komisi]`).
  * Name, colour and deleting a komisi stay with the church Admin.
  */
 import { useState } from "react";
-import { ChevronRight, Pencil, Plus, Tags, UserMinus, Users } from "lucide-react";
+import { Check, ChevronDown, ChevronRight, Pencil, Plus, Tags, UserMinus, Users } from "lucide-react";
 import { SearchField, matchesName } from "@/components/SearchField";
 import { useApp, useCoordinatedMinistries } from "@/components/providers";
-import { Avatar, Badge, Button, Card, Empty, Modal, toast } from "@/components/ui";
+import { Avatar, Badge, Button, Card, Empty, Modal, cn, toast } from "@/components/ui";
 import { PersonPicker } from "@/components/PersonPicker";
 import { PositionsEditor } from "@/components/PositionsEditor";
 import { store } from "@/lib/store";
-import { addToMinistry, removeFromMinistry } from "@/lib/actions";
+import { addToMinistry, removeFromMinistry, setMinistryPositions } from "@/lib/actions";
+import { positionsFor } from "@/lib/scheduling";
 import { ask, celebrate } from "@/lib/feedback";
 import { todayISO } from "@/lib/dates";
 import type { Ministry, UserProfile } from "@/lib/types";
@@ -167,6 +169,7 @@ function MembersModal({ ministry, onClose }: { ministry: Ministry; onClose: () =
   const [picking, setPicking] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [q, setQ] = useState("");
+  const [openPos, setOpenPos] = useState<string | null>(null);
   const today = todayISO();
   const sDate = new Map(services.map((s) => [s.id, s.date]));
   const upcoming = (uid: string) => assignments.filter((a) => a.userId === uid && a.ministryId === ministry.id && (sDate.get(a.serviceId) ?? "") >= today).length;
@@ -187,7 +190,7 @@ function MembersModal({ ministry, onClose }: { ministry: Ministry; onClose: () =
     setBusy(u.id);
     try {
       await addToMinistry(u, ministry);
-      celebrate(`${u.name} ditambahkan`);
+      celebrate(tr("{name} ditambahkan", { name: u.name }));
     } catch (e) {
       toast(tr("Gagal menambahkan: {message}", { message: (e as Error).message }));
     } finally {
@@ -217,6 +220,22 @@ function MembersModal({ ministry, onClose }: { ministry: Ministry; onClose: () =
     }
   };
 
+  const togglePos = async (u: UserProfile, picked: string[], p: string) => {
+    const next = picked.includes(p) ? picked.filter((x) => x !== p) : [...picked, p];
+    if (!next.length) {
+      toast(tr("Pilih minimal satu posisi."));
+      return;
+    }
+    setBusy(u.id);
+    try {
+      await setMinistryPositions(u, ministry, next);
+    } catch (e) {
+      toast(tr("Gagal menyimpan: {message}", { message: (e as Error).message }));
+    } finally {
+      setBusy(null);
+    }
+  };
+
   return (
     <Modal open onClose={onClose} title={tr("Anggota {name}", { name: ministry.name })}>
       <Button className="w-full mb-4" onClick={() => setPicking(true)} disabled={!candidates.length}>
@@ -236,28 +255,76 @@ function MembersModal({ ministry, onClose }: { ministry: Ministry; onClose: () =
           {shown.map((u) => {
             const n = upcoming(u.id);
             const coord = u.coordinatorOf?.includes(ministry.id);
+            const allowed = positionsFor(u, ministry.id);
+            const picked = ministry.positions.filter((p) => !allowed || allowed.includes(p));
+            const allPos = picked.length === ministry.positions.length;
+            const open = openPos === u.id;
             return (
-              <li key={u.id} className="flex items-center gap-3 px-3 py-2.5">
-                <Avatar name={u.name} src={u.photoUrl} size={42} className="shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <div className="text-[length:calc(15px*var(--fs))] font-semibold truncate">
-                    {u.name}
-                    {u.id === me?.id && <span className="font-normal text-ink-soft"> {tr("(kamu)")}</span>}
+              <li key={u.id} className="px-3 py-2.5">
+                <div className="flex items-center gap-3">
+                  <Avatar name={u.name} src={u.photoUrl} size={42} className="shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[length:calc(15px*var(--fs))] font-semibold truncate">
+                      {u.name}
+                      {u.id === me?.id && <span className="font-normal text-ink-soft"> {tr("(kamu)")}</span>}
+                    </div>
+                    <div className="text-[length:calc(13px*var(--fs))] text-ink-soft">
+                      {coord ? tr("Koordinator · ") : ""}
+                      {n ? tr("{n} jadwal mendatang", { n }) : tr("Belum ada jadwal")}
+                    </div>
+                    {ministry.positions.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setOpenPos(open ? null : u.id)}
+                        aria-expanded={open}
+                        aria-label={tr("Posisi {name}", { name: u.name })}
+                        className="mt-0.5 inline-flex max-w-full items-center gap-1 text-[length:calc(13px*var(--fs))] font-medium text-brand"
+                      >
+                        <Tags size={13} className="shrink-0" />
+                        <span className="truncate">{allPos ? tr("Semua posisi") : picked.join(", ")}</span>
+                        <ChevronDown size={14} className={cn("shrink-0 transition-transform motion-reduce:transition-none", open && "rotate-180")} />
+                      </button>
+                    )}
                   </div>
-                  <div className="text-[length:calc(13px*var(--fs))] text-ink-soft">
-                    {coord ? tr("Koordinator · ") : ""}
-                    {n ? tr("{n} jadwal mendatang", { n }) : tr("Belum ada jadwal")}
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => remove(u)}
+                    disabled={busy === u.id}
+                    aria-label={tr("Keluarkan {name}", { name: u.name })}
+                    className="h-10 w-10 shrink-0 grid place-items-center rounded-xl text-danger-ink hover:bg-danger-soft disabled:opacity-40 active:scale-90 transition"
+                  >
+                    <UserMinus size={18} />
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => remove(u)}
-                  disabled={busy === u.id}
-                  aria-label={tr("Keluarkan {name}", { name: u.name })}
-                  className="h-10 w-10 shrink-0 grid place-items-center rounded-xl text-danger-ink hover:bg-danger-soft disabled:opacity-40 active:scale-90 transition"
-                >
-                  <UserMinus size={18} />
-                </button>
+                {open && (
+                  <div className="mt-2.5 ml-[54px] animate-[gf-drop_.18s_ease-out]">
+                    <p className="text-[length:calc(12px*var(--fs))] text-ink-soft mb-2">
+                      {tr("Posisi yang bisa diisi {name} di {name2}:", { name: u.name.split(" ")[0], name2: ministry.name })}
+                    </p>
+                    <div className="flex flex-wrap gap-1.5" role="group" aria-label={tr("Posisi {name}", { name: u.name })}>
+                      {ministry.positions.map((p) => {
+                        const on = picked.includes(p);
+                        return (
+                          <button
+                            key={p}
+                            type="button"
+                            aria-pressed={on}
+                            disabled={busy === u.id}
+                            onClick={() => togglePos(u, picked, p)}
+                            className={cn(
+                              "inline-flex items-center gap-1 min-h-9 rounded-full border px-3 py-1.5 text-[length:calc(14px*var(--fs))] font-medium active:scale-[.97] transition disabled:opacity-60",
+                              on ? "border-brand bg-brand-soft text-brand" : "border-line text-ink-soft",
+                            )}
+                          >
+                            {on && <Check size={14} strokeWidth={3} aria-hidden />}
+                            {p}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <p className="text-[length:calc(12px*var(--fs))] text-ink-soft mt-2">{tr("Hanya posisi yang dipilih yang muncul untuknya di Atur Jadwal dan Smart Fill.")}</p>
+                  </div>
+                )}
               </li>
             );
           })}

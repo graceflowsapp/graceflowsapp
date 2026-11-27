@@ -102,6 +102,7 @@ Each of your komisi appears as a card.
 - **Anggota** opens the member list:
   - search members by name;
   - **Tambah anggota** adds an existing church member to this komisi;
+  - tap the posisi line under a name (for example *Keyboard, Gitar* or *Semua posisi*) to choose which posisi that person fills in this komisi. Atur Jadwal and Smart Fill only offer them for those posisi;
   - remove someone from the komisi. Their upcoming duties are kept.
 
 New accounts are created by the Admin or through the invite code.
