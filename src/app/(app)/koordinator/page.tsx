@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AlertTriangle, CalendarClock, ChevronDown, Copy, Info, MapPin, Download, ImageIcon, MessageCircle, Moon, Music2, UserMinus, Users, UserX, Wand2 } from "lucide-react";
+import { AlertTriangle, Check, CalendarClock, ChevronDown, Layers, Copy, Info, MapPin, Download, ImageIcon, MessageCircle, Moon, Music2, UserMinus, Users, UserX, Wand2 } from "lucide-react";
 import { toPng } from "html-to-image";
 import { useApp, useCoordinatedMinistries } from "@/components/providers";
 import { GroupFillModal, GroupsModal } from "@/components/groups";
@@ -100,46 +100,24 @@ export default function CoordinatorPage() {
     <div>
       <h1 className="text-xl font-bold mb-3">Atur Jadwal</h1>
 
-      <Card className="p-3 mb-3">
-        <label htmlFor="komisi-select" className="block text-[13px] font-medium text-ink-soft mb-1.5">
-          Komisi
-        </label>
-        <div className="relative">
-          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 rounded-full" style={{ background: ministry?.color ?? "#ccc" }} />
-          <select
-            id="komisi-select"
-            value={ministryId}
-            onChange={(e) => setMinistryId(e.target.value)}
-            disabled={mine.length < 2}
-            className={cn(inputCls, "appearance-none pl-9 pr-10 text-[16px] font-semibold disabled:opacity-100")}
-          >
-            {mine.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.name}
-              </option>
-            ))}
-          </select>
-          {mine.length > 1 && <ChevronDown size={18} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-ink-soft" />}
-        </div>
-
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 mb-3">
+        <KomisiPicker options={mine} value={ministryId} onChange={setMinistryId} />
         {ministry && (
           <button
             onClick={() => setGroupsOpen(true)}
-            className="w-full mt-3 pt-3 border-t border-line flex items-center gap-3 text-left active:scale-[.99] transition"
+            aria-label={`Grup ${ministry.name}, kelola`}
+            className="flex items-center gap-2.5 rounded-2xl border border-line bg-card pl-2.5 pr-3.5 py-2.5 text-left shadow-[0_1px_2px_rgba(0,0,0,.04)] transition hover:border-brand active:scale-[.98]"
           >
-            <span className="h-9 w-9 shrink-0 rounded-xl grid place-items-center text-white" style={{ background: ministry.color }}>
+            <span className="h-9 w-9 shrink-0 rounded-xl grid place-items-center bg-brand-soft text-brand">
               <Users size={18} />
             </span>
             <span className="flex-1 min-w-0">
-              <span className="block text-[15px] font-semibold">Grup {ministry.name}</span>
-              <span className="block text-[13px] text-ink-soft truncate">
-                {ministry.groups?.length ? ministry.groups.map((g) => g.name).join(" · ") : "Buat tim tetap, mis. Singer Grup A"}
-              </span>
+              <span className="block text-[12px] text-ink-soft">Grup</span>
+              <span className="block text-[15px] font-semibold text-brand whitespace-nowrap">{ministry.groups?.length ? `${ministry.groups.length} grup` : "Kelola"}</span>
             </span>
-            <span className="text-[13px] font-semibold text-brand shrink-0">Kelola</span>
           </button>
         )}
-      </Card>
+      </div>
       {groupsOpen && ministry && <GroupsModal ministry={ministry} onClose={() => setGroupsOpen(false)} />}
 
       <div className="grid grid-cols-2 bg-card border border-line rounded-xl p-1 mb-3">
@@ -740,5 +718,84 @@ function NoteLines({ notes, compact }: { notes: AvailabilityNote[]; compact?: bo
         );
       })}
     </ul>
+  );
+}
+
+/** Komisi switcher: a card-style button that opens a small list with each komisi's colour. */
+function KomisiPicker({ options, value, onChange }: { options: { id: string; name: string; color: string }[]; value: string; onChange: (id: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const current = options.find((o) => o.id === value);
+  const single = options.length < 2;
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: PointerEvent) => {
+      if (!ref.current?.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("pointerdown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  return (
+    <div ref={ref} className="relative min-w-0">
+      <button
+        type="button"
+        disabled={single}
+        onClick={() => setOpen(!open)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        className={cn(
+          "w-full h-full flex items-center gap-2.5 rounded-2xl border bg-card px-3 py-2.5 text-left shadow-[0_1px_2px_rgba(0,0,0,.04)] transition active:scale-[.98] disabled:active:scale-100",
+          open ? "border-brand ring-2 ring-brand/20" : "border-line hover:border-brand",
+        )}
+      >
+        <span className="h-9 w-9 shrink-0 rounded-xl grid place-items-center text-white transition-colors" style={{ background: current?.color ?? "#9aa" }}>
+          <Layers size={18} />
+        </span>
+        <span className="flex-1 min-w-0">
+          <span className="block text-[12px] text-ink-soft">Komisi</span>
+          <span className="block text-[15px] font-semibold leading-snug line-clamp-2">{current?.name ?? "Pilih komisi"}</span>
+        </span>
+        {!single && <ChevronDown size={18} className={cn("shrink-0 text-ink-soft transition-transform duration-200", open && "rotate-180")} />}
+      </button>
+
+      {open && (
+        <ul
+          role="listbox"
+          aria-label="Pilih komisi"
+          className="absolute left-0 top-full z-30 mt-2 w-[min(19rem,calc(100vw-2rem))] max-h-[60vh] overflow-y-auto origin-top-left rounded-2xl border border-line bg-card p-1.5 shadow-xl animate-[gf-drop_.18s_ease-out]"
+        >
+          {options.map((m) => {
+            const selected = m.id === value;
+            return (
+              <li key={m.id}>
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={selected}
+                  onClick={() => {
+                    onChange(m.id);
+                    setOpen(false);
+                  }}
+                  className={cn("w-full flex items-center gap-3 rounded-xl px-3 py-3 text-left text-[15px] transition-colors", selected ? "bg-brand-soft font-semibold" : "hover:bg-surface")}
+                >
+                  <span className="h-3.5 w-3.5 shrink-0 rounded-full" style={{ background: m.color }} />
+                  <span className="flex-1 min-w-0 truncate">{m.name}</span>
+                  {selected && <Check size={18} className="shrink-0 text-brand" />}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
   );
 }

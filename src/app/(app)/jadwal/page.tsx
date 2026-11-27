@@ -18,7 +18,6 @@ export default function SchedulePage() {
   const thisMonth = monthKey(todayISO());
   const next = upcoming[0];
   const monthDuties = all.filter((d) => monthKey(d.service.date) === thisMonth && d.assignment.id !== next?.assignment.id);
-  const [showHistory, setShowHistory] = useState(false);
 
   return (
     <div>
@@ -57,27 +56,21 @@ export default function SchedulePage() {
       <CalendarSection />
 
       {past.length > 0 && (
-        <>
-          <button onClick={() => setShowHistory(!showHistory)} className="w-full flex items-center justify-between mt-6 mb-2">
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-ink-soft">Riwayat pelayanan ({past.length})</h2>
-            <ChevronDown size={16} className={cn("text-ink-soft transition", showHistory && "rotate-180")} />
-          </button>
-          {showHistory && (
-            <Card className="divide-y divide-line">
-              {past.slice(0, 30).map((d) => (
-                <div key={d.assignment.id} className="px-4 py-2.5 flex items-center justify-between text-sm">
-                  <div>
-                    <div className="font-medium">{d.assignment.position}</div>
-                    <div className="text-[12px] text-ink-soft">
-                      {formatDateShort(d.service.date)} · {d.service.title}
-                    </div>
+        <CollapsibleSection title={`Riwayat pelayanan (${past.length})`} hasContent={false}>
+          <Card className="divide-y divide-line">
+            {past.slice(0, 30).map((d) => (
+              <div key={d.assignment.id} className="px-4 py-2.5 flex items-center justify-between text-sm">
+                <div>
+                  <div className="font-medium">{d.assignment.position}</div>
+                  <div className="text-[12px] text-ink-soft">
+                    {formatDateShort(d.service.date)} · {d.service.title}
                   </div>
-                  <Badge color={d.ministry.color}>{d.ministry.name}</Badge>
                 </div>
-              ))}
-            </Card>
-          )}
-        </>
+                <Badge color={d.ministry.color}>{d.ministry.name}</Badge>
+              </div>
+            ))}
+          </Card>
+        </CollapsibleSection>
       )}
     </div>
   );
@@ -96,7 +89,14 @@ function CollapsibleSection({ title, hasContent, children }: { title: ReactNode;
         <h2 className="text-xs font-semibold uppercase tracking-wider text-ink-soft">{title}</h2>
         <ChevronDown size={16} className={cn("text-ink-soft transition shrink-0", open && "rotate-180")} />
       </button>
-      {open && children}
+      {/* grid 0fr→1fr animates to the content's real height */}
+      <div
+        className={cn("grid transition-[grid-template-rows,opacity] duration-300 ease-out motion-reduce:transition-none", open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0")}
+        aria-hidden={!open}
+        inert={!open}
+      >
+        <div className="min-h-0 overflow-hidden">{children}</div>
+      </div>
     </section>
   );
 }
