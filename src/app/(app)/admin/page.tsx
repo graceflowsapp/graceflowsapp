@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ArrowUpDown, CalendarPlus, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Clock, GripVertical, Copy, Lock, LockOpen, MessageCircle, Pencil, Plus, Search, Trash2, UserPlus } from "lucide-react";
+import { ArrowUpDown, CalendarPlus, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Clock, GripVertical, Copy, HeartHandshake, LayoutGrid, Lock, LockOpen, MessageCircle, Pencil, Plus, Search, ShieldCheck, Trash2, UserPlus } from "lucide-react";
 import { useApp } from "@/components/providers";
 import { Avatar, Badge, Button, Card, Empty, Field, Modal, SectionTitle, cn, inputCls, toast } from "@/components/ui";
 import { ServiceLabel, serviceLine } from "@/components/duty";
@@ -19,6 +19,16 @@ import { UsernameField } from "@/components/UsernameField";
 import { PositionsEditor } from "@/components/PositionsEditor";
 import { SortableList } from "@/components/SortableList";
 import { locale, tr } from "@/lib/i18n";
+import { Select } from "@/components/Select";
+
+/** Access-level options for the styled dropdown (built at render time so they follow the language). */
+function roleOptions() {
+  return [
+    { value: "servant" as Role, label: tr("Servant"), description: tr("Melayani dan melihat jadwalnya sendiri"), icon: <HeartHandshake size={18} /> },
+    { value: "coordinator" as Role, label: tr("Coordinator"), description: tr("Mengatur jadwal komisi yang dikoordinasi"), icon: <LayoutGrid size={18} /> },
+    { value: "superadmin" as Role, label: tr("Superadmin"), description: tr("Mengelola seluruh gereja: ibadah, pelayan, komisi"), icon: <ShieldCheck size={18} /> },
+  ];
+}
 
 const SESSIONS = ["Sesi 1", "Sesi 2", "Sesi 3", "Sesi Pagi", "Sesi Sore"];
 const LOCATIONS = ["Ruang Ibadah Utama", "Aula Lt. 2", "Ruang Youth", "Online / Live Streaming"];
@@ -275,13 +285,16 @@ function BulkModal({ year, month, onClose }: { year: number; month: number; onCl
   return (
     <Modal open onClose={onClose} title={tr("Ibadah rutin · {p}", { p: formatMonth(year, month) })}>
       <Field label={tr("Hari")}>
-        <select className={inputCls} value={weekday} onChange={(e) => setWeekday(Number(e.target.value))}>
-          {[tr("Minggu"), tr("Senin"), tr("Selasa"), tr("Rabu"), tr("Kamis"), tr("Jumat"), tr("Sabtu")].map((d, i) => (
-            <option key={d} value={i}>
-              {tr("Setiap")} {d}
-            </option>
-          ))}
-        </select>
+        <Select
+          value={String(weekday)}
+          onChange={(v) => setWeekday(Number(v))}
+          ariaLabel={tr("Hari")}
+          options={[tr("Minggu"), tr("Senin"), tr("Selasa"), tr("Rabu"), tr("Kamis"), tr("Jumat"), tr("Sabtu")].map((d, i) => ({
+            value: String(i),
+            label: `${tr("Setiap")} ${d}`,
+            icon: <CalendarPlus size={17} />,
+          }))}
+        />
       </Field>
       <div className="grid grid-cols-2 gap-2">
         <Field label={tr("Nama ibadah")}>
@@ -452,11 +465,7 @@ function UserModal({ user, onClose }: { user: UserProfile; onClose: () => void }
         <input className={inputCls} value={form.phone ?? ""} onChange={(e) => set({ phone: e.target.value })} />
       </Field>
       <Field label={tr("Hak akses")}>
-        <select className={inputCls} value={form.role} onChange={(e) => set({ role: e.target.value as Role })} disabled={isSelf}>
-          <option value="servant">{tr("Servant — pelayan")}</option>
-          <option value="coordinator">{tr("Coordinator — koordinator komisi")}</option>
-          <option value="superadmin">{tr("Superadmin — admin gereja")}</option>
-        </select>
+        <Select value={form.role} onChange={(v) => set({ role: v })} options={roleOptions()} disabled={isSelf} ariaLabel={tr("Hak akses")} />
       </Field>
       <div className="mb-3">
         <span className="block text-sm font-medium text-ink-soft mb-2">{tr("Melayani di komisi")}</span>
@@ -613,11 +622,7 @@ function AddAccountModal({ onClose }: { onClose: () => void }) {
           <input className={inputCls} inputMode="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="08xxxxxxxxxx" />
         </Field>
         <Field label={tr("Hak akses")}>
-          <select className={inputCls} value={role} onChange={(e) => setRole(e.target.value as Role)}>
-            <option value="servant">{tr("Servant — pelayan")}</option>
-            <option value="coordinator">{tr("Coordinator — koordinator bidang")}</option>
-            <option value="superadmin">{tr("Superadmin — admin gereja")}</option>
-          </select>
+          <Select value={role} onChange={setRole} options={roleOptions()} ariaLabel={tr("Hak akses")} />
         </Field>
         <div className="mb-3">
           <span className="block text-sm font-medium text-ink-soft mb-2">{tr("Melayani di bidang")}</span>

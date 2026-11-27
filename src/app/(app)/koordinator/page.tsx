@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AlertTriangle, Check, CalendarClock, Search, ChevronDown, Layers, Copy, Info, MapPin, Download, ImageIcon, MessageCircle, Moon, Music2, UserMinus, Users, UserX, Wand2 } from "lucide-react";
+import { AlertTriangle, Check, CalendarClock, CalendarDays, Search, ChevronDown, Layers, Copy, Info, MapPin, Download, ImageIcon, MessageCircle, Moon, Music2, UserMinus, Users, UserX, Wand2 } from "lucide-react";
 import { toPng } from "html-to-image";
 import { useApp, useCoordinatedMinistries } from "@/components/providers";
 import { GroupFillModal, GroupsModal } from "@/components/groups";
@@ -18,6 +18,7 @@ import { openWhatsApp, scheduleToWhatsAppText } from "@/lib/whatsapp";
 import type { Assignment, Service, Slot } from "@/lib/types";
 import { ask, celebrate, haptic } from "@/lib/feedback";
 import { tr } from "@/lib/i18n";
+import { Select } from "@/components/Select";
 
 export default function CoordinatorPage() {
   const { services, assignments, ministries, users } = useApp();
@@ -763,34 +764,35 @@ function ExportModal({
       ) : (
         <>
           {many && (
-            <select
-              className={cn(inputCls, "mb-2")}
-              aria-label={tr("Pilih komisi")}
-              value={posterMinistryId}
-              onChange={(e) => {
-                const id = e.target.value;
-                setPosterMinistryId(id);
-                if (!posterService?.ministries.includes(id)) setPosterService(monthServices.find((s) => s.ministries.includes(id)));
-              }}
-            >
-              {ministryIds.map((id) => (
-                <option key={id} value={id}>
-                  {ministries.find((m) => m.id === id)?.name ?? id}
-                </option>
-              ))}
-            </select>
+            <div className="mb-2">
+              <Select
+                value={posterMinistryId}
+                ariaLabel={tr("Pilih komisi")}
+                onChange={(id) => {
+                  setPosterMinistryId(id);
+                  if (!posterService?.ministries.includes(id)) setPosterService(monthServices.find((s) => s.ministries.includes(id)));
+                }}
+                options={ministryIds.map((id) => {
+                  const m = ministries.find((x) => x.id === id);
+                  return { value: id, label: m?.name ?? id, color: m?.color };
+                })}
+              />
+            </div>
           )}
-          <select
-            className={cn(inputCls, "mb-3")}
-            value={posterService?.id ?? ""}
-            onChange={(e) => setPosterService(posterServices.find((s) => s.id === e.target.value))}
-          >
-            {posterServices.map((s) => (
-              <option key={s.id} value={s.id}>
-                {formatDateLong(s.date)} · {s.title}
-              </option>
-            ))}
-          </select>
+          <div className="mb-3">
+            <Select
+              value={posterService?.id}
+              ariaLabel={tr("Pilih ibadah")}
+              placeholder={tr("Pilih ibadah")}
+              onChange={(id) => setPosterService(posterServices.find((s) => s.id === id))}
+              options={posterServices.map((s) => ({
+                value: s.id,
+                label: formatDateLong(s.date),
+                description: serviceLine(s) + (s.label ? ` · ${s.label}` : ""),
+                icon: <CalendarDays size={17} />,
+              }))}
+            />
+          </div>
           {posterService && (
             <div className="mx-auto overflow-hidden rounded-xl shadow" style={{ width: POSTER_W * scale, height: POSTER_H * scale }}>
               <div style={{ transform: `scale(${scale})`, transformOrigin: "top left" }}>
