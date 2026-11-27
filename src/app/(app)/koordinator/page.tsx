@@ -48,17 +48,31 @@ export default function CoordinatorPage() {
   }, []);
 
   useEffect(() => {
-    if (ministryId || !mine[0]) return;
+    if (!mine[0]) return;
+    // "Semua komisi" only makes sense with 2+ komisi
+    if (ministryId === ALL && mine.length > 1) return;
+    if (ministryId && ministryId !== ALL && mine.some((m) => m.id === ministryId)) return;
     const wanted = deepLink.current?.ministry;
-    setMinistryId(mine.find((m) => m.id === wanted)?.id ?? mine[0].id);
+    setMinistryId(mine.find((m) => m.id === wanted)?.id ?? (mine.length > 1 ? ALL : mine[0].id));
   }, [mine, ministryId]);
 
-  const ministry = ministries.find((m) => m.id === ministryId);
+  const isAll = ministryId === ALL;
+  const ministry = isAll ? undefined : ministries.find((m) => m.id === ministryId);
+  // the komisi shown: one, or every komisi this person coordinates
+  const idsKey = isAll ? mine.map((m) => m.id).join(",") : ministryId;
+  const ids = useMemo(() => (idsKey ? idsKey.split(",") : []), [idsKey]);
+  const pickerOptions = useMemo(
+    () =>
+      mine.length > 1
+        ? [{ id: ALL, name: tr("Semua komisi"), color: `conic-gradient(${mine.map((m) => m.color).join(", ")}, ${mine[0].color})` }, ...mine]
+        : mine,
+    [mine],
+  );
   const aMap = useMemo(() => new Map(assignments.map((a) => [a.id, a])), [assignments]);
   const month = `${cursor.y}-${String(cursor.m + 1).padStart(2, "0")}`;
   const monthServices = useMemo(
-    () => services.filter((s) => monthKey(s.date) === month && s.ministries.includes(ministryId)),
-    [services, month, ministryId],
+    () => services.filter((s) => monthKey(s.date) === month && s.ministries.some((id) => ids.includes(id))),
+    [services, month, ids],
   );
   const dayServices = monthServices.filter((s) => s.date === selected);
 
@@ -66,7 +80,7 @@ export default function CoordinatorPage() {
   const dayStatus = useMemo(() => {
     const out = new Map<string, { filled: number; total: number; subs: number }>();
     for (const s of monthServices) {
-      const slots = slotsForService(s, ministries, aMap, [ministryId]);
+      const slots = slotsForService(s, ministries, aMap, ids);
       const cur = out.get(s.date) ?? { filled: 0, total: 0, subs: 0 };
       cur.total += slots.length;
       cur.filled += slots.filter((x) => x.assignment?.userId).length;
@@ -74,7 +88,7 @@ export default function CoordinatorPage() {
       out.set(s.date, cur);
     }
     return out;
-  }, [monthServices, ministries, aMap, ministryId]);
+  }, [monthServices, ministries, aMap, ids]);
 
   const marks = useMemo(() => {
     const m = new Map<string, DayMark>();
@@ -86,8 +100,8 @@ export default function CoordinatorPage() {
   }, [dayStatus]);
 
   const upcomingServices = useMemo(
-    () => services.filter((s) => s.date >= todayISO() && s.ministries.includes(ministryId)).slice(0, 12),
-    [services, ministryId],
+    () => services.filter((s) => s.date >= todayISO() && s.ministries.some((id) => ids.includes(id))).slice(0, 12),
+    [services, ids],
   );
 
   if (!mine.length) {
@@ -103,7 +117,7 @@ export default function CoordinatorPage() {
       <h1 className="text-xl font-bold mb-3">{tr("Atur Jadwal")}</h1>
 
       <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 mb-3">
-        <KomisiPicker options={mine} value={ministryId} onChange={setMinistryId} />
+        <KomisiPicker options={pickerOptions} value={ministryId} onChange={setMinistryId} />
         {ministry && (
           <button
             onClick={() => setGroupsOpen(true)}
@@ -179,45 +193,49 @@ export default function CoordinatorPage() {
         </Card>
       ) : (
         <div className="space-y-3">
-          {dayServices.map((s) => (
-            <ServiceSlots key={s.id} service={s} ministryId={ministryId} onPick={setAssigning} />
-          ))}
+          {dayServices.flatMap((s) =>
+            ids
+              .filter((id) => s.ministries.includes(id))
+              .map((id) => <ServiceSlots key={s.id + id} service={s} ministryId={id} onPick={setAssigning} showMinistry={isAll} />),
+          )}
         </div>
       )}
 
         </>
       ) : (
         <>
-          <SectionTitle>{tr("Ibadah mendatang ·")} {ministry?.name}</SectionTitle>
+          <SectionTitle>{tr("Ibadah mendatang ·")} {isAll ? tr("Semua komisi") : ministry?.name}</SectionTitle>
           {upcomingServices.length === 0 ? (
             <Card>
               <Empty icon={<Music2 size={20} />} title={tr("Belum ada ibadah mendatang")} body={tr("Superadmin perlu membuat jadwal ibadah terlebih dahulu.")} />
             </Card>
           ) : (
             <div className="space-y-3">
-              {upcomingServices.map((s) => (
-                <ServiceSlots key={s.id} service={s} ministryId={ministryId} onPick={setAssigning} showDate />
-              ))}
+              {upcomingServices.flatMap((s) =>
+                ids
+                  .filter((id) => s.ministries.includes(id))
+                  .map((id) => <ServiceSlots key={s.id + id} service={s} ministryId={id} onPick={setAssigning} showDate showMinistry={isAll} />),
+              )}
             </div>
           )}
         </>
       )}
 
       {assigning && <AssignModal slot={assigning} onClose={() => setAssigning(null)} />}
-      {fillScope && ministry && (
+      {fillScope && ids.length > 0 && (
         <SmartFillModal
           scope={fillScope}
           targets={fillScope === "day" ? dayServices : monthServices}
-          ministryId={ministryId}
+          ministryIds={ids}
           label={fillScope === "day" ? formatDateLong(selected) : formatMonth(cursor.y, cursor.m)}
           onClose={() => setFillScope(null)}
         />
       )}
-      {exportOpen && ministry && (
+      {exportOpen && ids.length > 0 && (
         <ExportModal
           monthServices={monthServices}
           dayServices={dayServices}
-          ministryId={ministryId}
+          ministryIds={ids}
           monthLabel={formatMonth(cursor.y, cursor.m)}
           selected={selected}
           onClose={() => setExportOpen(false)}
@@ -228,7 +246,23 @@ export default function CoordinatorPage() {
   );
 }
 
-function ServiceSlots({ service, ministryId, onPick, showDate }: { service: Service; ministryId: string; onPick: (s: Slot) => void; showDate?: boolean }) {
+/** KomisiPicker value for "every komisi I coordinate". */
+const ALL = "__all";
+
+function ServiceSlots({
+  service,
+  ministryId,
+  onPick,
+  showDate,
+  showMinistry,
+}: {
+  service: Service;
+  ministryId: string;
+  onPick: (s: Slot) => void;
+  showDate?: boolean;
+  /** "Semua komisi" view: label the card with its komisi */
+  showMinistry?: boolean;
+}) {
   const { ministries, assignments, users, services } = useApp();
   const [editRehearsal, setEditRehearsal] = useState(false);
   const map = useMemo(() => new Map(assignments.map((a) => [a.id, a])), [assignments]);
@@ -242,6 +276,12 @@ function ServiceSlots({ service, ministryId, onPick, showDate }: { service: Serv
 
   return (
     <Card className="p-4">
+      {showMinistry && ministry && (
+        <div className="mb-1.5 inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[length:calc(12px*var(--fs))] font-semibold" style={{ background: `${ministry.color}22`, color: ministry.color }}>
+          <span className="h-2 w-2 rounded-full" style={{ background: ministry.color }} />
+          {ministry.name}
+        </div>
+      )}
       {showDate && <div className="text-sm font-semibold">{formatDateLong(service.date)}</div>}
       <div className="flex flex-wrap items-center gap-1.5 mb-1">
         <span className={showDate ? "text-sm text-ink-soft" : "font-semibold"}>{serviceLine(service)}</span>
@@ -511,15 +551,15 @@ function AssignModal({ slot, onClose }: { slot: Slot; onClose: () => void }) {
   );
 }
 
-function SmartFillModal({ scope, targets, ministryId, label, onClose }: { scope: "day" | "month"; targets: Service[]; ministryId: string; label: string; onClose: () => void }) {
+function SmartFillModal({ scope, targets, ministryIds, label, onClose }: { scope: "day" | "month"; targets: Service[]; ministryIds: string[]; label: string; onClose: () => void }) {
   const { ministries, users, services, assignments } = useApp();
   const [result, setResult] = useState<Assignment[]>(() =>
-    smartFill({ targetServices: targets, ministryIds: [ministryId], ministries, users, allServices: services, assignments }),
+    smartFill({ targetServices: targets, ministryIds, ministries, users, allServices: services, assignments }),
   );
   const [busy, setBusy] = useState(false);
   const sById = new Map(services.map((s) => [s.id, s]));
   const map = new Map(assignments.map((a) => [a.id, a]));
-  const empty = targets.flatMap((s) => slotsForService(s, ministries, map, [ministryId])).filter((x) => !x.assignment?.userId).length;
+  const empty = targets.flatMap((s) => slotsForService(s, ministries, map, ministryIds)).filter((x) => !x.assignment?.userId).length;
 
   return (
     <Modal open onClose={onClose} title={tr("Smart Fill · {label}", { label })}>
@@ -552,7 +592,7 @@ function SmartFillModal({ scope, targets, ministryId, label, onClose }: { scope:
       <div className="flex gap-2">
         <Button
           variant="secondary"
-          onClick={() => setResult(smartFill({ targetServices: targets, ministryIds: [ministryId], ministries, users, allServices: services, assignments }))}
+          onClick={() => setResult(smartFill({ targetServices: targets, ministryIds, ministries, users, allServices: services, assignments }))}
         >
           {tr("Acak ulang")}
         </Button>
@@ -578,7 +618,7 @@ function SmartFillModal({ scope, targets, ministryId, label, onClose }: { scope:
 function ExportModal({
   monthServices,
   dayServices,
-  ministryId,
+  ministryIds,
   monthLabel,
   selected,
   onClose,
@@ -586,32 +626,41 @@ function ExportModal({
 }: {
   monthServices: Service[];
   dayServices: Service[];
-  ministryId: string;
+  ministryIds: string[];
   monthLabel: string;
   selected: string;
   onClose: () => void;
   users: ReturnType<typeof useApp>["users"];
 }) {
   const { ministries, assignments, church } = useApp();
-  const ministry = ministries.find((m) => m.id === ministryId)!;
+  const many = ministryIds.length > 1;
+  // the poster is per komisi; with "Semua komisi" the coordinator picks which one
+  const [posterMinistryId, setPosterMinistryId] = useState(ministryIds[0]);
+  const ministry = ministries.find((m) => m.id === posterMinistryId)!;
+  const posterServices = monthServices.filter((s) => s.ministries.includes(posterMinistryId));
   const [tab, setTab] = useState<"text" | "poster">("text");
   const [scope, setScope] = useState<"month" | "day">(dayServices.length ? "day" : "month");
-  const [posterService, setPosterService] = useState<Service | undefined>(dayServices[0] ?? monthServices[0]);
+  const [posterService, setPosterService] = useState<Service | undefined>(
+    dayServices.find((s) => s.ministries.includes(ministryIds[0])) ?? monthServices.find((s) => s.ministries.includes(ministryIds[0])),
+  );
   const posterRef = useRef<HTMLDivElement>(null);
   const [busy, setBusy] = useState(false);
 
   const text = scheduleToWhatsAppText({
     services: scope === "day" ? dayServices : monthServices,
-    ministryIds: [ministryId],
+    ministryIds,
     ministries,
     assignments,
     users,
     churchName: church?.name ?? "",
-    heading: tr("Jadwal {name} — {p}", { name: ministry.name, p: scope === "day" ? formatDateLong(selected) : monthLabel }),
+    heading: tr("Jadwal {name} — {p}", {
+      name: many ? tr("Pelayanan") : (ministries.find((m) => m.id === ministryIds[0])?.name ?? ""),
+      p: scope === "day" ? formatDateLong(selected) : monthLabel,
+    }),
   });
 
   const map = new Map(assignments.map((a) => [a.id, a]));
-  const posterSlots = posterService ? slotsForService(posterService, ministries, map, [ministryId]) : [];
+  const posterSlots = posterService ? slotsForService(posterService, ministries, map, [posterMinistryId]) : [];
   const scale = 300 / POSTER_W;
 
   const makePng = async () => {
@@ -660,12 +709,30 @@ function ExportModal({
         </>
       ) : (
         <>
+          {many && (
+            <select
+              className={cn(inputCls, "mb-2")}
+              aria-label={tr("Pilih komisi")}
+              value={posterMinistryId}
+              onChange={(e) => {
+                const id = e.target.value;
+                setPosterMinistryId(id);
+                if (!posterService?.ministries.includes(id)) setPosterService(monthServices.find((s) => s.ministries.includes(id)));
+              }}
+            >
+              {ministryIds.map((id) => (
+                <option key={id} value={id}>
+                  {ministries.find((m) => m.id === id)?.name ?? id}
+                </option>
+              ))}
+            </select>
+          )}
           <select
             className={cn(inputCls, "mb-3")}
             value={posterService?.id ?? ""}
-            onChange={(e) => setPosterService(monthServices.find((s) => s.id === e.target.value))}
+            onChange={(e) => setPosterService(posterServices.find((s) => s.id === e.target.value))}
           >
-            {monthServices.map((s) => (
+            {posterServices.map((s) => (
               <option key={s.id} value={s.id}>
                 {formatDateLong(s.date)} · {s.title}
               </option>

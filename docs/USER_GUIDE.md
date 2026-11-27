@@ -84,7 +84,7 @@ Coordinators and Smart Fill respect these settings.
 ## 4. For coordinators
 
 ### Atur Jadwal (Build the schedule)
-1. Pick the **Komisi** from the dropdown at the top. Next to it, **Grup** manages saved groups of people who often serve together.
+1. Pick the **Komisi** from the dropdown at the top. Next to it, **Grup** manages saved groups of people who often serve together. If you coordinate more than one komisi, **Semua komisi** (the default) shows all of them together. Each service then has one block per komisi, and Smart Fill and the WhatsApp export cover them all.
 2. Choose a service under **Ibadah mendatang**.
 3. Tap an empty posisi to pick a person. The list shows who is available and fits that posisi.
    - Tap 🔍 to search everyone in the komisi by name.

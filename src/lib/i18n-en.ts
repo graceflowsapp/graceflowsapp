@@ -368,6 +368,8 @@ export const EN: Record<string, string> = {
   "Gagal: {message}": "Failed: {message}",
   "Bagikan poster": "Share poster",
   "Pilih komisi": "Choose ministry",
+  "Semua komisi": "All ministries",
+  "Pelayanan": "Ministry",
 
   /* ---------- Beranda ---------- */
   "Selamat pagi": "Good morning",
