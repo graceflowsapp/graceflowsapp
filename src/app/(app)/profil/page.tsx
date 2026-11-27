@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import Link from "next/link";
-import { CalendarDays, Camera, Download, LogOut, Pencil } from "lucide-react";
+import { CalendarDays, Camera, ChevronRight, Download, KeyRound, LogOut, Palette, Pencil } from "lucide-react";
 import { IOSInstallSteps, useInstall } from "@/components/InstallPrompt";
 import { serviceLine, useMyDuties } from "@/components/duty";
 import { ThemeSettings } from "@/components/ThemeSettings";
@@ -10,12 +10,20 @@ import { AccountLoginSettings } from "@/components/AccountLoginSettings";
 import { displayLogin } from "@/lib/username";
 import { useApp } from "@/components/providers";
 import { confirmLogout } from "@/lib/feedback";
-import { Avatar, Badge, Button, Card, Field, SectionTitle, cn, inputCls, toast } from "@/components/ui";
+import { Avatar, Badge, Button, Card, Field, Modal, SectionTitle, cn, inputCls, toast } from "@/components/ui";
+import { TEXT_SIZES, loadTheme } from "@/lib/theme";
+import { LANGS, getLang } from "@/lib/i18n";
 import { updateProfile } from "@/lib/actions";
 import { uploadProfilePhoto } from "@/lib/upload";
 import { formatDateShort } from "@/lib/dates";
 import { isAvailableNow, rolesFor, statsFor } from "@/lib/scheduling";
 import { tr } from "@/lib/i18n";
+
+type Sheet = "account" | "display";
+// Switching language re-mounts the whole UI; this brings the Tampilan sheet back open afterwards.
+let reopenSheet: Sheet | null = null;
+
+const MODE_LABEL = { light: "Terang", dark: "Gelap", system: "Sistem" } as const;
 
 export default function ProfilePage() {
   const { me, services, assignments, ministries, logout, demo } = useApp();
@@ -24,6 +32,11 @@ export default function ProfilePage() {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [sheet, setSheet] = useState<Sheet | null>(() => {
+    const s = reopenSheet;
+    reopenSheet = null;
+    return s;
+  });
   const { upcoming } = useMyDuties();
 
   if (!me) return null;
@@ -119,7 +132,19 @@ export default function ProfilePage() {
         )}
       </Card>
 
-      <AccountLoginSettings />
+      <SectionTitle>{tr("Pengaturan")}</SectionTitle>
+      <Card className="divide-y divide-line overflow-hidden">
+        {!demo && (
+          <SettingsRow icon={<KeyRound size={18} />} title={tr("Akun & login")} value={displayLogin(me)} onClick={() => setSheet("account")} />
+        )}
+        <SettingsRow icon={<Palette size={18} />} title={tr("Tampilan")} value={displaySummary()} onClick={() => setSheet("display")} />
+      </Card>
+      <Modal open={sheet === "account"} onClose={() => setSheet(null)} title={tr("Akun & login")}>
+        <AccountLoginSettings bare />
+      </Modal>
+      <Modal open={sheet === "display"} onClose={() => setSheet(null)} title={tr("Tampilan")}>
+        <ThemeSettings bare onBeforeLangChange={() => (reopenSheet = "display")} />
+      </Modal>
 
       <SectionTitle>{tr("Ketersediaan")}</SectionTitle>
       <Link href="/ketersediaan">
@@ -196,15 +221,34 @@ export default function ProfilePage() {
         </Card>
       )}
 
-      <SectionTitle>{tr("Tampilan")}</SectionTitle>
-      <ThemeSettings />
-
       <InstallCard />
 
       <Button variant="danger" className="w-full mt-6" onClick={() => confirmLogout(logout)}>
         <LogOut size={16} /> {demo ? tr("Ganti peran (demo)") : tr("Keluar")}
       </Button>
     </div>
+  );
+}
+
+/** "Gelap · Normal · Indonesia" — current display settings, shown on the Tampilan button. */
+function displaySummary() {
+  const t = loadTheme();
+  const size = TEXT_SIZES.find((x) => x.value === t.textSize)?.label ?? "Normal";
+  const lang = LANGS.find((x) => x.value === getLang())?.label ?? "";
+  return [tr(MODE_LABEL[t.mode]), tr(size), lang].join(" · ");
+}
+
+/** A tappable settings row that opens a sheet. */
+function SettingsRow({ icon, title, value, onClick }: { icon: React.ReactNode; title: string; value: string; onClick: () => void }) {
+  return (
+    <button type="button" onClick={onClick} className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-surface active:bg-surface transition">
+      <span className="h-10 w-10 shrink-0 rounded-xl bg-brand-soft text-brand grid place-items-center">{icon}</span>
+      <span className="flex-1 min-w-0">
+        <span className="block font-semibold">{title}</span>
+        <span className="block text-[length:calc(13px*var(--fs))] text-ink-soft truncate">{value}</span>
+      </span>
+      <ChevronRight size={18} className="shrink-0 text-ink-soft" />
+    </button>
   );
 }
 

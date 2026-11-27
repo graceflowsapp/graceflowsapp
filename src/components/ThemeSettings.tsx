@@ -15,7 +15,7 @@ const MODES: { value: ThemeMode; label: string; icon: typeof Sun }[] = [
   { value: "system", label: "Sistem", icon: Monitor },
 ];
 
-export function ThemeSettings() {
+export function ThemeSettings({ bare = false, onBeforeLangChange }: { bare?: boolean; onBeforeLangChange?: () => void } = {}) {
   const [prefs, setPrefs] = useState<ThemePrefs>(DEFAULT_THEME);
   useEffect(() => setPrefs(loadTheme()), []);
 
@@ -26,8 +26,9 @@ export function ThemeSettings() {
   };
   const isPreset = ACCENT_PRESETS.some((a) => a.value === prefs.accent);
 
+  const Wrap = bare ? "div" : Card;
   return (
-    <Card className="p-4">
+    <Wrap className={bare ? "" : "p-4"}>
       <p className="text-xs font-medium text-ink-soft mb-2">{tr("Mode tampilan")}</p>
       <div className="grid grid-cols-3 gap-1 bg-surface rounded-xl p-1" role="radiogroup" aria-label={tr("Mode tampilan")}>
         {MODES.map(({ value, label, icon: Icon }) => (
@@ -76,7 +77,11 @@ export function ThemeSettings() {
             key={value}
             role="radio"
             aria-checked={getLang() === value}
-            onClick={() => value !== getLang() && setLang(value)}
+            onClick={() => {
+              if (value === getLang()) return;
+              onBeforeLangChange?.();
+              setLang(value);
+            }}
             className={cn("rounded-lg py-2 text-sm font-medium transition", getLang() === value ? "bg-card text-brand shadow-sm" : "text-ink-soft")}
           >
             {label}
@@ -139,6 +144,6 @@ export function ThemeSettings() {
         </button>
       )}
       <p className="text-[length:calc(11px*var(--fs))] text-ink-soft mt-2">{tr("Pengaturan tampilan disimpan di perangkat ini.")}</p>
-    </Card>
+    </Wrap>
   );
 }

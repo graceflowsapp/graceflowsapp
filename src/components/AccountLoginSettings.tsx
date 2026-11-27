@@ -18,7 +18,7 @@ import { tr } from "@/lib/i18n";
  * - Change username / password, both confirmed with the current password.
  * - Connect / disconnect Google, so "Masuk dengan Google" opens this same account.
  */
-export function AccountLoginSettings() {
+export function AccountLoginSettings({ bare = false }: { bare?: boolean } = {}) {
   const { account, demo } = useApp();
   const [form, setForm] = useState<"username" | "change-username" | "email" | "password" | null>(null);
   // Firebase updates the signed-in user in place after (un)linking, so re-render by hand
@@ -36,7 +36,7 @@ export function AccountLoginSettings() {
 
   return (
     <>
-    <SectionTitle>{tr("Akun & login")}</SectionTitle>
+    {!bare && <SectionTitle>{tr("Akun & login")}</SectionTitle>}
     <Card className="divide-y divide-line">
       {/* Username */}
       <div className="p-4">

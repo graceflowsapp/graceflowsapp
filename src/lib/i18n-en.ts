@@ -429,6 +429,7 @@ export const EN: Record<string, string> = {
   "Kalender →": "Calendar →",
   "Terakhir melayani:": "Last served:",
   "Tampilan": "Display",
+  "Pengaturan": "Settings",
   "Ganti peran (demo)": "Switch role (demo)",
   "Keluar": "Sign out",
   "Pasang aplikasi": "Install the app",
