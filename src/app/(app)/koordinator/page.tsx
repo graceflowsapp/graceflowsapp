@@ -193,11 +193,9 @@ export default function CoordinatorPage() {
         </Card>
       ) : (
         <div className="space-y-3">
-          {dayServices.flatMap((s) =>
-            ids
-              .filter((id) => s.ministries.includes(id))
-              .map((id) => <ServiceSlots key={s.id + id} service={s} ministryId={id} onPick={setAssigning} showMinistry={isAll} />),
-          )}
+          {dayServices.map((s) => (
+            <ServiceSection key={s.id} service={s} ministryIds={ids} onPick={setAssigning} defaultOpen={dayServices.length === 1 ? true : undefined} />
+          ))}
         </div>
       )}
 
@@ -211,11 +209,9 @@ export default function CoordinatorPage() {
             </Card>
           ) : (
             <div className="space-y-3">
-              {upcomingServices.flatMap((s) =>
-                ids
-                  .filter((id) => s.ministries.includes(id))
-                  .map((id) => <ServiceSlots key={s.id + id} service={s} ministryId={id} onPick={setAssigning} showDate showMinistry={isAll} />),
-              )}
+              {upcomingServices.map((s) => (
+                <ServiceSection key={s.id} service={s} ministryIds={ids} onPick={setAssigning} showDate />
+              ))}
             </div>
           )}
         </>
@@ -249,20 +245,90 @@ export default function CoordinatorPage() {
 /** KomisiPicker value for "every komisi I coordinate". */
 const ALL = "__all";
 
-function ServiceSlots({
+/**
+ * One service as a section that opens and closes (Ibadah RBK, Ibadah PBK, …). Inside: every komisi that serves
+ * in it (of the ones shown) with its slots. Opens by itself when something still needs filling.
+ */
+function ServiceSection({
   service,
-  ministryId,
+  ministryIds,
   onPick,
   showDate,
-  showMinistry,
+  defaultOpen,
 }: {
   service: Service;
-  ministryId: string;
+  ministryIds: string[];
   onPick: (s: Slot) => void;
   showDate?: boolean;
-  /** "Semua komisi" view: label the card with its komisi */
-  showMinistry?: boolean;
+  defaultOpen?: boolean;
 }) {
+  const { ministries, assignments } = useApp();
+  const map = useMemo(() => new Map(assignments.map((a) => [a.id, a])), [assignments]);
+  const ids = ministryIds.filter((id) => service.ministries.includes(id));
+  const slots = slotsForService(service, ministries, map, ids);
+  const filled = slots.filter((x) => x.assignment?.userId).length;
+  const subs = slots.filter((x) => x.assignment?.subRequest && !x.assignment.userId).length;
+  const empty = slots.length - filled;
+  const [userOpen, setUserOpen] = useState<boolean | null>(null);
+  const open = userOpen ?? defaultOpen ?? empty > 0;
+  const status =
+    subs > 0
+      ? { cls: "bg-warning-soft text-warning-ink", text: tr("{n} butuh pengganti", { n: subs }) }
+      : empty > 0
+        ? { cls: "bg-danger-soft text-danger-ink", text: tr("{n} kosong", { n: empty }) }
+        : { cls: "bg-success-soft text-success", text: tr("Lengkap") };
+
+  return (
+    <Card className="overflow-hidden">
+      <button type="button" onClick={() => setUserOpen(!open)} aria-expanded={open} className="w-full flex items-start gap-3 p-4 text-left hover:bg-surface/60 transition">
+        <div className="flex-1 min-w-0">
+          {showDate && <div className="text-[length:calc(12px*var(--fs))] font-medium text-ink-soft">{formatDateLong(service.date)}</div>}
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="font-semibold">{serviceLine(service)}</span>
+            <ServiceLabel label={service.label} />
+          </div>
+          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[length:calc(12px*var(--fs))] text-ink-soft">
+            {service.location && (
+              <span className="inline-flex items-center gap-1">
+                <MapPin size={12} /> {service.location}
+              </span>
+            )}
+            <span className="inline-flex items-center gap-1">
+              {ids.map((id) => (
+                <span key={id} className="h-2 w-2 rounded-full" style={{ background: ministries.find((m) => m.id === id)?.color }} />
+              ))}
+              {ids.length === 1 ? ministries.find((m) => m.id === ids[0])?.name : tr("{n} komisi", { n: ids.length })}
+            </span>
+          </div>
+        </div>
+        <div className="flex flex-col items-end gap-1.5 shrink-0">
+          <span className={cn("rounded-full px-2 py-0.5 text-[length:calc(11px*var(--fs))] font-semibold whitespace-nowrap", status.cls)}>{status.text}</span>
+          <span className="flex items-center gap-1 text-[length:calc(11px*var(--fs))] text-ink-soft">
+            {filled}/{slots.length}
+            <ChevronDown size={16} className={cn("transition-transform duration-200 motion-reduce:transition-none", open && "rotate-180")} />
+          </span>
+        </div>
+      </button>
+      {/* grid 0fr→1fr animates to the content's real height */}
+      <div
+        className={cn("grid transition-[grid-template-rows,opacity] duration-300 ease-out motion-reduce:transition-none", open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0")}
+        aria-hidden={!open}
+        inert={!open}
+      >
+        <div className="min-h-0 overflow-hidden">
+          <div className="divide-y divide-line border-t border-line">
+            {ids.map((id) => (
+              <MinistrySlots key={id} service={service} ministryId={id} onPick={onPick} />
+            ))}
+          </div>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+/** The slots of ONE komisi inside a service section: komisi name, rehearsal, "Isi dengan grup", people. */
+function MinistrySlots({ service, ministryId, onPick }: { service: Service; ministryId: string; onPick: (s: Slot) => void }) {
   const { ministries, assignments, users, services } = useApp();
   const [editRehearsal, setEditRehearsal] = useState(false);
   const map = useMemo(() => new Map(assignments.map((a) => [a.id, a])), [assignments]);
@@ -275,26 +341,16 @@ function ServiceSlots({
   const confirmed = slots.filter((x) => x.assignment?.userId && x.assignment.status === "confirmed").length;
 
   return (
-    <Card className="p-4">
-      {showMinistry && ministry && (
-        <div className="mb-1.5 inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[length:calc(12px*var(--fs))] font-semibold" style={{ background: `${ministry.color}22`, color: ministry.color }}>
-          <span className="h-2 w-2 rounded-full" style={{ background: ministry.color }} />
-          {ministry.name}
-        </div>
-      )}
-      {showDate && <div className="text-sm font-semibold">{formatDateLong(service.date)}</div>}
-      <div className="flex flex-wrap items-center gap-1.5 mb-1">
-        <span className={showDate ? "text-sm text-ink-soft" : "font-semibold"}>{serviceLine(service)}</span>
-        <ServiceLabel label={service.label} />
-        <span className="ml-auto text-[length:calc(11px*var(--fs))] text-ink-soft">
+    <div className="p-4">
+      <div className="flex items-center gap-2 mb-1.5">
+        <span className="inline-flex min-w-0 items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[length:calc(12px*var(--fs))] font-semibold" style={{ background: `${ministry?.color ?? "#888888"}22`, color: ministry?.color }}>
+          <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: ministry?.color }} />
+          <span className="truncate">{ministry?.name}</span>
+        </span>
+        <span className="ml-auto shrink-0 text-[length:calc(11px*var(--fs))] text-ink-soft">
           {filled}/{slots.length} {tr("terisi ·")} {confirmed} {tr("hadir")}
         </span>
       </div>
-      {service.location && (
-        <div className="text-[length:calc(12px*var(--fs))] text-ink-soft flex items-center gap-1 mb-1">
-          <MapPin size={12} /> {service.location}
-        </div>
-      )}
       <div className="flex items-center gap-2 mb-3">
         <button onClick={() => setEditRehearsal(true)} className="text-[length:calc(12px*var(--fs))] text-ink-soft flex items-center gap-1 hover:text-brand min-w-0">
           <Music2 size={12} className="shrink-0" />
@@ -359,7 +415,7 @@ function ServiceSlots({
       </ul>
       {editRehearsal && <RehearsalModal service={service} ministryId={ministryId} onClose={() => setEditRehearsal(false)} />}
       {fillGroup && ministry && <GroupFillModal service={service} ministry={ministry} onClose={() => setFillGroup(false)} />}
-    </Card>
+    </div>
   );
 }
 

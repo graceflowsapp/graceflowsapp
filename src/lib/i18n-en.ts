@@ -369,6 +369,9 @@ export const EN: Record<string, string> = {
   "Bagikan poster": "Share poster",
   "Pilih komisi": "Choose ministry",
   "Semua komisi": "All ministries",
+  "{n} butuh pengganti": "{n} need a replacement",
+  "{n} kosong": "{n} empty",
+  "{n} komisi": "{n} ministries",
   "Pelayanan": "Ministry",
 
   /* ---------- Beranda ---------- */
