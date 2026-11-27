@@ -1,24 +1,24 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { ArrowUpDown, CalendarPlus, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, GripVertical, Copy, Lock, MessageCircle, Pencil, Plus, RefreshCw, Search, Trash2, UserPlus } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { ArrowUpDown, CalendarPlus, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Clock, GripVertical, Copy, Lock, LockOpen, MessageCircle, Pencil, Plus, Search, Trash2, UserPlus } from "lucide-react";
 import { useApp } from "@/components/providers";
 import { Avatar, Badge, Button, Card, Empty, Field, Modal, SectionTitle, cn, inputCls, toast } from "@/components/ui";
 import { ServiceLabel, serviceLine } from "@/components/duty";
 import { createAccount, deleteAccount, setAccountActive } from "@/lib/accounts";
 import { store } from "@/lib/store";
 import { assignSlot } from "@/lib/actions";
-import { inviteLink, regenerateInviteCode, updateChurch } from "@/lib/tenancy";
+import { INVITE_DURATIONS, closeInviteCode, inviteIsOpen, inviteLink, openInviteCode, updateChurch } from "@/lib/tenancy";
 import { ACCENT_PRESETS } from "@/lib/theme";
 import { formatDateLong, formatMonth, monthKey, todayISO, weekdaysInMonth } from "@/lib/dates";
 import { isAvailableNow } from "@/lib/scheduling";
-import type { Ministry, Role, Service, UserProfile } from "@/lib/types";
+import type { Church, Ministry, Role, Service, UserProfile } from "@/lib/types";
 import { ask, celebrate } from "@/lib/feedback";
 import { authErrorMessage, displayLogin, usernameError } from "@/lib/username";
 import { UsernameField } from "@/components/UsernameField";
 import { PositionsEditor } from "@/components/PositionsEditor";
 import { SortableList } from "@/components/SortableList";
-import { tr } from "@/lib/i18n";
+import { locale, tr } from "@/lib/i18n";
 
 const SESSIONS = ["Sesi 1", "Sesi 2", "Sesi 3", "Sesi Pagi", "Sesi Sore"];
 const LOCATIONS = ["Ruang Ibadah Utama", "Aula Lt. 2", "Ruang Youth", "Online / Live Streaming"];
@@ -828,48 +828,143 @@ function MinistryModal({ ministry, onClose }: { ministry?: Ministry; onClose: ()
 
 /* ---------------- Church settings & invites ---------------- */
 
+/** "4 jam lagi" style countdown for the invite code. */
+function timeLeft(ms: number) {
+  const min = Math.max(1, Math.ceil(ms / 60_000));
+  if (min < 60) return tr("{n} menit lagi", { n: min });
+  const h = Math.round(min / 60);
+  if (h < 48) return tr("{n} jam lagi", { n: h });
+  return tr("{n} hari lagi", { n: Math.round(h / 24) });
+}
+
+/**
+ * Invite code with a time limit: closed by default, the Admin opens a fresh code for 1 hour / 1 day / 7 days
+ * when someone wants to join, and can close it early. firestore.rules enforce the limit.
+ */
+function InviteCard({ church }: { church: Church }) {
+  const [hours, setHours] = useState<number>(24);
+  const [busy, setBusy] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
+  // tick so the countdown updates and the card flips to "closed" when the time is up
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 30_000);
+    return () => clearInterval(t);
+  }, []);
+
+  const open = inviteIsOpen(church, now);
+  const expired = !!church.inviteCode && !open;
+  const exp = church.inviteExpiresAtMs ?? null;
+  const until = exp ? new Date(exp).toLocaleString(locale(), { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "";
+
+  const run = async (fn: () => Promise<unknown>, done: string) => {
+    setBusy(true);
+    try {
+      await fn();
+      toast(done);
+    } catch (e) {
+      toast(tr("Gagal: {message}", { message: (e as Error).message }));
+    } finally {
+      setBusy(false);
+      setNow(Date.now());
+    }
+  };
+
+  if (!open) {
+    return (
+      <Card className="p-4">
+        <div className="flex items-start gap-3">
+          <span className="h-10 w-10 shrink-0 rounded-xl bg-surface text-ink-soft grid place-items-center">
+            <Lock size={18} />
+          </span>
+          <div className="min-w-0">
+            <p className="font-semibold">{expired ? tr("Kode undangan sudah habis waktunya") : tr("Kode undangan sedang ditutup")}</p>
+            <p className="text-[length:calc(13px*var(--fs))] text-ink-soft mt-0.5">
+              {tr("Buka kode saat ada yang mau bergabung. Kode tertutup otomatis setelah waktunya habis, jadi tidak bisa dipakai orang lain.")}
+            </p>
+          </div>
+        </div>
+        <p className="text-xs font-medium text-ink-soft mt-4 mb-2">{tr("Berlaku selama")}</p>
+        <div className="grid grid-cols-3 gap-1 bg-surface rounded-xl p-1" role="radiogroup" aria-label={tr("Berlaku selama")}>
+          {INVITE_DURATIONS.map((d) => (
+            <button
+              key={d.hours}
+              role="radio"
+              aria-checked={hours === d.hours}
+              onClick={() => setHours(d.hours)}
+              className={cn("rounded-lg py-2 text-sm font-medium transition", hours === d.hours ? "bg-card text-brand shadow-sm" : "text-ink-soft")}
+            >
+              {tr(d.label)}
+            </button>
+          ))}
+        </div>
+        <Button className="w-full mt-3" disabled={busy} onClick={() => run(() => openInviteCode(church, hours), tr("Kode undangan dibuka"))}>
+          <LockOpen size={16} /> {tr("Buka kode undangan")}
+        </Button>
+      </Card>
+    );
+  }
+
+  const link = inviteLink(church.inviteCode);
+  const shareText =
+    tr("Halo! Yuk gabung tim pelayanan {name} di GraceFlow 🙏\n\nBuka: {link}\nAtau masukkan kode undangan: *{inviteCode}*", { name: church.name, link, inviteCode: church.inviteCode }) +
+    (exp ? "\n" + tr("Kode berlaku sampai {until}.", { until }) : "");
+
+  return (
+    <Card className="p-4">
+      <p className="text-[length:calc(13px*var(--fs))] text-ink-soft">
+        {tr("Bagikan kode atau link ini. Orang yang bergabung masuk sebagai")} <b>{tr("Servant")}</b>
+        {tr("; atur bidang & perannya di tab Pelayan.")}
+      </p>
+      <div className="mt-3 rounded-xl bg-brand-soft text-brand text-2xl font-bold tracking-[0.3em] text-center py-3 font-mono">{church.inviteCode}</div>
+      <p className={cn("mt-2 flex items-center justify-center gap-1.5 text-[length:calc(13px*var(--fs))]", exp ? "text-ink-soft" : "text-warning-ink")}>
+        <Clock size={14} className="shrink-0" />
+        {exp ? (
+          <span>
+            {tr("Berlaku sampai {until}", { until })} · <b className="text-ink">{timeLeft(exp - now)}</b>
+          </span>
+        ) : (
+          <span>{tr("Kode lama ini tidak punya batas waktu.")}</span>
+        )}
+      </p>
+      <div className="grid grid-cols-2 gap-2 mt-3">
+        <Button
+          variant="secondary"
+          onClick={async () => {
+            await navigator.clipboard.writeText(link);
+            toast(tr("Link undangan disalin"));
+          }}
+        >
+          <Copy size={15} /> {tr("Salin link")}
+        </Button>
+        <Button variant="whatsapp" onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, "_blank", "noopener")}>
+          <MessageCircle size={15} /> {tr("Kirim via WA")}
+        </Button>
+      </div>
+      <button
+        className="mt-3 text-xs text-danger-ink flex items-center gap-1 disabled:opacity-50"
+        disabled={busy}
+        onClick={async () => {
+          if (!(await ask({ title: tr("Tutup kode undangan?"), message: tr("Kode ini langsung tidak berlaku. Anggota yang sudah bergabung tidak terpengaruh."), confirmText: tr("Tutup kode"), tone: "warning" }))) return;
+          await run(() => closeInviteCode(church), tr("Kode undangan ditutup"));
+        }}
+      >
+        <Lock size={12} /> {tr("Tutup kode sekarang")}
+      </button>
+    </Card>
+  );
+}
+
 function ChurchSettings() {
   const { church, users } = useApp();
   const [name, setName] = useState(church?.name ?? "");
   const [city, setCity] = useState(church?.city ?? "");
   const [busy, setBusy] = useState(false);
   if (!church) return null;
-  const link = inviteLink(church.inviteCode);
-  const shareText = tr("Halo! Yuk gabung tim pelayanan {name} di GraceFlow 🙏\n\nBuka: {link}\nAtau masukkan kode undangan: *{inviteCode}*", { name: church.name, link, inviteCode: church.inviteCode });
 
   return (
     <>
       <SectionTitle>{tr("Undang anggota")}</SectionTitle>
-      <Card className="p-4">
-        <p className="text-[length:calc(13px*var(--fs))] text-ink-soft">{tr("Bagikan kode atau link ini. Orang yang bergabung masuk sebagai")} <b>{tr("Servant")}</b>{tr("; atur bidang & perannya di tab Pelayan.")}</p>
-        <div className="mt-3 flex items-center gap-2">
-          <div className="flex-1 rounded-xl bg-brand-soft text-brand text-2xl font-bold tracking-[0.3em] text-center py-3 font-mono">{church.inviteCode}</div>
-        </div>
-        <div className="grid grid-cols-2 gap-2 mt-3">
-          <Button
-            variant="secondary"
-            onClick={async () => {
-              await navigator.clipboard.writeText(link);
-              toast(tr("Link undangan disalin"));
-            }}
-          >
-            <Copy size={15} /> {tr("Salin link")}
-          </Button>
-          <Button variant="whatsapp" onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, "_blank", "noopener")}>
-            <MessageCircle size={15} /> {tr("Kirim via WA")}
-          </Button>
-        </div>
-        <button
-          className="mt-3 text-xs text-ink-soft flex items-center gap-1 hover:text-danger-ink"
-          onClick={async () => {
-            if (!(await ask({ title: tr("Buat kode undangan baru?"), message: tr("Kode lama langsung tidak berlaku. Anggota yang sudah bergabung tidak terpengaruh."), confirmText: tr("Buat kode baru"), tone: "warning" }))) return;
-            await regenerateInviteCode(church);
-            toast(tr("Kode undangan baru dibuat"));
-          }}
-        >
-          <RefreshCw size={12} /> {tr("Buat kode baru")}
-        </button>
-      </Card>
+      <InviteCard church={church} />
 
       <SectionTitle>{tr("Profil gereja")}</SectionTitle>
       <Card className="p-4">

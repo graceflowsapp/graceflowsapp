@@ -29,7 +29,7 @@ On the login page you can sign in with:
 - **Masuk dengan Google**.
 
 ### New here?
-- **Join a church:** get the invite code or link from your church admin (for example `graceflow.id/mulai?kode=ABC123`). You join as a Servant, and the admin then assigns your komisi and posisi.
+- **Join a church:** get the invite code or link from your church admin (for example `graceflow.id/mulai?kode=ABC123`). You join as a Servant, and the admin then assigns your komisi and posisi. Codes only work for a limited time, so ask for a new one if yours has expired.
 - **Register a new church:** choose **Daftarkan gereja**. You become that church's Superadmin.
 
 ---
@@ -116,7 +116,7 @@ New accounts are created by the Admin or through the invite code.
 | **Kalender** | Create and edit services: name, day, time, place, session, notes, prayer/briefing, special labels. Browse month by month. |
 | **Pelayan** | Manage servants: create accounts (with a starting password), set role (*Hak akses*), komisi and posisi, and activate or deactivate people. |
 | **Komisi** | Create komisi, set name and colour, and sort their order. |
-| **Gereja** | Church profile (name, city), church colour, and **Undang anggota**: the invite code or link, which you can regenerate. |
+| **Gereja** | Church profile (name, city), church colour, and **Undang anggota**: the invite code is closed by default. Tap **Buka kode undangan** and choose 1 jam, 1 hari or 7 hari to open a fresh code. It closes by itself when the time is up, or tap **Tutup kode sekarang**. |
 
 ---
 

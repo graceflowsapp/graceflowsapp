@@ -25,14 +25,19 @@ service cloud.firestore {
         || (member(cid).role == 'coordinator' && ministryId in member(cid).coordinatorOf));
     }
     function church(cid) { return get(/databases/$(database)/documents/churches/$(cid)).data; }
-    // A plain Servant membership written by the person themself with the church's CURRENT invite code.
+    // A plain Servant membership written by the person themself with the church's CURRENT invite code,
+    // while that code is open (inviteCode "" = closed; inviteExpiresAtMs = time limit, missing/null = none).
     function freshServantJoin(cid) {
       return request.resource.data.role == 'servant'
         && request.resource.data.coordinatorOf.size() == 0
         && request.resource.data.get('ministries', []).size() == 0
         && request.resource.data.get('active', true) == true
         && request.resource.data.get('deleted', false) == false
-        && request.resource.data.joinedWithCode == church(cid).inviteCode;
+        && request.resource.data.joinedWithCode is string
+        && request.resource.data.joinedWithCode != ''
+        && request.resource.data.joinedWithCode == church(cid).inviteCode
+        && (church(cid).get('inviteExpiresAtMs', null) == null
+            || request.time.toMillis() < church(cid).inviteExpiresAtMs);
     }
     function onlyChanges(fields) {
       return request.resource.data.diff(resource.data).affectedKeys().hasOnly(fields);

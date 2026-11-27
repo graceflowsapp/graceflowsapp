@@ -48,15 +48,14 @@ async function addChurchToAccount(account: Account, churchId: string) {
 
 /**
  * Registers a new, independent church. The creator becomes its Admin (superadmin).
- * Write order matters for firestore.rules: church → creator's membership → invite code → ministries.
+ * Write order matters for firestore.rules: church → creator's membership → ministries.
  */
 export async function createChurch(account: Account, data: { name: string; city?: string; withDefaultMinistries: boolean }) {
   const id = `${slug(data.name)}-${Math.random().toString(36).slice(2, 6)}`;
-  const code = newInviteCode();
-  const church: Church = { id, name: data.name.trim(), city: data.city?.trim() || "", accent: null, inviteCode: code, createdBy: account.id, createdAt: nowISO() };
+  // No invite code yet: the Admin opens one, for a limited time, when someone wants to join (Admin → Gereja).
+  const church: Church = { id, name: data.name.trim(), city: data.city?.trim() || "", accent: null, inviteCode: "", inviteExpiresAtMs: null, createdBy: account.id, createdAt: nowISO() };
   await raw.set(`churches/${id}`, church);
   await raw.set(`churches/${id}/members/${account.id}`, memberProfile(account, "superadmin"));
-  await raw.set(`inviteCodes/${code}`, { code, churchId: id });
   if (data.withDefaultMinistries) await raw.setMany(`churches/${id}/ministries`, DEFAULT_MINISTRIES as never);
   await addChurchToAccount(account, id);
   return id;
@@ -70,8 +69,10 @@ export async function createChurch(account: Account, data: { name: string; city?
  */
 export async function joinChurch(account: Account, rawCode: string) {
   const code = rawCode.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
-  const invite = await raw.get<{ churchId: string }>(`inviteCodes/${code}`);
+  const invite = code ? await raw.get<{ churchId: string; expiresAtMs?: number | null }>(`inviteCodes/${code}`) : null;
   if (!invite) throw new Error(tr("Kode undangan tidak ditemukan. Periksa lagi atau minta kode baru ke admin gerejamu."));
+  if (invite.expiresAtMs && Date.now() >= invite.expiresAtMs)
+    throw new Error(tr("Kode undangan ini sudah tidak berlaku. Minta admin gerejamu membuka kode baru."));
   const cid = invite.churchId;
   const memberPath = `churches/${cid}/members/${account.id}`;
 
@@ -137,13 +138,35 @@ export async function updateChurch(churchId: string, data: Partial<Pick<Church, 
   await raw.update(`churches/${churchId}`, data);
 }
 
-/** New code; the old one stops working immediately (existing members are unaffected). */
-export async function regenerateInviteCode(church: Church) {
+/** How long an opened invite code stays valid (Admin → Gereja → Undang anggota). */
+export const INVITE_DURATIONS = [
+  { hours: 1, label: "1 jam" },
+  { hours: 24, label: "1 hari" },
+  { hours: 24 * 7, label: "7 hari" },
+] as const;
+
+/** Is the church's invite code usable right now? */
+export function inviteIsOpen(church: Church, now = Date.now()) {
+  return !!church.inviteCode && (church.inviteExpiresAtMs == null || now < church.inviteExpiresAtMs);
+}
+
+/**
+ * Opens a NEW code for `hours` (an old code never comes back). firestore.rules refuse joins after inviteExpiresAtMs.
+ * Existing members are unaffected.
+ */
+export async function openInviteCode(church: Church, hours: number) {
   const code = newInviteCode();
-  await raw.set(`inviteCodes/${code}`, { code, churchId: church.id });
-  await raw.update(`churches/${church.id}`, { inviteCode: code });
-  await raw.remove(`inviteCodes/${church.inviteCode}`).catch(() => undefined);
+  const expiresAtMs = Date.now() + hours * 3_600_000;
+  await raw.set(`inviteCodes/${code}`, { code, churchId: church.id, expiresAtMs });
+  await raw.update(`churches/${church.id}`, { inviteCode: code, inviteExpiresAtMs: expiresAtMs });
+  if (church.inviteCode) await raw.remove(`inviteCodes/${church.inviteCode}`).catch(() => undefined);
   return code;
+}
+
+/** Closes the code now; nobody can join until the Admin opens a new one. */
+export async function closeInviteCode(church: Church) {
+  await raw.update(`churches/${church.id}`, { inviteCode: "", inviteExpiresAtMs: null });
+  if (church.inviteCode) await raw.remove(`inviteCodes/${church.inviteCode}`).catch(() => undefined);
 }
 
 export function inviteLink(code: string) {

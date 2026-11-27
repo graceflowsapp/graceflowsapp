@@ -7,8 +7,10 @@ export interface Church {
   city?: string;
   /** Default accent colour for members of this church (members can still override it on their device) */
   accent?: string | null;
-  /** Code new members type to join. Also stored in inviteCodes/{code} for lookup. */
+  /** Code new members type to join; "" = closed. Also stored in inviteCodes/{code} for lookup. */
   inviteCode: string;
+  /** When the code stops working (epoch ms). null/missing = no time limit (codes made before time limits). */
+  inviteExpiresAtMs?: number | null;
   createdBy: string;
   createdAt: string;
 }
