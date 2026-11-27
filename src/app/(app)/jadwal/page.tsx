@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { CalendarCheck, CalendarDays, ChevronDown, ChevronRight } from "lucide-react";
 import { useApp } from "@/components/providers";
 import { Badge, Card, Empty, SectionTitle, cn } from "@/components/ui";
@@ -24,27 +24,34 @@ export default function SchedulePage() {
     <div>
       <h1 className="text-xl font-bold mb-4">Jadwal</h1>
 
-      <SectionTitle>Tugas terdekat</SectionTitle>
-      {next ? (
-        <DutyCard duty={next} highlight />
-      ) : (
-        <Card>
-          <Empty icon={<CalendarCheck size={20} />} title="Belum ada tugas mendatang" body="Waktunya istirahat dan menikmati ibadah 💛" />
-        </Card>
-      )}
+      <CollapsibleSection title="Tugas terdekat" hasContent={!!next}>
+        {next ? (
+          <DutyCard duty={next} highlight />
+        ) : (
+          <Card>
+            <Empty icon={<CalendarCheck size={20} />} title="Belum ada tugas mendatang" body="Waktunya istirahat dan menikmati ibadah 💛" />
+          </Card>
+        )}
+      </CollapsibleSection>
 
-      <SectionTitle>
-        Bulan ini · <span className="capitalize">{formatMonth(now.getFullYear(), now.getMonth())}</span> ({monthDuties.length})
-      </SectionTitle>
-      {monthDuties.length === 0 ? (
-        <p className="text-sm text-ink-soft">Tidak ada tugas lain bulan ini.</p>
-      ) : (
-        <Card className="divide-y divide-line overflow-hidden">
-          {monthDuties.map((d) => (
-            <ExpandableDuty key={d.assignment.id} duty={d} />
-          ))}
-        </Card>
-      )}
+      <CollapsibleSection
+        title={
+          <>
+            Bulan ini · <span className="capitalize">{formatMonth(now.getFullYear(), now.getMonth())}</span> ({monthDuties.length})
+          </>
+        }
+        hasContent={monthDuties.length > 0}
+      >
+        {monthDuties.length === 0 ? (
+          <p className="text-sm text-ink-soft">Tidak ada tugas lain bulan ini.</p>
+        ) : (
+          <Card className="divide-y divide-line overflow-hidden">
+            {monthDuties.map((d) => (
+              <ExpandableDuty key={d.assignment.id} duty={d} />
+            ))}
+          </Card>
+        )}
+      </CollapsibleSection>
 
       <SectionTitle>Kalender</SectionTitle>
       <CalendarSection />
@@ -73,6 +80,24 @@ export default function SchedulePage() {
         </>
       )}
     </div>
+  );
+}
+
+/**
+ * Section with a tappable header. Starts open when there is something to show and closed when empty;
+ * once the person taps it, their choice wins (also when the duties finish loading later).
+ */
+function CollapsibleSection({ title, hasContent, children }: { title: ReactNode; hasContent: boolean; children: ReactNode }) {
+  const [userOpen, setUserOpen] = useState<boolean | null>(null);
+  const open = userOpen ?? hasContent;
+  return (
+    <section>
+      <button onClick={() => setUserOpen(!open)} className="w-full flex items-center justify-between gap-2 mt-6 mb-2 text-left" aria-expanded={open}>
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-ink-soft">{title}</h2>
+        <ChevronDown size={16} className={cn("text-ink-soft transition shrink-0", open && "rotate-180")} />
+      </button>
+      {open && children}
+    </section>
   );
 }
 

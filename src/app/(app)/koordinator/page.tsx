@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AlertTriangle, CalendarClock, Copy, Info, MapPin, Download, ImageIcon, MessageCircle, Moon, Music2, UserMinus, Users, UserX, Wand2 } from "lucide-react";
+import { AlertTriangle, CalendarClock, ChevronDown, Copy, Info, MapPin, Download, ImageIcon, MessageCircle, Moon, Music2, UserMinus, Users, UserX, Wand2 } from "lucide-react";
 import { toPng } from "html-to-image";
 import { useApp, useCoordinatedMinistries } from "@/components/providers";
 import { GroupFillModal, GroupsModal } from "@/components/groups";
@@ -100,36 +100,46 @@ export default function CoordinatorPage() {
     <div>
       <h1 className="text-xl font-bold mb-3">Atur Jadwal</h1>
 
-      <div className="flex gap-2 overflow-x-auto scrollbar-none -mx-4 px-4 mb-4">
-        {mine.map((m) => (
-          <button
-            key={m.id}
-            onClick={() => setMinistryId(m.id)}
-            className={cn("shrink-0 rounded-full px-3.5 py-1.5 text-sm font-medium border", ministryId === m.id ? "text-white border-transparent" : "bg-card border-line text-ink-soft")}
-            style={ministryId === m.id ? { background: m.color } : undefined}
+      <Card className="p-3 mb-3">
+        <label htmlFor="komisi-select" className="block text-[13px] font-medium text-ink-soft mb-1.5">
+          Komisi
+        </label>
+        <div className="relative">
+          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 rounded-full" style={{ background: ministry?.color ?? "#ccc" }} />
+          <select
+            id="komisi-select"
+            value={ministryId}
+            onChange={(e) => setMinistryId(e.target.value)}
+            disabled={mine.length < 2}
+            className={cn(inputCls, "appearance-none pl-9 pr-10 text-[16px] font-semibold disabled:opacity-100")}
           >
-            {m.name}
-          </button>
-        ))}
-      </div>
+            {mine.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.name}
+              </option>
+            ))}
+          </select>
+          {mine.length > 1 && <ChevronDown size={18} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-ink-soft" />}
+        </div>
 
-      {ministry && (
-        <button
-          onClick={() => setGroupsOpen(true)}
-          className="w-full mb-3 flex items-center gap-3 rounded-xl border border-line bg-card px-3 py-2.5 text-left hover:border-brand active:scale-[.99] transition"
-        >
-          <span className="h-9 w-9 shrink-0 rounded-xl grid place-items-center text-white" style={{ background: ministry.color }}>
-            <Users size={18} />
-          </span>
-          <span className="flex-1 min-w-0">
-            <span className="block text-[15px] font-semibold">Grup {ministry.name}</span>
-            <span className="block text-[13px] text-ink-soft truncate">
-              {ministry.groups?.length ? ministry.groups.map((g) => g.name).join(" · ") : "Buat tim tetap, mis. Singer Grup A"}
+        {ministry && (
+          <button
+            onClick={() => setGroupsOpen(true)}
+            className="w-full mt-3 pt-3 border-t border-line flex items-center gap-3 text-left active:scale-[.99] transition"
+          >
+            <span className="h-9 w-9 shrink-0 rounded-xl grid place-items-center text-white" style={{ background: ministry.color }}>
+              <Users size={18} />
             </span>
-          </span>
-          <span className="text-[13px] font-semibold text-brand shrink-0">Kelola</span>
-        </button>
-      )}
+            <span className="flex-1 min-w-0">
+              <span className="block text-[15px] font-semibold">Grup {ministry.name}</span>
+              <span className="block text-[13px] text-ink-soft truncate">
+                {ministry.groups?.length ? ministry.groups.map((g) => g.name).join(" · ") : "Buat tim tetap, mis. Singer Grup A"}
+              </span>
+            </span>
+            <span className="text-[13px] font-semibold text-brand shrink-0">Kelola</span>
+          </button>
+        )}
+      </Card>
       {groupsOpen && ministry && <GroupsModal ministry={ministry} onClose={() => setGroupsOpen(false)} />}
 
       <div className="grid grid-cols-2 bg-card border border-line rounded-xl p-1 mb-3">
