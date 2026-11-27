@@ -2,28 +2,36 @@
 
 import { useState, type ReactNode } from "react";
 import { AtSign, Eye, EyeOff, KeyRound, Mail, MailCheck } from "lucide-react";
+import { GoogleIcon } from "./GoogleIcon";
 import { useApp } from "./providers";
 import { Button, Card, Field, SectionTitle, inputCls, toast } from "./ui";
 import { UsernameField } from "./UsernameField";
 import { firebaseAuth } from "@/lib/firebase";
-import { addUsername, authErrorMessage, changePassword, changeUsername, connectEmail, hasPassword, isPlaceholderEmail, usernameError, usesGoogle } from "@/lib/username";
-import { celebrate } from "@/lib/feedback";
+import { addUsername, authErrorMessage, changePassword, changeUsername, connectEmail, googleEmail, hasPassword, isPlaceholderEmail, linkGoogle, unlinkGoogle, usernameError, usesGoogle } from "@/lib/username";
+import { ask, celebrate } from "@/lib/feedback";
 
 /**
  * Profil → "Akun & login" (Firebase mode only).
  * - Username accounts connect an email (verified by a link Firebase sends).
  * - Email / Google accounts add a username (Google accounts also create a password).
  * - Change username / password, both confirmed with the current password.
+ * - Connect / disconnect Google, so "Masuk dengan Google" opens this same account.
  */
 export function AccountLoginSettings() {
   const { account, demo } = useApp();
   const [form, setForm] = useState<"username" | "change-username" | "email" | "password" | null>(null);
+  // Firebase updates the signed-in user in place after (un)linking, so re-render by hand
+  const [, rerender] = useState(0);
+  const [googleBusy, setGoogleBusy] = useState(false);
+  const [googleError, setGoogleError] = useState("");
   if (demo || !account) return null;
   const user = firebaseAuth().currentUser;
   if (!user) return null;
   const usernameOnly = isPlaceholderEmail(user.email);
   // username-only accounts connect an email; email + password accounts can change theirs (Google: managed by Google)
-  const canEditEmail = hasPassword(user) && !usesGoogle(user);
+  // the login email IS the Gmail → it belongs to Google, so it is not changed here
+  const emailIsGoogle = usesGoogle(user) && (user.email ?? "").toLowerCase() === (googleEmail(user) ?? "").toLowerCase();
+  const canEditEmail = hasPassword(user) && !emailIsGoogle;
 
   return (
     <>
@@ -81,11 +89,83 @@ export function AccountLoginSettings() {
             {!usernameOnly && <> Sampai link diklik, kamu tetap masuk dengan <b>{account.email}</b>.</>}
           </p>
         )}
-        {!canEditEmail && usesGoogle(user) && <p className="mt-2 text-[12px] text-ink-soft">Email ini mengikuti akun Google kamu.</p>}
+        {emailIsGoogle && <p className="mt-2 text-[12px] text-ink-soft">Email ini mengikuti akun Google kamu.</p>}
         {form === "email" && <ConnectEmailForm changing={!usernameOnly} onDone={() => setForm(null)} />}
       </div>
 
-      <p className="px-4 py-3 text-[12px] text-ink-soft">Kamu bisa masuk dengan {account.username && account.email ? "email atau username" : account.username ? "username" : "email"} beserta kata sandimu.</p>
+      {/* Google */}
+      <div className="p-4">
+        <Row icon={<GoogleIcon size={18} />} title="Google" value={googleEmail(user) ?? "Belum terhubung"} muted={!googleEmail(user)}>
+          {!googleEmail(user) ? (
+            <Button
+              size="sm"
+              variant="secondary"
+              disabled={googleBusy}
+              onClick={async () => {
+                setGoogleBusy(true);
+                setGoogleError("");
+                try {
+                  await linkGoogle(user);
+                  rerender((n) => n + 1);
+                  celebrate("Google terhubung");
+                } catch (err) {
+                  const msg = authErrorMessage(err);
+                  if (msg) setGoogleError(msg);
+                } finally {
+                  setGoogleBusy(false);
+                }
+              }}
+            >
+              Hubungkan
+            </Button>
+          ) : (
+            hasPassword(user) && (
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={googleBusy}
+                onClick={async () => {
+                  const ok = await ask({
+                    title: "Lepas akun Google?",
+                    message: `Kamu tidak bisa lagi masuk dengan Google (${googleEmail(user)}). Masuk tetap bisa dengan ${account.username ? "username" : "email"} dan kata sandi.`,
+                    confirmText: "Lepas",
+                    tone: "warning",
+                  });
+                  if (!ok) return;
+                  setGoogleBusy(true);
+                  setGoogleError("");
+                  try {
+                    await unlinkGoogle(user);
+                    rerender((n) => n + 1);
+                    toast("Akun Google dilepas");
+                  } catch (err) {
+                    setGoogleError(authErrorMessage(err));
+                  } finally {
+                    setGoogleBusy(false);
+                  }
+                }}
+              >
+                Lepas
+              </Button>
+            )
+          )}
+        </Row>
+        {!googleEmail(user) && !googleError && (
+          <p className="mt-2 text-[12px] text-ink-soft">Setelah terhubung, tombol &quot;Masuk dengan Google&quot; membuka akun ini.</p>
+        )}
+        {googleError && <p className="mt-3 rounded-xl bg-danger-soft text-danger-ink text-[13px] px-3 py-2">{googleError}</p>}
+      </div>
+
+      <p className="px-4 py-3 text-[12px] text-ink-soft">
+        Kamu bisa masuk dengan{" "}
+        {[
+          hasPassword(user) && `${account.username && account.email ? "email atau username" : account.username ? "username" : "email"} + kata sandi`,
+          googleEmail(user) && "tombol Masuk dengan Google",
+        ]
+          .filter(Boolean)
+          .join(", atau ")}
+        .
+      </p>
     </Card>
     </>
   );

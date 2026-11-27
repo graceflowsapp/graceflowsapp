@@ -14,6 +14,9 @@
  */
 import {
   EmailAuthProvider,
+  GoogleAuthProvider,
+  linkWithPopup,
+  unlink,
   createUserWithEmailAndPassword,
   linkWithCredential,
   reauthenticateWithCredential,
@@ -290,4 +293,39 @@ export async function changePassword(user: User, currentPassword: string, newPas
     throw e;
   }
   await updatePassword(user, newPassword);
+}
+
+/* ---------------- Google ---------------- */
+
+/** The Gmail connected to this login, if any. */
+export function googleEmail(user: User) {
+  return user.providerData.find((p) => p.providerId === "google.com")?.email ?? null;
+}
+
+/**
+ * Connect a Google account to the SAME login (Profil -> Akun & login), so "Masuk dengan Google" opens this
+ * account instead of making a new, empty one. Fails if that Google account already has its own GraceFlow login.
+ */
+export async function linkGoogle(user: User) {
+  if (googleEmail(user)) throw appError("app/google-linked", "Akun Google sudah terhubung.");
+  try {
+    await linkWithPopup(user, new GoogleAuthProvider());
+  } catch (e) {
+    const code = (e as { code?: string }).code ?? "";
+    if (code.includes("popup-closed-by-user") || code.includes("cancelled-popup-request") || code.includes("user-cancelled"))
+      throw appError("app/cancelled", "");
+    if (code.includes("credential-already-in-use") || code.includes("email-already-in-use") || code.includes("account-exists-with-different-credential"))
+      throw appError(
+        "app/google-used",
+        "Akun Google ini sudah dipakai untuk akun GraceFlow lain. Minta Admin gereja menghapus akun itu dulu, lalu coba lagi. Atau pilih akun Google lain.",
+      );
+    if (code.includes("popup-blocked")) throw appError("app/popup-blocked", "Jendela Google diblokir browser. Izinkan pop-up untuk situs ini, lalu coba lagi.");
+    throw e;
+  }
+}
+
+/** Disconnect Google; only allowed while the account can still log in with a password. */
+export async function unlinkGoogle(user: User) {
+  if (!hasPassword(user)) throw appError("app/last-login", "Google adalah satu-satunya cara masuk akun ini, jadi tidak bisa dilepas.");
+  await unlink(user, "google.com");
 }
