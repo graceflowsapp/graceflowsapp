@@ -17,6 +17,7 @@ import {
   createUserWithEmailAndPassword,
   linkWithCredential,
   reauthenticateWithCredential,
+  updatePassword,
   updateProfile,
   verifyBeforeUpdateEmail,
   type User,
@@ -223,4 +224,60 @@ export async function syncLoginEmail(user: User) {
     await raw.update(`users/${user.uid}`, { email: user.email, pendingEmail: null });
     await updateMemberships(acc, { email: user.email });
   }
+}
+
+/** Confirm it is really this person (needed before changing username or password). */
+async function confirmPassword(user: User, currentPassword: string) {
+  if (!user.email || !hasPassword(user)) throw appError("app/no-password", "Akun ini belum punya kata sandi.");
+  try {
+    await reauthenticateWithCredential(user, EmailAuthProvider.credential(user.email, currentPassword));
+  } catch (e) {
+    const code = (e as { code?: string }).code ?? "";
+    if (code.includes("invalid-credential") || code.includes("wrong-password")) throw appError("app/wrong-password", "Kata sandi salah.");
+    throw e;
+  }
+}
+
+/**
+ * Change one's own username, verified with the current password.
+ * The Firebase login email stays as it is (for username-only accounts that is the placeholder of the FIRST
+ * username); usernames/{new} simply points at it, so logging in with the new username works right away.
+ * The old name is released from usernames/, but its placeholder email stays tied to this login, so nobody
+ * else can register that old name later.
+ */
+export async function changeUsername(user: User, account: Account, rawUsername: string, currentPassword: string) {
+  const u = normalizeUsername(rawUsername);
+  const problem = usernameError(u);
+  if (problem) throw appError("app/invalid-username", problem);
+  const old = account.username;
+  if (!old) throw appError("app/no-username", "Akun ini belum punya username.");
+  if (u === old) throw appError("app/same-username", "Itu sudah username kamu sekarang.");
+  if (!user.email) throw appError("app/no-email", "Akun ini belum bisa diubah.");
+  await confirmPassword(user, currentPassword);
+  if (await isTaken(u)) throw appError("app/username-taken", "Username sudah dipakai, coba yang lain.");
+
+  const oldDoc = await raw.get<UsernameDoc>(`usernames/${old}`);
+  const next: UsernameDoc = { uid: user.uid, username: u, email: user.email };
+  if (oldDoc?.pendingEmail) next.pendingEmail = oldDoc.pendingEmail;
+  try {
+    await raw.set(`usernames/${u}`, next);
+  } catch {
+    throw appError("app/username-taken", "Username sudah dipakai, coba yang lain.");
+  }
+  await raw.update(`users/${user.uid}`, { username: u });
+  await updateMemberships(account, { username: u });
+  if (oldDoc?.uid === user.uid) await raw.remove(`usernames/${old}`).catch(() => undefined);
+}
+
+/** Change one's own password: the old one first, then the new one (min. 6 characters). */
+export async function changePassword(user: User, currentPassword: string, newPassword: string) {
+  if (newPassword.length < 6) throw appError("app/weak-password", "Kata sandi baru minimal 6 karakter.");
+  if (newPassword === currentPassword) throw appError("app/same-password", "Kata sandi baru harus berbeda dari yang lama.");
+  try {
+    await confirmPassword(user, currentPassword);
+  } catch (e) {
+    if ((e as { code?: string }).code === "app/wrong-password") throw appError("app/wrong-password", "Kata sandi lama salah.");
+    throw e;
+  }
+  await updatePassword(user, newPassword);
 }
