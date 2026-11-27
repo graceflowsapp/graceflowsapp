@@ -3,6 +3,8 @@
 Multi-church PWA for scheduling servants: no clashing schedules, no buried group chats, and servant care that helps prevent burnout.
 Any number of **independent churches** can use the same app. Each church has its own admins, roles, members, ministries and schedules, and none of it is visible to other churches.
 
+📖 **User guide** (servants, coordinators, admins): [docs/USER_GUIDE.md](docs/USER_GUIDE.md)
+
 **Stack:** Next.js 15 (App Router) · Tailwind CSS 4 · Firebase Auth + Firestore · Cloudinary (profile photos)
 
 ## How multi-church works
