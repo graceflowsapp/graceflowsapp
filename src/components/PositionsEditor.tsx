@@ -1,8 +1,9 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Plus, X } from "lucide-react";
+import { ChevronDown, ChevronUp, GripVertical, Plus, X } from "lucide-react";
 import { Button, cn, inputCls } from "./ui";
+import { SortableList } from "./SortableList";
 import { ask, haptic } from "@/lib/feedback";
 
 const POSITION_SUGGESTIONS = [
@@ -24,7 +25,9 @@ const POSITION_SUGGESTIONS = [
   "Guru Sekolah Minggu",
 ];
 
-/** Posisi as removable chips (shown above the field) + an input with a "Tambah" button + quick suggestions. */
+const arrowCls = "grid place-items-center h-9 w-9 shrink-0 rounded-xl text-brand hover:bg-brand/15 disabled:opacity-25 active:scale-90 transition";
+
+/** Posisi as a sortable list of removable rows (shown above the field) + an input with a "Tambah" button + quick suggestions. */
 export function PositionsEditor({
   value,
   onChange,
@@ -39,6 +42,7 @@ export function PositionsEditor({
   setDraft: (v: string) => void;
 }) {
   const [error, setError] = useState("");
+  const [announce, setAnnounce] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const has = (p: string) => value.some((x) => x.toLowerCase() === p.toLowerCase());
 
@@ -78,18 +82,53 @@ export function PositionsEditor({
         Posisi / slot <span className="font-normal">({value.length})</span>
       </span>
 
-      {/* added posisi */}
+      {/* added posisi, in the order the slots appear in Atur Jadwal */}
       {value.length > 0 ? (
-        <ul className="flex flex-wrap gap-2 mb-3" aria-label="Posisi yang sudah ditambahkan">
-          {value.map((p) => (
-            <li key={p} className="inline-flex items-center gap-1 min-h-10 rounded-full bg-brand-soft text-brand border border-brand/30 pl-4 pr-1 text-[15px] font-medium animate-[gf-pop_0.18s_ease-out]">
-              {p}
-              <button type="button" onClick={() => remove(p)} aria-label={`Hapus ${p}`} className="grid place-items-center h-8 w-8 rounded-full hover:bg-brand/15 active:scale-90 transition">
-                <X size={16} strokeWidth={2.5} />
-              </button>
-            </li>
-          ))}
-        </ul>
+        <>
+          {value.length > 1 && (
+            <p className="flex items-center gap-1.5 text-[12px] text-ink-soft mb-2">
+              <GripVertical size={14} aria-hidden /> Tahan & geser (atau pakai panah) untuk mengatur urutan slot di jadwal.
+            </p>
+          )}
+          <SortableList
+            items={value}
+            getKey={(p) => p}
+            className="space-y-1.5 mb-3"
+            label="Urutan posisi"
+            onReorder={(next, { item, to }) => {
+              onChange(next);
+              setAnnounce(`${item} dipindah ke urutan ${to + 1}`);
+            }}
+            renderItem={(p, h) => (
+              <div
+                className={cn(
+                  "flex items-center gap-2 rounded-2xl border bg-brand-soft pl-2 pr-1 py-1 animate-[gf-pop_0.18s_ease-out]",
+                  h.dragging ? "border-brand" : "border-brand/30",
+                )}
+              >
+                <GripVertical size={18} className="shrink-0 text-brand/60" aria-hidden />
+                <span className="w-5 shrink-0 text-center text-[13px] font-semibold text-brand/70">{h.index + 1}</span>
+                <span className="flex-1 min-w-0 truncate text-[15px] font-medium text-brand">{p}</span>
+                {value.length > 1 && (
+                  <>
+                    <button type="button" onClick={h.moveUp} disabled={h.isFirst} aria-label={`Naikkan ${p}`} className={arrowCls}>
+                      <ChevronUp size={17} />
+                    </button>
+                    <button type="button" onClick={h.moveDown} disabled={h.isLast} aria-label={`Turunkan ${p}`} className={arrowCls}>
+                      <ChevronDown size={17} />
+                    </button>
+                  </>
+                )}
+                <button type="button" onClick={() => remove(p)} aria-label={`Hapus ${p}`} className="grid place-items-center h-9 w-9 shrink-0 rounded-full text-brand hover:bg-brand/15 active:scale-90 transition">
+                  <X size={16} strokeWidth={2.5} />
+                </button>
+              </div>
+            )}
+          />
+          <p className="sr-only" aria-live="polite">
+            {announce}
+          </p>
+        </>
       ) : (
         <p className="text-[14px] text-ink-soft rounded-xl bg-surface px-3 py-2.5 mb-3">Belum ada posisi. Tambahkan di bawah.</p>
       )}

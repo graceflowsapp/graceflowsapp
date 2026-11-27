@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AlertTriangle, Check, CalendarClock, ChevronDown, Layers, Copy, Info, MapPin, Download, ImageIcon, MessageCircle, Moon, Music2, UserMinus, Users, UserX, Wand2 } from "lucide-react";
+import { AlertTriangle, Check, CalendarClock, Search, ChevronDown, Layers, Copy, Info, MapPin, Download, ImageIcon, MessageCircle, Moon, Music2, UserMinus, Users, UserX, Wand2 } from "lucide-react";
 import { toPng } from "html-to-image";
 import { useApp, useCoordinatedMinistries } from "@/components/providers";
 import { GroupFillModal, GroupsModal } from "@/components/groups";
+import { SearchField, matchesName } from "@/components/SearchField";
 import { Avatar, Badge, Button, Card, Empty, Field, Modal, SectionTitle, cn, inputCls, toast } from "@/components/ui";
 import { ServiceLabel, StatusBadge, serviceLine } from "@/components/duty";
 import { LegendDot, MonthCalendar, type DayMark } from "@/components/MonthCalendar";
@@ -365,6 +366,10 @@ function RehearsalModal({ service, ministryId, onClose }: { service: Service; mi
 function AssignModal({ slot, onClose }: { slot: Slot; onClose: () => void }) {
   const { users, services, assignments, ministries } = useApp();
   const [showAll, setShowAll] = useState(false);
+  // search button → text field; while searching, look through everyone in this komisi
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [q, setQ] = useState("");
+  const searching = searchOpen && q.trim() !== "";
   const month = monthKey(slot.service.date);
   const sById = new Map(services.map((s) => [s.id, s]));
   const current = slot.assignment?.userId ?? null;
@@ -372,7 +377,8 @@ function AssignModal({ slot, onClose }: { slot: Slot; onClose: () => void }) {
   const decliner = sub ? users.find((u) => u.id === sub.requestedBy) : undefined;
 
   const rows = users
-    .filter((u) => (showAll ? isActive(u) && u.ministries.includes(slot.ministry.id) : canFill(u, slot.ministry.id, slot.position)))
+    .filter((u) => (showAll || searching ? isActive(u) && u.ministries.includes(slot.ministry.id) : canFill(u, slot.ministry.id, slot.position)))
+    .filter((u) => !searching || matchesName(u.name, q))
     .map((u) => {
       const load = assignments.filter((a) => a.userId === u.id && monthKey(sById.get(a.serviceId)?.date ?? "") === month).length;
       const notes = availabilityNotes(u, slot.service, {
@@ -405,7 +411,34 @@ function AssignModal({ slot, onClose }: { slot: Slot; onClose: () => void }) {
 
   return (
     <Modal open onClose={onClose} title={`${slot.position} · ${slot.service.title}`}>
-      <p className="text-[13px] text-ink-soft mb-3">{formatDateLong(slot.service.date)} · diurutkan dari yang tersedia & paling jarang melayani bulan ini.</p>
+      <div className="flex items-start gap-2 mb-3">
+        <p className="flex-1 text-[13px] text-ink-soft">{formatDateLong(slot.service.date)} · diurutkan dari yang tersedia & paling jarang melayani bulan ini.</p>
+        {!searchOpen && (
+          <button
+            type="button"
+            onClick={() => setSearchOpen(true)}
+            aria-label={`Cari anggota ${slot.ministry.name}`}
+            className="h-10 w-10 shrink-0 grid place-items-center rounded-xl border border-line bg-card text-ink hover:border-brand hover:text-brand active:scale-95 transition"
+          >
+            <Search size={18} />
+          </button>
+        )}
+      </div>
+      {searchOpen && (
+        <div className="mb-3 animate-[gf-drop_.18s_ease-out]">
+          <SearchField
+            value={q}
+            onChange={setQ}
+            autoFocus
+            placeholder={`Cari di ${slot.ministry.name}…`}
+            onClear={() => {
+              setQ("");
+              setSearchOpen(false);
+            }}
+          />
+          {searching && <p className="text-[12px] text-ink-soft mt-1.5">Mencari di semua anggota {slot.ministry.name}.</p>}
+        </div>
+      )}
       {sub && !current && (
         <div className="rounded-xl bg-warning-soft text-warning-ink text-[13px] px-3 py-2 mb-3">
           <b>{decliner?.name ?? "Pelayan"}</b> berhalangan{sub.reason ? ` (“${sub.reason}”)` : ""} dan sudah dikeluarkan dari slot ini. Pilih pengganti yang tersedia. Dia akan diminta konfirmasi.
@@ -456,7 +489,9 @@ function AssignModal({ slot, onClose }: { slot: Slot; onClose: () => void }) {
             </button>
           </li>
         ))}
-        {rows.length === 0 && <p className="text-sm text-ink-soft px-2 py-4">Belum ada pelayan di komisi ini untuk posisi tersebut.</p>}
+        {rows.length === 0 && (
+          <p className="text-sm text-ink-soft px-2 py-4">{searching ? `Tidak ada anggota ${slot.ministry.name} bernama “${q.trim()}”.` : "Belum ada pelayan di komisi ini untuk posisi tersebut."}</p>
+        )}
       </ul>
       <div className="flex gap-2 mt-4">
         <Button variant="ghost" size="sm" onClick={() => setShowAll(!showAll)}>

@@ -95,6 +95,14 @@ service cloud.firestore {
               && request.resource.data.get('email', '') in [resource.data.get('email', ''), request.auth.token.get('email', '')]
               && (request.resource.data.get('username', null) == resource.data.get('username', null)
                   || get(/databases/$(database)/documents/usernames/$(request.resource.data.username)).data.uid == request.auth.uid))
+          // a coordinator adds people to / removes people from the komisi they coordinate (Peran → Anggota);
+          // every komisi added or removed must be one of theirs, nothing else on the profile changes
+          || (isMember(cid) && member(cid).role == 'coordinator'
+              && resource.data.get('deleted', false) == false
+              && onlyChanges(['ministries'])
+              && request.resource.data.ministries is list
+              && request.resource.data.ministries.toSet().difference(resource.data.get('ministries', []).toSet()).hasOnly(member(cid).coordinatorOf)
+              && resource.data.get('ministries', []).toSet().difference(request.resource.data.ministries.toSet()).hasOnly(member(cid).coordinatorOf))
           // someone the admin REMOVED may come back with the current invite code, as a fresh Servant
           // (a DEACTIVATED member, active == false but not deleted, still needs the admin)
           || (signedIn() && request.auth.uid == uid

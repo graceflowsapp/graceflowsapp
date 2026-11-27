@@ -1,7 +1,7 @@
 "use client";
 
 import { store } from "./store";
-import type { AppNotification, Assignment, MinistryGroup, Service, UserProfile } from "./types";
+import type { AppNotification, Assignment, Ministry, MinistryGroup, Service, UserProfile } from "./types";
 import { formatDateShort, nowISO } from "./dates";
 
 function rid() {
@@ -175,4 +175,16 @@ export async function rejectSwap(a: Assignment, me: UserProfile, service: Servic
 /** Coordinators save the groups of one komisi. */
 export async function saveGroups(ministryId: string, groups: MinistryGroup[]) {
   await store.update("ministries", ministryId, { groups });
+}
+
+/** Coordinator (Peran → Anggota) adds someone to a komisi they coordinate, and tells them. */
+export async function addToMinistry(user: UserProfile, ministry: Ministry) {
+  if (user.ministries.includes(ministry.id)) return;
+  await store.update("users", user.id, { ministries: [...user.ministries, ministry.id] });
+  await notify(user.id, `Kamu ditambahkan ke ${ministry.name}`, `Koordinator menambahkanmu sebagai anggota ${ministry.name}. Jadwalmu akan muncul di menu Jadwal.`, "/jadwal");
+}
+
+/** Coordinator removes someone from a komisi. Their existing schedule in it stays until the coordinator changes it. */
+export async function removeFromMinistry(user: UserProfile, ministry: Ministry) {
+  await store.update("users", user.id, { ministries: user.ministries.filter((id) => id !== ministry.id) });
 }
