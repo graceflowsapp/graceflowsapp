@@ -1,4 +1,5 @@
-const LOCALE = "id-ID";
+import { locale, tr } from "@/lib/i18n";
+
 
 export function toISODate(d: Date): string {
   const y = d.getFullYear();
@@ -21,7 +22,7 @@ export function monthKey(s: string): string {
 }
 
 export function formatDateLong(s: string): string {
-  return parseISODate(s).toLocaleDateString(LOCALE, {
+  return parseISODate(s).toLocaleDateString(locale(), {
     weekday: "long",
     day: "numeric",
     month: "long",
@@ -30,7 +31,7 @@ export function formatDateLong(s: string): string {
 }
 
 export function formatDateShort(s: string): string {
-  return parseISODate(s).toLocaleDateString(LOCALE, {
+  return parseISODate(s).toLocaleDateString(locale(), {
     weekday: "short",
     day: "numeric",
     month: "short",
@@ -38,7 +39,7 @@ export function formatDateShort(s: string): string {
 }
 
 export function formatMonth(year: number, month: number): string {
-  return new Date(year, month, 1).toLocaleDateString(LOCALE, {
+  return new Date(year, month, 1).toLocaleDateString(locale(), {
     month: "long",
     year: "numeric",
   });
@@ -56,11 +57,11 @@ export function daysUntil(s: string): number {
 
 export function relativeDay(s: string): string {
   const n = daysUntil(s);
-  if (n === 0) return "Hari ini";
-  if (n === 1) return "Besok";
-  if (n > 1) return `${n} hari lagi`;
-  if (n === -1) return "Kemarin";
-  return `${-n} hari lalu`;
+  if (n === 0) return tr("Hari ini");
+  if (n === 1) return tr("Besok");
+  if (n > 1) return tr("{n} hari lagi", { n });
+  if (n === -1) return tr("Kemarin");
+  return tr("{p} hari lalu", { p: -n });
 }
 
 /** Cells for a month grid starting on Monday. null = padding cell. */

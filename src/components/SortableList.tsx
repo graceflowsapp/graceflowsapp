@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { haptic } from "@/lib/feedback";
 import { cn } from "./ui";
+import { tr } from "@/lib/i18n";
 
 /** Hold this long (without moving) to pick a card up. Moving earlier = normal scrolling. */
 const HOLD_MS = 350;
@@ -60,7 +61,7 @@ export function SortableList<T>({
   onReorder,
   renderItem,
   className,
-  label = "Daftar yang bisa diurutkan",
+  label = tr("Daftar yang bisa diurutkan"),
 }: {
   items: T[];
   getKey: (item: T) => string;

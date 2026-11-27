@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Download, Share, SquarePlus, X } from "lucide-react";
 import { Button, Modal } from "@/components/ui";
+import { tr } from "@/lib/i18n";
 
 /**
  * "Install GraceFlow" prompt.
@@ -71,29 +72,29 @@ export function useInstall() {
 /** Steps for iPhone/iPad, where installing is manual. */
 export function IOSInstallSteps({ open, onClose }: { open: boolean; onClose: () => void }) {
   return (
-    <Modal open={open} onClose={onClose} title="Pasang GraceFlow di iPhone">
+    <Modal open={open} onClose={onClose} title={tr("Pasang GraceFlow di iPhone")}>
       <ol className="space-y-3 text-sm">
         <li className="flex items-start gap-3">
           <span className="grid place-items-center h-7 w-7 shrink-0 rounded-full bg-brand-soft text-brand font-bold">1</span>
           <span>
-            Buka di <b>Safari</b>, lalu ketuk tombol <b>Bagikan</b> <Share size={15} className="inline -mt-1" /> di bawah layar.
+            {tr("Buka di")} <b>{tr("Safari")}</b>{tr(", lalu ketuk tombol")} <b>{tr("Bagikan")}</b> <Share size={15} className="inline -mt-1" /> {tr("di bawah layar.")}
           </span>
         </li>
         <li className="flex items-start gap-3">
           <span className="grid place-items-center h-7 w-7 shrink-0 rounded-full bg-brand-soft text-brand font-bold">2</span>
           <span>
-            Gulir ke bawah, pilih <b>Tambah ke Layar Utama</b> <SquarePlus size={15} className="inline -mt-1" />.
+            {tr("Gulir ke bawah, pilih")} <b>{tr("Tambah ke Layar Utama")}</b> <SquarePlus size={15} className="inline -mt-1" />.
           </span>
         </li>
         <li className="flex items-start gap-3">
           <span className="grid place-items-center h-7 w-7 shrink-0 rounded-full bg-brand-soft text-brand font-bold">3</span>
           <span>
-            Ketuk <b>Tambah</b>. GraceFlow muncul di layar utama seperti aplikasi biasa.
+            {tr("Ketuk")} <b>{tr("Tambah")}</b>{tr(". GraceFlow muncul di layar utama seperti aplikasi biasa.")}
           </span>
         </li>
       </ol>
       <Button className="w-full mt-5" onClick={onClose}>
-        Mengerti
+        {tr("Mengerti")}
       </Button>
     </Modal>
   );
@@ -152,13 +153,13 @@ export function InstallBanner() {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/icons/icon-192.png" alt="" className="h-11 w-11 rounded-full shrink-0" />
             <div className="min-w-0 flex-1">
-              <div className="font-semibold text-sm">Pasang GraceFlow</div>
-              <div className="text-xs text-ink-soft">Buka lebih cepat dari layar utama, seperti aplikasi.</div>
+              <div className="font-semibold text-sm">{tr("Pasang GraceFlow")}</div>
+              <div className="text-xs text-ink-soft">{tr("Buka lebih cepat dari layar utama, seperti aplikasi.")}</div>
             </div>
             <Button size="sm" className="shrink-0" onClick={install}>
-              <Download size={15} /> Pasang
+              <Download size={15} /> {tr("Pasang")}
             </Button>
-            <button aria-label="Nanti" onClick={dismiss} className="shrink-0 p-1 text-ink-soft hover:text-ink">
+            <button aria-label={tr("Nanti")} onClick={dismiss} className="shrink-0 p-1 text-ink-soft hover:text-ink">
               <X size={18} />
             </button>
           </div>

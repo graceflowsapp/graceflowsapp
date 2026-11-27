@@ -9,6 +9,7 @@ import { Check, Search, UserMinus, X } from "lucide-react";
 import { Avatar, cn } from "./ui";
 import { haptic } from "@/lib/feedback";
 import type { UserProfile } from "@/lib/types";
+import { tr } from "@/lib/i18n";
 
 export interface PickerPerson {
   user: UserProfile;
@@ -29,7 +30,7 @@ export function PersonPicker({
   onPick,
   onClose,
   clearLabel,
-  emptyText = "Tidak ada orang yang bisa dipilih.",
+  emptyText = tr("Tidak ada orang yang bisa dipilih."),
 }: {
   open: boolean;
   title: string;
@@ -88,14 +89,14 @@ export function PersonPicker({
         >
           <Avatar name={p.user.name} src={p.user.photoUrl} size={44} className={cn("shrink-0", p.muted && "opacity-55")} />
           <div className="flex-1 min-w-0">
-            <div className={cn("text-[16px] font-semibold truncate", p.muted && "text-ink-soft")}>{p.user.name}</div>
+            <div className={cn("text-[length:max(16px,calc(16px*var(--fs)))] font-semibold truncate", p.muted && "text-ink-soft")}>{p.user.name}</div>
             {p.notes?.map((n, i) => (
-              <div key={i} className="text-[13px] text-ink-soft leading-snug">
+              <div key={i} className="text-[length:calc(13px*var(--fs))] text-ink-soft leading-snug">
                 {n}
               </div>
             ))}
           </div>
-          {p.tag && !selected && <span className="text-[12px] text-ink-soft shrink-0">{p.tag}</span>}
+          {p.tag && !selected && <span className="text-[length:calc(12px*var(--fs))] text-ink-soft shrink-0">{p.tag}</span>}
           {selected && (
             <span className="h-7 w-7 rounded-full bg-brand text-white grid place-items-center shrink-0" aria-hidden>
               <Check size={16} strokeWidth={3} />
@@ -122,10 +123,10 @@ export function PersonPicker({
         <div className="sm:hidden mx-auto mt-2.5 h-1.5 w-10 rounded-full bg-line" aria-hidden />
         <div className="flex items-start gap-3 px-5 pt-3 pb-3">
           <div className="flex-1 min-w-0">
-            <h3 className="text-[17px] font-bold text-ink">{title}</h3>
-            {subtitle && <p className="text-[13px] text-ink-soft">{subtitle}</p>}
+            <h3 className="text-[length:calc(17px*var(--fs))] font-bold text-ink">{title}</h3>
+            {subtitle && <p className="text-[length:calc(13px*var(--fs))] text-ink-soft">{subtitle}</p>}
           </div>
-          <button type="button" onClick={onClose} className="p-2 -mr-2 rounded-xl hover:bg-surface" aria-label="Tutup">
+          <button type="button" onClick={onClose} className="p-2 -mr-2 rounded-xl hover:bg-surface" aria-label={tr("Tutup")}>
             <X size={20} />
           </button>
         </div>
@@ -138,9 +139,9 @@ export function PersonPicker({
                 ref={searchRef}
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                placeholder="Cari nama…"
-                aria-label="Cari nama"
-                className="w-full rounded-2xl border border-line bg-surface pl-10 pr-4 py-3 text-[16px] text-ink outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
+                placeholder={tr("Cari nama…")}
+                aria-label={tr("Cari nama")}
+                className="w-full rounded-2xl border border-line bg-surface pl-10 pr-4 py-3 text-[length:max(16px,calc(16px*var(--fs)))] text-ink outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
               />
             </div>
           </div>
@@ -159,24 +160,24 @@ export function PersonPicker({
               <span className="h-11 w-11 rounded-full border-2 border-dashed border-line grid place-items-center text-ink-soft shrink-0">
                 <UserMinus size={18} />
               </span>
-              <span className="flex-1 text-[16px] font-medium text-ink-soft">{clearLabel}</span>
+              <span className="flex-1 text-[length:max(16px,calc(16px*var(--fs)))] font-medium text-ink-soft">{clearLabel}</span>
               {!selectedId && <Check size={18} className="text-ink-soft" aria-hidden />}
             </button>
           )}
 
           {ready.length > 0 && (
             <>
-              {others.length > 0 && <p className="px-3 pt-2 pb-1 text-[12px] font-semibold uppercase tracking-wide text-success">Tersedia</p>}
+              {others.length > 0 && <p className="px-3 pt-2 pb-1 text-[length:calc(12px*var(--fs))] font-semibold uppercase tracking-wide text-success">{tr("Tersedia")}</p>}
               <ul className="space-y-0.5">{ready.map(row)}</ul>
             </>
           )}
           {others.length > 0 && (
             <>
-              <p className="px-3 pt-3 pb-1 text-[12px] font-semibold uppercase tracking-wide text-ink-soft">Lainnya</p>
+              <p className="px-3 pt-3 pb-1 text-[length:calc(12px*var(--fs))] font-semibold uppercase tracking-wide text-ink-soft">{tr("Lainnya")}</p>
               <ul className="space-y-0.5">{others.map(row)}</ul>
             </>
           )}
-          {ready.length + others.length === 0 && <p className="px-3 py-6 text-center text-[14px] text-ink-soft">{q ? `Tidak ada nama “${q}”.` : emptyText}</p>}
+          {ready.length + others.length === 0 && <p className="px-3 py-6 text-center text-[length:calc(14px*var(--fs))] text-ink-soft">{q ? tr("Tidak ada nama “{q}”.", { q }) : emptyText}</p>}
         </div>
       </div>
     </div>

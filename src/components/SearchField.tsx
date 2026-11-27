@@ -2,12 +2,13 @@
 
 import { Search, X } from "lucide-react";
 import { cn, inputCls } from "./ui";
+import { tr } from "@/lib/i18n";
 
 /** Name search box with a clear (X) button. */
 export function SearchField({
   value,
   onChange,
-  placeholder = "Cari nama…",
+  placeholder = tr("Cari nama…"),
   autoFocus,
   onClear,
   className,
@@ -39,13 +40,13 @@ export function SearchField({
         autoFocus={autoFocus}
         enterKeyHint="search"
         aria-label={placeholder}
-        className={cn(inputCls, "pl-10 pr-10 text-[16px] [&::-webkit-search-cancel-button]:hidden")}
+        className={cn(inputCls, "pl-10 pr-10 text-[length:max(16px,calc(16px*var(--fs)))] [&::-webkit-search-cancel-button]:hidden")}
       />
       {(value || onClear) && (
         <button
           type="button"
           onClick={() => (onClear ?? (() => onChange("")))()}
-          aria-label="Hapus pencarian"
+          aria-label={tr("Hapus pencarian")}
           className="absolute right-1.5 top-1/2 -translate-y-1/2 h-8 w-8 grid place-items-center rounded-lg text-ink-soft hover:bg-surface"
         >
           <X size={16} />

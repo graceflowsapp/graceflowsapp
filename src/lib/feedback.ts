@@ -1,3 +1,4 @@
+import { tr } from "@/lib/i18n";
 /**
  * Small tactile/visual feedback helpers (client only).
  *  - haptic(): short vibration on Android; on iOS 18+ Safari uses the native switch-haptic trick.
@@ -76,10 +77,10 @@ export function celebrate(message?: string) {
 /** "Keluar" with a confirmation first. */
 export async function confirmLogout(logout: () => unknown) {
   const ok = await ask({
-    title: "Keluar dari GraceFlow?",
-    message: "Kamu perlu masuk lagi dengan email/username dan kata sandi.",
-    confirmText: "Keluar",
-    cancelText: "Batal",
+    title: tr("Keluar dari GraceFlow?"),
+    message: tr("Kamu perlu masuk lagi dengan email/username dan kata sandi."),
+    confirmText: tr("Keluar"),
+    cancelText: tr("Batal"),
     tone: "danger",
   });
   if (ok) await logout();

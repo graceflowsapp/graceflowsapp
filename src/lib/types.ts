@@ -147,6 +147,8 @@ export interface AppNotification {
   read: boolean;
   createdAt: string;
   link?: string;
+  /** Translatable title/body (see lib/i18n nm); title/body above hold the Indonesian text. */
+  i18n?: { title: { k: string; p?: Record<string, string> }; body: { k: string; p?: Record<string, string> } };
 }
 
 export type CollectionName =

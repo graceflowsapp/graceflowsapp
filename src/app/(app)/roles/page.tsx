@@ -18,6 +18,7 @@ import { addToMinistry, removeFromMinistry } from "@/lib/actions";
 import { ask, celebrate } from "@/lib/feedback";
 import { todayISO } from "@/lib/dates";
 import type { Ministry, UserProfile } from "@/lib/types";
+import { tr } from "@/lib/i18n";
 
 const isCurrent = (u: UserProfile) => u.active !== false && !u.deleted;
 
@@ -32,15 +33,15 @@ export default function RolesPage() {
   if (!mine.length) {
     return (
       <Card>
-        <Empty icon={<Tags size={20} />} title="Belum ada komisi yang kamu koordinasi" body="Minta Admin gereja memberi akses koordinator." />
+        <Empty icon={<Tags size={20} />} title={tr("Belum ada komisi yang kamu koordinasi")} body={tr("Minta Admin gereja memberi akses koordinator.")} />
       </Card>
     );
   }
 
   return (
     <div>
-      <h1 className="text-xl font-bold mb-1">Peran</h1>
-      <p className="text-[14px] text-ink-soft mb-4">Atur posisi dan anggota di komisi yang kamu koordinasi.</p>
+      <h1 className="text-xl font-bold mb-1">{tr("Peran")}</h1>
+      <p className="text-[length:calc(14px*var(--fs))] text-ink-soft mb-4">{tr("Atur posisi dan anggota di komisi yang kamu koordinasi.")}</p>
 
       <div className="space-y-3">
         {mine.map((m) => {
@@ -48,30 +49,30 @@ export default function RolesPage() {
           return (
             <Card key={m.id} className="overflow-hidden">
               {/* the card itself opens the posisi editor */}
-              <button type="button" onClick={() => setEditing(m)} aria-label={`Ubah posisi ${m.name}`} className="w-full p-4 text-left transition hover:bg-surface/60 active:bg-surface">
+              <button type="button" onClick={() => setEditing(m)} aria-label={tr("Ubah posisi {name}", { name: m.name })} className="w-full p-4 text-left transition hover:bg-surface/60 active:bg-surface">
                 <div className="flex items-center gap-3 mb-3">
                   <span className="h-10 w-10 shrink-0 rounded-xl grid place-items-center text-white" style={{ background: m.color }}>
                     <Tags size={19} />
                   </span>
                   <div className="flex-1 min-w-0">
-                    <div className="text-[16px] font-semibold truncate">{m.name}</div>
-                    <div className="text-[13px] text-ink-soft">{m.positions.length} posisi</div>
+                    <div className="text-[length:max(16px,calc(16px*var(--fs)))] font-semibold truncate">{m.name}</div>
+                    <div className="text-[length:calc(13px*var(--fs))] text-ink-soft">{m.positions.length} {tr("posisi")}</div>
                   </div>
-                  <span className="inline-flex items-center gap-1 shrink-0 rounded-full bg-brand-soft text-brand px-3 py-1.5 text-[13px] font-semibold">
-                    <Pencil size={13} /> Ubah
+                  <span className="inline-flex items-center gap-1 shrink-0 rounded-full bg-brand-soft text-brand px-3 py-1.5 text-[length:calc(13px*var(--fs))] font-semibold">
+                    <Pencil size={13} /> {tr("Ubah")}
                   </span>
                 </div>
                 {m.positions.length ? (
                   <div className="flex flex-wrap gap-2">
                     {m.positions.map((p, i) => (
-                      <Badge key={p} className="bg-surface text-ink text-[14px] px-3 py-1">
+                      <Badge key={p} className="bg-surface text-ink text-[length:calc(14px*var(--fs))] px-3 py-1">
                         <span className="text-ink-soft mr-1">{i + 1}.</span>
                         {p}
                       </Badge>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-[14px] text-ink-soft">Belum ada posisi. Ketuk untuk menambahkan.</p>
+                  <p className="text-[length:calc(14px*var(--fs))] text-ink-soft">{tr("Belum ada posisi. Ketuk untuk menambahkan.")}</p>
                 )}
               </button>
               {/* separate button: the komisi's members */}
@@ -81,12 +82,12 @@ export default function RolesPage() {
                 className="w-full flex items-center gap-3 border-t border-line px-4 py-3 text-left transition hover:bg-surface/60 active:bg-surface"
               >
                 <MemberStrip ministry={m} />
-                <span className="flex-1 min-w-0 text-[15px] font-semibold">
+                <span className="flex-1 min-w-0 text-[length:calc(15px*var(--fs))] font-semibold">
                   <Users size={15} className="inline -mt-0.5 mr-1.5 text-ink-soft" />
-                  {count ? `${count} anggota` : "Belum ada anggota"}
+                  {count ? tr("{n} anggota", { n: count }) : tr("Belum ada anggota")}
                 </span>
-                <span className="inline-flex items-center gap-0.5 text-[13px] font-semibold text-brand shrink-0">
-                  Anggota <ChevronRight size={16} />
+                <span className="inline-flex items-center gap-0.5 text-[length:calc(13px*var(--fs))] font-semibold text-brand shrink-0">
+                  {tr("Anggota")} <ChevronRight size={16} />
                 </span>
               </button>
             </Card>
@@ -115,30 +116,30 @@ function RolesModal({ ministry, onClose }: { ministry: Ministry; onClose: () => 
   const affected = assignments.filter((a) => a.ministryId === ministry.id && removed.includes(a.position) && a.userId && (sDate.get(a.serviceId) ?? "") >= today).length;
 
   const save = async () => {
-    if (affected > 0 && !(await ask({ title: "Simpan perubahan posisi?", message: `${affected} jadwal mendatang memakai posisi ${removed.join(", ")} dan tidak akan tampil lagi.`, confirmText: "Simpan", tone: "warning" }))) return;
+    if (affected > 0 && !(await ask({ title: tr("Simpan perubahan posisi?"), message: tr("{affected} jadwal mendatang memakai posisi {p} dan tidak akan tampil lagi.", { affected, p: removed.join(", ") }), confirmText: tr("Simpan"), tone: "warning" }))) return;
     setBusy(true);
     try {
       await store.update("ministries", ministry.id, { positions: finalPositions });
-      celebrate("Posisi disimpan");
-      toast(`Posisi ${ministry.name} diperbarui`);
+      celebrate(tr("Posisi disimpan"));
+      toast(tr("Posisi {name} diperbarui", { name: ministry.name }));
       onClose();
     } catch (e) {
-      toast(`Gagal menyimpan: ${(e as Error).message}`);
+      toast(tr("Gagal menyimpan: {message}", { message: (e as Error).message }));
     } finally {
       setBusy(false);
     }
   };
 
   return (
-    <Modal open onClose={onClose} title={`Posisi ${ministry.name}`}>
+    <Modal open onClose={onClose} title={tr("Posisi {name}", { name: ministry.name })}>
       <PositionsEditor value={positions} onChange={setPositions} original={ministry.positions} draft={draft} setDraft={setDraft} />
       {affected > 0 && (
-        <p className="rounded-xl bg-warning-soft text-warning-ink text-[13px] px-3 py-2 mb-3">
-          {affected} jadwal mendatang memakai posisi yang dihapus ({removed.join(", ")}) dan tidak akan tampil lagi.
+        <p className="rounded-xl bg-warning-soft text-warning-ink text-[length:calc(13px*var(--fs))] px-3 py-2 mb-3">
+          {affected} {tr("jadwal mendatang memakai posisi yang dihapus (")}{removed.join(", ")}{tr(") dan tidak akan tampil lagi.")}
         </p>
       )}
       <Button className="w-full" disabled={busy || finalPositions.length === 0} onClick={save}>
-        Simpan
+        {tr("Simpan")}
       </Button>
     </Modal>
   );
@@ -154,7 +155,7 @@ function MemberStrip({ ministry }: { ministry: Ministry }) {
     <div className="flex items-center gap-1.5 shrink-0">
       <div className="flex -space-x-1.5">
         {shown.map((u) => (
-          <Avatar key={u.id} name={u.name} src={u.photoUrl} size={32} className="ring-2 ring-card text-[11px]" />
+          <Avatar key={u.id} name={u.name} src={u.photoUrl} size={32} className="ring-2 ring-card text-[length:calc(11px*var(--fs))]" />
         ))}
       </div>
     </div>
@@ -177,7 +178,7 @@ function MembersModal({ ministry, onClose }: { ministry: Ministry; onClose: () =
     .filter((u) => isCurrent(u) && !u.ministries.includes(ministry.id))
     .map((u) => {
       const others = u.ministries.map((id) => mName.get(id)).filter(Boolean);
-      return { user: u, notes: [others.length ? `Di komisi: ${others.join(", ")}` : "Belum di komisi mana pun"] };
+      return { user: u, notes: [others.length ? tr("Di komisi: {p}", { p: others.join(", ") }) : tr("Belum di komisi mana pun")] };
     });
 
   const add = async (id: string | null) => {
@@ -188,7 +189,7 @@ function MembersModal({ ministry, onClose }: { ministry: Ministry; onClose: () =
       await addToMinistry(u, ministry);
       celebrate(`${u.name} ditambahkan`);
     } catch (e) {
-      toast(`Gagal menambahkan: ${(e as Error).message}`);
+      toast(tr("Gagal menambahkan: {message}", { message: (e as Error).message }));
     } finally {
       setBusy(null);
     }
@@ -197,41 +198,41 @@ function MembersModal({ ministry, onClose }: { ministry: Ministry; onClose: () =
   const remove = async (u: UserProfile) => {
     const n = upcoming(u.id);
     const ok = await ask({
-      title: `Keluarkan ${u.name} dari ${ministry.name}?`,
+      title: tr("Keluarkan {name} dari {name2}?", { name: u.name, name2: ministry.name }),
       message: n
-        ? `${u.name} masih punya ${n} jadwal mendatang di ${ministry.name}. Jadwal itu tetap ada sampai kamu menggantinya di Atur Jadwal.`
-        : `${u.name} tidak akan dijadwalkan lagi di ${ministry.name}. Bisa ditambahkan kembali kapan saja.`,
-      confirmText: "Keluarkan",
+        ? tr("{name} masih punya {n} jadwal mendatang di {name2}. Jadwal itu tetap ada sampai kamu menggantinya di Atur Jadwal.", { name: u.name, n, name2: ministry.name })
+        : tr("{name} tidak akan dijadwalkan lagi di {name2}. Bisa ditambahkan kembali kapan saja.", { name: u.name, name2: ministry.name }),
+      confirmText: tr("Keluarkan"),
       tone: "danger",
     });
     if (!ok) return;
     setBusy(u.id);
     try {
       await removeFromMinistry(u, ministry);
-      toast(`${u.name} dikeluarkan dari ${ministry.name}`);
+      toast(tr("{name} dikeluarkan dari {name2}", { name: u.name, name2: ministry.name }));
     } catch (e) {
-      toast(`Gagal: ${(e as Error).message}`);
+      toast(tr("Gagal: {message}", { message: (e as Error).message }));
     } finally {
       setBusy(null);
     }
   };
 
   return (
-    <Modal open onClose={onClose} title={`Anggota ${ministry.name}`}>
+    <Modal open onClose={onClose} title={tr("Anggota {name}", { name: ministry.name })}>
       <Button className="w-full mb-4" onClick={() => setPicking(true)} disabled={!candidates.length}>
-        <Plus size={16} /> Tambah anggota
+        <Plus size={16} /> {tr("Tambah anggota")}
       </Button>
-      {!candidates.length && <p className="text-[13px] text-ink-soft -mt-2 mb-4">Semua jemaat yang aktif sudah menjadi anggota.</p>}
+      {!candidates.length && <p className="text-[length:calc(13px*var(--fs))] text-ink-soft -mt-2 mb-4">{tr("Semua jemaat yang aktif sudah menjadi anggota.")}</p>}
 
-      {members.length > 0 && <SearchField value={q} onChange={setQ} placeholder="Cari anggota…" className="mb-3" />}
+      {members.length > 0 && <SearchField value={q} onChange={setQ} placeholder={tr("Cari anggota…")} className="mb-3" />}
       <p className="text-sm font-medium text-ink-soft mb-2">
-        {q.trim() ? `${shown.length} dari ${members.length} anggota` : `${members.length} anggota`}
+        {q.trim() ? tr("{n} dari {n2} anggota", { n: shown.length, n2: members.length }) : tr("{n} anggota", { n: members.length })}
       </p>
       {members.length > 0 && shown.length === 0 && (
-        <p className="text-[14px] text-ink-soft rounded-xl bg-surface px-3 py-2.5">Tidak ada anggota bernama “{q.trim()}”.</p>
+        <p className="text-[length:calc(14px*var(--fs))] text-ink-soft rounded-xl bg-surface px-3 py-2.5">{tr("Tidak ada anggota bernama “")}{q.trim()}”.</p>
       )}
       {members.length ? (
-        shown.length > 0 && <ul className="divide-y divide-line rounded-2xl border border-line" aria-label={`Anggota ${ministry.name}`}>
+        shown.length > 0 && <ul className="divide-y divide-line rounded-2xl border border-line" aria-label={tr("Anggota {name}", { name: ministry.name })}>
           {shown.map((u) => {
             const n = upcoming(u.id);
             const coord = u.coordinatorOf?.includes(ministry.id);
@@ -239,20 +240,20 @@ function MembersModal({ ministry, onClose }: { ministry: Ministry; onClose: () =
               <li key={u.id} className="flex items-center gap-3 px-3 py-2.5">
                 <Avatar name={u.name} src={u.photoUrl} size={42} className="shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <div className="text-[15px] font-semibold truncate">
+                  <div className="text-[length:calc(15px*var(--fs))] font-semibold truncate">
                     {u.name}
-                    {u.id === me?.id && <span className="font-normal text-ink-soft"> (kamu)</span>}
+                    {u.id === me?.id && <span className="font-normal text-ink-soft"> {tr("(kamu)")}</span>}
                   </div>
-                  <div className="text-[13px] text-ink-soft">
-                    {coord ? "Koordinator · " : ""}
-                    {n ? `${n} jadwal mendatang` : "Belum ada jadwal"}
+                  <div className="text-[length:calc(13px*var(--fs))] text-ink-soft">
+                    {coord ? tr("Koordinator · ") : ""}
+                    {n ? tr("{n} jadwal mendatang", { n }) : tr("Belum ada jadwal")}
                   </div>
                 </div>
                 <button
                   type="button"
                   onClick={() => remove(u)}
                   disabled={busy === u.id}
-                  aria-label={`Keluarkan ${u.name}`}
+                  aria-label={tr("Keluarkan {name}", { name: u.name })}
                   className="h-10 w-10 shrink-0 grid place-items-center rounded-xl text-danger-ink hover:bg-danger-soft disabled:opacity-40 active:scale-90 transition"
                 >
                   <UserMinus size={18} />
@@ -262,18 +263,18 @@ function MembersModal({ ministry, onClose }: { ministry: Ministry; onClose: () =
           })}
         </ul>
       ) : (
-        <p className="text-[14px] text-ink-soft rounded-xl bg-surface px-3 py-2.5">Belum ada anggota. Tekan “Tambah anggota”.</p>
+        <p className="text-[length:calc(14px*var(--fs))] text-ink-soft rounded-xl bg-surface px-3 py-2.5">{tr("Belum ada anggota. Tekan “Tambah anggota”.")}</p>
       )}
-      <p className="text-[12px] text-ink-soft mt-3">Yang bisa ditambahkan hanya jemaat yang sudah bergabung ke gereja. Akun baru dibuat oleh Admin atau lewat kode undangan.</p>
+      <p className="text-[length:calc(12px*var(--fs))] text-ink-soft mt-3">{tr("Yang bisa ditambahkan hanya jemaat yang sudah bergabung ke gereja. Akun baru dibuat oleh Admin atau lewat kode undangan.")}</p>
 
       <PersonPicker
         open={picking}
-        title={`Tambah ke ${ministry.name}`}
-        subtitle="Pilih jemaat yang akan melayani di komisi ini"
+        title={tr("Tambah ke {name}", { name: ministry.name })}
+        subtitle={tr("Pilih jemaat yang akan melayani di komisi ini")}
         people={candidates}
         onPick={add}
         onClose={() => setPicking(false)}
-        emptyText="Semua jemaat sudah menjadi anggota."
+        emptyText={tr("Semua jemaat sudah menjadi anggota.")}
       />
     </Modal>
   );

@@ -70,7 +70,13 @@ Coordinators and Smart Fill respect these settings.
   - **Email:** connect or change your email. A verification link is sent to the new address, and the old one keeps working until you click it.
   - **Google:** connect a Google account so *Masuk dengan Google* opens this same account, or disconnect it.
 - **Statistik pelayanan:** how often you have served and your attendance confirmations.
-- **Tampilan:** light or dark mode and colour theme.
+- **Tampilan (Display):**
+  - **Mode tampilan:** light, dark or follow the phone.
+  - **Ukuran teks:** Kecil, Normal (default), Besar or Sangat besar.
+  - **Bahasa:** Indonesia or English. Notifications also show in your language.
+  - **Warna aksen:** the app's accent colour.
+
+  These settings are saved on each device.
 - **Keluar:** sign out.
 
 ---

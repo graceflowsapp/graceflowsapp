@@ -8,6 +8,7 @@ import { DutyCard, ServiceLabel, StatusBadge, TeamModal, serviceLine, useMyDutie
 import { LegendDot, MonthCalendar, type DayMark } from "@/components/MonthCalendar";
 import { formatDateLong, formatDateShort, formatMonth, monthKey, todayISO } from "@/lib/dates";
 import type { Service } from "@/lib/types";
+import { tr } from "@/lib/i18n";
 
 /**
  * Order of importance: nearest duty → this month → calendar → history.
@@ -21,14 +22,14 @@ export default function SchedulePage() {
 
   return (
     <div>
-      <h1 className="text-xl font-bold mb-4">Jadwal</h1>
+      <h1 className="text-xl font-bold mb-4">{tr("Jadwal")}</h1>
 
-      <CollapsibleSection title="Tugas terdekat" hasContent={!!next}>
+      <CollapsibleSection title={tr("Tugas terdekat")} hasContent={!!next}>
         {next ? (
           <DutyCard duty={next} highlight />
         ) : (
           <Card>
-            <Empty icon={<CalendarCheck size={20} />} title="Belum ada tugas mendatang" body="Waktunya istirahat dan menikmati ibadah 💛" />
+            <Empty icon={<CalendarCheck size={20} />} title={tr("Belum ada tugas mendatang")} body={tr("Waktunya istirahat dan menikmati ibadah 💛")} />
           </Card>
         )}
       </CollapsibleSection>
@@ -36,13 +37,13 @@ export default function SchedulePage() {
       <CollapsibleSection
         title={
           <>
-            Bulan ini · <span className="capitalize">{formatMonth(now.getFullYear(), now.getMonth())}</span> ({monthDuties.length})
+            {tr("Bulan ini ·")} <span className="capitalize">{formatMonth(now.getFullYear(), now.getMonth())}</span> ({monthDuties.length})
           </>
         }
         hasContent={monthDuties.length > 0}
       >
         {monthDuties.length === 0 ? (
-          <p className="text-sm text-ink-soft">Tidak ada tugas lain bulan ini.</p>
+          <p className="text-sm text-ink-soft">{tr("Tidak ada tugas lain bulan ini.")}</p>
         ) : (
           <Card className="divide-y divide-line overflow-hidden">
             {monthDuties.map((d) => (
@@ -52,17 +53,17 @@ export default function SchedulePage() {
         )}
       </CollapsibleSection>
 
-      <SectionTitle>Kalender</SectionTitle>
+      <SectionTitle>{tr("Kalender")}</SectionTitle>
       <CalendarSection />
 
       {past.length > 0 && (
-        <CollapsibleSection title={`Riwayat pelayanan (${past.length})`} hasContent={false}>
+        <CollapsibleSection title={tr("Riwayat pelayanan ({n})", { n: past.length })} hasContent={false}>
           <Card className="divide-y divide-line">
             {past.slice(0, 30).map((d) => (
               <div key={d.assignment.id} className="px-4 py-2.5 flex items-center justify-between text-sm">
                 <div>
                   <div className="font-medium">{d.assignment.position}</div>
-                  <div className="text-[12px] text-ink-soft">
+                  <div className="text-[length:calc(12px*var(--fs))] text-ink-soft">
                     {formatDateShort(d.service.date)} · {d.service.title}
                   </div>
                 </div>
@@ -109,16 +110,16 @@ function ExpandableDuty({ duty: d }: { duty: Duty }) {
     <div className={cn(isPast && "opacity-60")}>
       <button onClick={() => setOpen(!open)} className="w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-surface" aria-expanded={open}>
         <div className="text-center w-10 shrink-0">
-          <div className="text-[10px] uppercase text-ink-soft">{formatDateShort(d.service.date).split(",")[0]}</div>
+          <div className="text-[length:calc(10px*var(--fs))] uppercase text-ink-soft">{formatDateShort(d.service.date).split(",")[0]}</div>
           <div className="text-lg font-bold leading-none">{Number(d.service.date.slice(8))}</div>
         </div>
         <div className="flex-1 min-w-0">
           <div className="text-sm font-medium truncate">
             {d.assignment.position} <span className="text-ink-soft font-normal">· {d.ministry.name}</span>
           </div>
-          <div className="text-[12px] text-ink-soft truncate">{serviceLine(d.service)}</div>
+          <div className="text-[length:calc(12px*var(--fs))] text-ink-soft truncate">{serviceLine(d.service)}</div>
         </div>
-        {isPast ? <span className="text-[11px] text-ink-soft">Selesai</span> : <StatusBadge status={d.assignment.status} />}
+        {isPast ? <span className="text-[length:calc(11px*var(--fs))] text-ink-soft">{tr("Selesai")}</span> : <StatusBadge status={d.assignment.status} />}
         <ChevronDown size={16} className={cn("text-ink-soft transition shrink-0", open && "rotate-180")} />
       </button>
       {open && (
@@ -167,9 +168,9 @@ function CalendarSection() {
         legend={
           <>
             <span className="flex items-center gap-1">
-              <span className="h-3 w-3 rounded bg-brand-soft ring-1 ring-brand/30" /> Kamu bertugas
+              <span className="h-3 w-3 rounded bg-brand-soft ring-1 ring-brand/30" /> {tr("Kamu bertugas")}
             </span>
-            <LegendDot color="#c3d3d0">Ada ibadah</LegendDot>
+            <LegendDot color="#c3d3d0">{tr("Ada ibadah")}</LegendDot>
           </>
         }
       />
@@ -177,7 +178,7 @@ function CalendarSection() {
       <p className="text-sm font-semibold mt-4 mb-2">{formatDateLong(selected)}</p>
       {dayDuties.length === 0 && otherServices.length === 0 && (
         <Card>
-          <Empty icon={<CalendarDays size={20} />} title="Tidak ada ibadah di hari ini" />
+          <Empty icon={<CalendarDays size={20} />} title={tr("Tidak ada ibadah di hari ini")} />
         </Card>
       )}
       <div className="space-y-3">
@@ -193,7 +194,7 @@ function CalendarSection() {
                 <div className="text-sm font-medium flex flex-wrap items-center gap-1.5">
                   {serviceLine(s)} <ServiceLabel label={s.label} />
                 </div>
-                <div className="text-[12px] text-ink-soft">Kamu tidak bertugas · lihat siapa yang melayani</div>
+                <div className="text-[length:calc(12px*var(--fs))] text-ink-soft">{tr("Kamu tidak bertugas · lihat siapa yang melayani")}</div>
               </div>
               <ChevronRight size={16} className="text-ink-soft" />
             </button>

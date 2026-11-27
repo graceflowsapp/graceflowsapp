@@ -12,6 +12,7 @@ import { resetDemoData } from "@/lib/store";
 import { ask } from "@/lib/feedback";
 import { UsernameField } from "@/components/UsernameField";
 import { authErrorMessage, usernameError } from "@/lib/username";
+import { tr } from "@/lib/i18n";
 
 export default function LoginPage() {
   const { ready, uid, demo } = useApp();
@@ -25,8 +26,8 @@ export default function LoginPage() {
     <div className="min-h-dvh flex flex-col items-center justify-center px-4 py-10 bg-gradient-to-b from-brand-soft to-surface">
       <div className="w-full max-w-sm">
         <Logo className="justify-center mb-6" />
-        <h1 className="text-center text-xl font-bold">Melayani tanpa bentrok, tanpa burnout.</h1>
-        <p className="text-center text-sm text-ink-soft mt-1 mb-6">Jadwal pelayanan, pengganti, dan servant care untuk gerejamu.</p>
+        <h1 className="text-center text-xl font-bold">{tr("Melayani tanpa bentrok, tanpa burnout.")}</h1>
+        <p className="text-center text-sm text-ink-soft mt-1 mb-6">{tr("Jadwal pelayanan, pengganti, dan servant care untuk gerejamu.")}</p>
         {demo ? <DemoLogin /> : <FirebaseLogin />}
       </div>
     </div>
@@ -40,8 +41,8 @@ function DemoLogin() {
   const [newName, setNewName] = useState("");
   return (
     <>
-      <Card className="p-3 mb-4 bg-warning-soft border-warning/30 text-[13px] text-warning-ink">
-        <b>Mode Demo</b> — Firebase belum dikonfigurasi. Data disimpan di browser ini. Ada 2 gereja contoh yang <b>terpisah</b>; pilih peran untuk mencoba:
+      <Card className="p-3 mb-4 bg-warning-soft border-warning/30 text-[length:calc(13px*var(--fs))] text-warning-ink">
+        <b>{tr("Mode Demo")}</b> {tr("— Firebase belum dikonfigurasi. Data disimpan di browser ini. Ada 2 gereja contoh yang")} <b>{tr("terpisah")}</b>{tr("; pilih peran untuk mencoba:")}
       </Card>
       {DEMO_CHURCHES.map((c) => (
         <div key={c.id} className="mb-5">
@@ -59,8 +60,8 @@ function DemoLogin() {
                       <Icon size={20} />
                     </div>
                     <div className="min-w-0">
-                      <div className="font-semibold">{title}</div>
-                      <div className="text-[12px] text-ink-soft truncate">{who}</div>
+                      <div className="font-semibold">{tr(title)}</div>
+                      <div className="text-[length:calc(12px*var(--fs))] text-ink-soft truncate">{who}</div>
                     </div>
                   </Card>
                 </button>
@@ -71,8 +72,8 @@ function DemoLogin() {
       ))}
 
       <Card className="p-4">
-        <p className="font-semibold text-sm">Coba sebagai pengguna baru</p>
-        <p className="text-[12px] text-ink-soft mb-3">Daftarkan gereja sendiri, atau gabung dengan kode contoh <b className="font-mono">GIA123</b> / <b className="font-mono">KASIH1</b>.</p>
+        <p className="font-semibold text-sm">{tr("Coba sebagai pengguna baru")}</p>
+        <p className="text-[length:calc(12px*var(--fs))] text-ink-soft mb-3">{tr("Daftarkan gereja sendiri, atau gabung dengan kode contoh")} <b className="font-mono">{tr("GIA123")}</b> / <b className="font-mono">{tr("KASIH1")}</b>.</p>
         <form
           className="flex gap-2"
           onSubmit={(e) => {
@@ -80,18 +81,18 @@ function DemoLogin() {
             if (newName.trim()) createDemoAccount(newName.trim());
           }}
         >
-          <input className={inputCls} placeholder="Namamu" value={newName} onChange={(e) => setNewName(e.target.value)} />
-          <Button disabled={!newName.trim()}>Mulai</Button>
+          <input className={inputCls} placeholder={tr("Namamu")} value={newName} onChange={(e) => setNewName(e.target.value)} />
+          <Button disabled={!newName.trim()}>{tr("Mulai")}</Button>
         </form>
       </Card>
 
       <button
         className="block mx-auto mt-5 text-xs text-ink-soft underline"
         onClick={async () => {
-          if (await ask({ title: "Reset data demo?", message: "Semua data demo kembali ke kondisi awal.", confirmText: "Reset", tone: "danger" })) resetDemoData();
+          if (await ask({ title: tr("Reset data demo?"), message: tr("Semua data demo kembali ke kondisi awal."), confirmText: tr("Reset"), tone: "danger" })) resetDemoData();
         }}
       >
-        Reset data demo
+        {tr("Reset data demo")}
       </button>
     </>
   );
@@ -130,13 +131,13 @@ function FirebaseLogin() {
       >
         {mode === "register" ? (
           <>
-            <Field label="Nama lengkap">
+            <Field label={tr("Nama lengkap")}>
               <input className={inputCls} value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" required />
             </Field>
             <UsernameField value={username} onChange={setUsername} />
           </>
         ) : (
-          <Field label="Email atau username">
+          <Field label={tr("Email atau username")}>
             <input
               className={inputCls}
               value={identifier}
@@ -145,12 +146,12 @@ function FirebaseLogin() {
               autoCapitalize="none"
               autoCorrect="off"
               spellCheck={false}
-              placeholder="nama@email.com atau grace.natalia"
+              placeholder={tr("nama@email.com atau grace.natalia")}
               required
             />
           </Field>
         )}
-        <Field label="Kata sandi">
+        <Field label={tr("Kata sandi")}>
           <input
             className={inputCls}
             type="password"
@@ -163,19 +164,19 @@ function FirebaseLogin() {
         </Field>
         {error && <p className="text-sm text-danger-ink mb-3">{error}</p>}
         <Button className="w-full" disabled={busy || (mode === "register" && !usernameOk)}>
-          {mode === "login" ? "Masuk" : "Daftar"}
+          {mode === "login" ? tr("Masuk") : tr("Daftar")}
         </Button>
-        {mode === "register" && <p className="text-[12px] text-ink-soft text-center mt-2">Email bisa dihubungkan nanti di menu Profil.</p>}
+        {mode === "register" && <p className="text-[length:calc(12px*var(--fs))] text-ink-soft text-center mt-2">{tr("Email bisa dihubungkan nanti di menu Profil.")}</p>}
       </form>
       <div className="flex items-center gap-3 my-4 text-xs text-ink-soft">
-        <div className="h-px flex-1 bg-line" /> atau <div className="h-px flex-1 bg-line" />
+        <div className="h-px flex-1 bg-line" /> {tr("atau")} <div className="h-px flex-1 bg-line" />
       </div>
       <Button variant="secondary" className="w-full" disabled={busy} onClick={() => run(loginGoogle)}>
         <GoogleIcon />
-        Masuk dengan Google
+        {tr("Masuk dengan Google")}
       </Button>
       <p className="text-center text-sm text-ink-soft mt-4">
-        {mode === "login" ? "Belum punya akun? " : "Sudah punya akun? "}
+        {mode === "login" ? tr("Belum punya akun? ") : tr("Sudah punya akun? ")}
         <button
           className="text-brand font-medium"
           onClick={() => {
@@ -183,7 +184,7 @@ function FirebaseLogin() {
             setError("");
           }}
         >
-          {mode === "login" ? "Daftar" : "Masuk"}
+          {mode === "login" ? tr("Daftar") : tr("Masuk")}
         </button>
       </p>
     </Card>

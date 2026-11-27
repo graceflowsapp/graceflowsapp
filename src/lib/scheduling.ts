@@ -1,5 +1,6 @@
 import type { Assignment, Ministry, Service, Slot, UserProfile } from "./types";
 import { formatDateShort, monthKey, nowISO, todayISO } from "./dates";
+import { tr } from "@/lib/i18n";
 
 export function assignmentId(serviceId: string, ministryId: string, position: string) {
   return `${serviceId}__${ministryId}__${position.replace(/[\/\s]+/g, "-")}`;
@@ -250,7 +251,7 @@ export function availabilityNotes(
   // declined (this service)
   const declined = ctx.assignments.find((a) => a.serviceId === service.id && a.subRequest?.requestedBy === user.id);
   if (declined) {
-    notes.push({ kind: "declined", text: `Berhalangan untuk ibadah ini${declined.subRequest?.reason ? `: “${declined.subRequest.reason}”` : ""}` });
+    notes.push({ kind: "declined", text: tr("Berhalangan untuk ibadah ini{p}", { p: declined.subRequest?.reason ? `: “${declined.subRequest.reason}”` : "" }) });
   }
 
   // already booked at the same time / in the same service
@@ -258,19 +259,19 @@ export function availabilityNotes(
     if (ctx.ignoreAssignmentIds?.includes(a.id)) continue;
     notes.push({
       kind: "conflict",
-      text: s.id === service.id ? `Sudah bertugas di ibadah ini: ${a.position} (${mName(a.ministryId)})` : `Sudah bertugas ${a.position} (${mName(a.ministryId)}) di ${s.title} ${s.time}`,
+      text: s.id === service.id ? tr("Sudah bertugas di ibadah ini: {position} ({p})", { position: a.position, p: mName(a.ministryId) }) : tr("Sudah bertugas {position} ({p}) di {title} {time}", { position: a.position, p: mName(a.ministryId), title: s.title, time: s.time }),
     });
   }
 
   // OFF
   if (!isAvailableOn(user, service.date)) {
     const until = user.unavailableUntil ? ` sampai ${formatDateShort(user.unavailableUntil)}` : "";
-    notes.push({ kind: "off", text: `OFF: ${user.unavailableReason || "sedang tidak tersedia"}${until}` });
+    notes.push({ kind: "off", text: tr("OFF: {p}{until}", { p: user.unavailableReason || tr("sedang tidak tersedia"), until }) });
   } else if ((user.unavailableServices ?? []).includes(service.id)) {
-    notes.push({ kind: "off", text: "OFF untuk ibadah ini (diatur sendiri di Ketersediaan)" });
+    notes.push({ kind: "off", text: tr("OFF untuk ibadah ini (diatur sendiri di Ketersediaan)") });
   }
   if (ctx.ministryId && ctx.position && !isPositionOn(user, ctx.ministryId, ctx.position)) {
-    notes.push({ kind: "off", text: `Mematikan peran ${ctx.position}` });
+    notes.push({ kind: "off", text: tr("Mematikan peran {position}", { position: ctx.position }) });
   }
 
   // same day, different time: not a clash, but useful to know
@@ -278,7 +279,7 @@ export function availabilityNotes(
     if (a.userId !== user.id || a.id === ctx.ignoreAssignmentId) continue;
     const s = sById.get(a.serviceId);
     if (!s || s.id === service.id || s.date !== service.date || s.time === service.time) continue;
-    notes.push({ kind: "info", text: `Juga bertugas hari ini: ${a.position} di ${s.title} ${s.time}` });
+    notes.push({ kind: "info", text: tr("Juga bertugas hari ini: {position} di {title} {time}", { position: a.position, title: s.title, time: s.time }) });
   }
   return notes;
 }

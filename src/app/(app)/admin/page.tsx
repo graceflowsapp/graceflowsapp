@@ -18,6 +18,7 @@ import { authErrorMessage, displayLogin, usernameError } from "@/lib/username";
 import { UsernameField } from "@/components/UsernameField";
 import { PositionsEditor } from "@/components/PositionsEditor";
 import { SortableList } from "@/components/SortableList";
+import { tr } from "@/lib/i18n";
 
 const SESSIONS = ["Sesi 1", "Sesi 2", "Sesi 3", "Sesi Pagi", "Sesi Sore"];
 const LOCATIONS = ["Ruang Ibadah Utama", "Aula Lt. 2", "Ruang Youth", "Online / Live Streaming"];
@@ -29,19 +30,19 @@ export default function AdminPage() {
   if (me?.role !== "superadmin") {
     return (
       <Card>
-        <Empty icon={<Lock size={20} />} title="Khusus Superadmin" />
+        <Empty icon={<Lock size={20} />} title={tr("Khusus Superadmin")} />
       </Card>
     );
   }
   return (
     <div>
-      <h1 className="text-xl font-bold mb-4">Admin Gereja</h1>
+      <h1 className="text-xl font-bold mb-4">{tr("Admin Gereja")}</h1>
       <div className="grid grid-cols-4 bg-card border border-line rounded-xl p-1 mb-5">
         {[
-          ["calendar", "Kalender"],
-          ["servants", "Pelayan"],
-          ["ministries", "Komisi"],
-          ["church", "Gereja"],
+          ["calendar", tr("Kalender")],
+          ["servants", tr("Pelayan")],
+          ["ministries", tr("Komisi")],
+          ["church", tr("Gereja")],
         ].map(([k, label]) => (
           <button key={k} onClick={() => setTab(k as typeof tab)} className={cn("rounded-lg py-2 text-sm font-medium", tab === k ? "bg-brand text-white" : "text-ink-soft")}>
             {label}
@@ -73,25 +74,25 @@ function CalendarAdmin() {
   return (
     <>
       <div className="flex items-center justify-between mb-3">
-        <button className="p-1.5 rounded-lg hover:bg-card" onClick={() => shift(-1)} aria-label="Bulan sebelumnya">
+        <button className="p-1.5 rounded-lg hover:bg-card" onClick={() => shift(-1)} aria-label={tr("Bulan sebelumnya")}>
           <ChevronLeft size={18} />
         </button>
         <span className="font-semibold capitalize">{formatMonth(cursor.y, cursor.m)}</span>
-        <button className="p-1.5 rounded-lg hover:bg-card" onClick={() => shift(1)} aria-label="Bulan berikutnya">
+        <button className="p-1.5 rounded-lg hover:bg-card" onClick={() => shift(1)} aria-label={tr("Bulan berikutnya")}>
           <ChevronRight size={18} />
         </button>
       </div>
       <div className="grid grid-cols-2 gap-2 mb-4">
         <Button onClick={() => setEditing("new")}>
-          <Plus size={16} /> Tambah ibadah
+          <Plus size={16} /> {tr("Tambah ibadah")}
         </Button>
         <Button variant="secondary" onClick={() => setBulk(true)}>
-          <CalendarPlus size={16} /> Buat rutin bulanan
+          <CalendarPlus size={16} /> {tr("Buat rutin bulanan")}
         </Button>
       </div>
       {list.length === 0 ? (
         <Card>
-          <Empty icon={<CalendarPlus size={20} />} title="Belum ada ibadah bulan ini" body="Gunakan “Buat rutin bulanan” untuk membuat ibadah mingguan sekaligus." />
+          <Empty icon={<CalendarPlus size={20} />} title={tr("Belum ada ibadah bulan ini")} body={tr("Gunakan “Buat rutin bulanan” untuk membuat ibadah mingguan sekaligus.")} />
         </Card>
       ) : (
         <Card className="divide-y divide-line">
@@ -102,7 +103,7 @@ function CalendarAdmin() {
               <button key={s.id} onClick={() => setEditing(s)} className="w-full text-left px-4 py-3 hover:bg-surface flex items-center gap-3">
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-medium">{formatDateLong(s.date)}</div>
-                  <div className="flex flex-wrap items-center gap-1.5 text-[12px] text-ink-soft mt-0.5">
+                  <div className="flex flex-wrap items-center gap-1.5 text-[length:calc(12px*var(--fs))] text-ink-soft mt-0.5">
                     {serviceLine(s)}
                     {s.location && <span>· {s.location}</span>} <ServiceLabel label={s.label} />
                   </div>
@@ -141,7 +142,7 @@ function MinistryPicker({ value, onChange }: { value: string[]; onChange: (v: st
             onClick={() => onChange(on ? value.filter((x) => x !== m.id) : [...value, m.id])}
             aria-pressed={on}
             className={cn(
-              "inline-flex items-center gap-1.5 min-h-10 rounded-full border px-4 py-2 text-[15px] font-medium active:scale-[.97] transition",
+              "inline-flex items-center gap-1.5 min-h-10 rounded-full border px-4 py-2 text-[length:calc(15px*var(--fs))] font-medium active:scale-[.97] transition",
               on ? "text-white border-transparent shadow-sm" : "bg-card border-line text-ink",
             )}
             style={on ? { background: m.color } : undefined}
@@ -162,9 +163,9 @@ function ServiceModal({ service, defaultDate, onClose }: { service?: Service; de
       id: "",
       date: defaultDate,
       time: "09:00",
-      title: "Ibadah Umum",
-      session: "Sesi 1",
-      location: "Ruang Ibadah Utama",
+      title: tr("Ibadah Umum"),
+      session: tr("Sesi 1"),
+      location: tr("Ruang Ibadah Utama"),
       briefingTime: "07:30",
       ministries: ministries.map((m) => m.id),
     },
@@ -177,70 +178,70 @@ function ServiceModal({ service, defaultDate, onClose }: { service?: Service; de
     const dropped = service ? assignments.filter((a) => a.serviceId === service.id && a.userId && !form.ministries.includes(a.ministryId)) : [];
     if (dropped.length) {
       const names = [...new Set(dropped.map((a) => ministries.find((m) => m.id === a.ministryId)?.name ?? a.ministryId))].join(", ");
-      if (!(await ask({ title: "Hapus komisi dari ibadah ini?", message: `${dropped.length} pelayan dari ${names} akan dikeluarkan dari ibadah ini dan diberi notifikasi.`, confirmText: "Ya, simpan", tone: "warning" }))) return;
+      if (!(await ask({ title: tr("Hapus komisi dari ibadah ini?"), message: tr("{n} pelayan dari {names} akan dikeluarkan dari ibadah ini dan diberi notifikasi.", { n: dropped.length, names }), confirmText: tr("Ya, simpan"), tone: "warning" }))) return;
     }
     await store.set("services", id, { ...form, id, label: form.label || "" });
     for (const a of dropped) {
       await assignSlot({ id: a.id, service: { ...form, id }, ministryId: a.ministryId, position: a.position, userId: null, previousUserId: a.userId });
     }
-    celebrate("Ibadah disimpan");
+    celebrate(tr("Ibadah disimpan"));
     onClose();
   };
   const remove = async () => {
-    if (!service || !(await ask({ title: "Hapus ibadah ini?", message: "Seluruh jadwal pelayan di ibadah ini ikut terhapus.", confirmText: "Hapus", tone: "danger" }))) return;
+    if (!service || !(await ask({ title: tr("Hapus ibadah ini?"), message: tr("Seluruh jadwal pelayan di ibadah ini ikut terhapus."), confirmText: tr("Hapus"), tone: "danger" }))) return;
     await Promise.all(assignments.filter((a) => a.serviceId === service.id).map((a) => store.remove("assignments", a.id)));
     await store.remove("services", service.id);
-    toast("Ibadah dihapus");
+    toast(tr("Ibadah dihapus"));
     onClose();
   };
 
   return (
-    <Modal open onClose={onClose} title={service ? "Ubah ibadah" : "Tambah ibadah"}>
+    <Modal open onClose={onClose} title={service ? tr("Ubah ibadah") : tr("Tambah ibadah")}>
       <div className="grid grid-cols-2 gap-2">
-        <Field label="Nama ibadah">
+        <Field label={tr("Nama ibadah")}>
           <input className={inputCls} value={form.title} onChange={(e) => set({ title: e.target.value })} />
         </Field>
-        <Field label="Sesi">
-          <input className={inputCls} list="sessions" value={form.session ?? ""} onChange={(e) => set({ session: e.target.value })} placeholder="Sesi 1" />
+        <Field label={tr("Sesi")}>
+          <input className={inputCls} list="sessions" value={form.session ?? ""} onChange={(e) => set({ session: e.target.value })} placeholder={tr("Sesi 1")} />
           <datalist id="sessions">
-            {SESSIONS.map((l) => (
+            {SESSIONS.map((x) => tr(x)).map((l) => (
               <option key={l} value={l} />
             ))}
           </datalist>
         </Field>
       </div>
-      <Field label="Tanggal" hint={form.date ? formatDateLong(form.date) : undefined}>
+      <Field label={tr("Tanggal")} hint={form.date ? formatDateLong(form.date) : undefined}>
         <input type="date" className={inputCls} value={form.date} onChange={(e) => set({ date: e.target.value })} />
       </Field>
       <div className="grid grid-cols-2 gap-2">
-        <Field label="Jam ibadah">
+        <Field label={tr("Jam ibadah")}>
           <input type="time" className={inputCls} value={form.time} onChange={(e) => set({ time: e.target.value })} />
         </Field>
-        <Field label="Doa/briefing">
+        <Field label={tr("Doa/briefing")}>
           <input type="time" className={inputCls} value={form.briefingTime ?? ""} onChange={(e) => set({ briefingTime: e.target.value })} />
         </Field>
       </div>
-      <Field label="Lokasi / ruangan">
-        <input className={inputCls} list="locations" value={form.location ?? ""} onChange={(e) => set({ location: e.target.value })} placeholder="Ruang Ibadah Utama" />
+      <Field label={tr("Lokasi / ruangan")}>
+        <input className={inputCls} list="locations" value={form.location ?? ""} onChange={(e) => set({ location: e.target.value })} placeholder={tr("Ruang Ibadah Utama")} />
         <datalist id="locations">
-          {LOCATIONS.map((l) => (
+          {LOCATIONS.map((x) => tr(x)).map((l) => (
             <option key={l} value={l} />
           ))}
         </datalist>
       </Field>
-      <Field label="Label ibadah khusus" hint="Tampil di jadwal semua pelayan & di ekspor WhatsApp.">
-        <input className={inputCls} list="labels" value={form.label ?? ""} onChange={(e) => set({ label: e.target.value })} placeholder="mis. Perjamuan Kudus" />
+      <Field label={tr("Label ibadah khusus")} hint={tr("Tampil di jadwal semua pelayan & di ekspor WhatsApp.")}>
+        <input className={inputCls} list="labels" value={form.label ?? ""} onChange={(e) => set({ label: e.target.value })} placeholder={tr("mis. Perjamuan Kudus")} />
         <datalist id="labels">
-          {LABELS.map((l) => (
+          {LABELS.map((x) => tr(x)).map((l) => (
             <option key={l} value={l} />
           ))}
         </datalist>
       </Field>
       <div className="mb-3">
-        <span className="block text-sm font-medium text-ink-soft mb-2">Komisi yang bertugas</span>
+        <span className="block text-sm font-medium text-ink-soft mb-2">{tr("Komisi yang bertugas")}</span>
         <MinistryPicker value={form.ministries} onChange={(v) => set({ ministries: v })} />
       </div>
-      <Field label="Catatan">
+      <Field label={tr("Catatan")}>
         <textarea className={inputCls} rows={2} value={form.notes ?? ""} onChange={(e) => set({ notes: e.target.value })} />
       </Field>
       <div className="flex gap-2 mt-2">
@@ -250,7 +251,7 @@ function ServiceModal({ service, defaultDate, onClose }: { service?: Service; de
           </Button>
         )}
         <Button className="flex-1" onClick={save} disabled={!form.title || !form.date || !form.ministries.length}>
-          Simpan
+          {tr("Simpan")}
         </Button>
       </div>
     </Modal>
@@ -260,77 +261,77 @@ function ServiceModal({ service, defaultDate, onClose }: { service?: Service; de
 function BulkModal({ year, month, onClose }: { year: number; month: number; onClose: () => void }) {
   const { ministries, services } = useApp();
   const [weekday, setWeekday] = useState(0);
-  const [title, setTitle] = useState("Ibadah Umum");
+  const [title, setTitle] = useState(tr("Ibadah Umum"));
   const [time, setTime] = useState("09:00");
   const [briefing, setBriefing] = useState("07:30");
-  const [session, setSession] = useState("Sesi 1");
-  const [location, setLocation] = useState("Ruang Ibadah Utama");
+  const [session, setSession] = useState(tr("Sesi 1"));
+  const [location, setLocation] = useState(tr("Ruang Ibadah Utama"));
   const [sel, setSel] = useState<string[]>(ministries.map((m) => m.id));
-  const [firstLabel, setFirstLabel] = useState("Perjamuan Kudus");
+  const [firstLabel, setFirstLabel] = useState(tr("Perjamuan Kudus"));
   const dates = weekdaysInMonth(year, month, weekday);
   const existing = new Set(services.map((s) => `${s.date}|${s.time}`));
   const toCreate = dates.filter((d) => !existing.has(`${d}|${time}`));
 
   return (
-    <Modal open onClose={onClose} title={`Ibadah rutin · ${formatMonth(year, month)}`}>
-      <Field label="Hari">
+    <Modal open onClose={onClose} title={tr("Ibadah rutin · {p}", { p: formatMonth(year, month) })}>
+      <Field label={tr("Hari")}>
         <select className={inputCls} value={weekday} onChange={(e) => setWeekday(Number(e.target.value))}>
-          {["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"].map((d, i) => (
+          {[tr("Minggu"), tr("Senin"), tr("Selasa"), tr("Rabu"), tr("Kamis"), tr("Jumat"), tr("Sabtu")].map((d, i) => (
             <option key={d} value={i}>
-              Setiap {d}
+              {tr("Setiap")} {d}
             </option>
           ))}
         </select>
       </Field>
       <div className="grid grid-cols-2 gap-2">
-        <Field label="Nama ibadah">
+        <Field label={tr("Nama ibadah")}>
           <input className={inputCls} value={title} onChange={(e) => setTitle(e.target.value)} />
         </Field>
-        <Field label="Sesi">
+        <Field label={tr("Sesi")}>
           <input className={inputCls} list="sessions-bulk" value={session} onChange={(e) => setSession(e.target.value)} />
           <datalist id="sessions-bulk">
-            {SESSIONS.map((l) => (
+            {SESSIONS.map((x) => tr(x)).map((l) => (
               <option key={l} value={l} />
             ))}
           </datalist>
         </Field>
       </div>
-      <Field label="Lokasi / ruangan">
+      <Field label={tr("Lokasi / ruangan")}>
         <input className={inputCls} list="locations-bulk" value={location} onChange={(e) => setLocation(e.target.value)} />
         <datalist id="locations-bulk">
-          {LOCATIONS.map((l) => (
+          {LOCATIONS.map((x) => tr(x)).map((l) => (
             <option key={l} value={l} />
           ))}
         </datalist>
       </Field>
       <div className="grid grid-cols-2 gap-2">
-        <Field label="Jam ibadah">
+        <Field label={tr("Jam ibadah")}>
           <input type="time" className={inputCls} value={time} onChange={(e) => setTime(e.target.value)} />
         </Field>
-        <Field label="Doa/briefing">
+        <Field label={tr("Doa/briefing")}>
           <input type="time" className={inputCls} value={briefing} onChange={(e) => setBriefing(e.target.value)} />
         </Field>
       </div>
-      <Field label="Label untuk minggu pertama (opsional)">
+      <Field label={tr("Label untuk minggu pertama (opsional)")}>
         <input className={inputCls} list="labels-bulk" value={firstLabel} onChange={(e) => setFirstLabel(e.target.value)} />
         <datalist id="labels-bulk">
-          {LABELS.map((l) => (
+          {LABELS.map((x) => tr(x)).map((l) => (
             <option key={l} value={l} />
           ))}
         </datalist>
       </Field>
       <div className="mb-4">
-        <span className="block text-sm font-medium text-ink-soft mb-2">Komisi yang bertugas</span>
+        <span className="block text-sm font-medium text-ink-soft mb-2">{tr("Komisi yang bertugas")}</span>
         <MinistryPicker value={sel} onChange={setSel} />
       </div>
-      <p className="text-[13px] text-ink-soft mb-3">
-        Akan dibuat <b>{toCreate.length}</b> ibadah{dates.length > toCreate.length && ` (${dates.length - toCreate.length} sudah ada, dilewati)`}.
+      <p className="text-[length:calc(13px*var(--fs))] text-ink-soft mb-3">
+        {tr("Akan dibuat")} <b>{toCreate.length}</b> {tr("ibadah")}{dates.length > toCreate.length && tr(" ({p} sudah ada, dilewati)", { p: dates.length - toCreate.length })}.
       </p>
       <Button
         className="w-full"
         disabled={!toCreate.length || !sel.length}
         onClick={async () => {
-          if (!(await ask({ title: `Buat ${toCreate.length} ibadah?`, message: `${title} · ${time}, ${toCreate.length} tanggal.`, confirmText: "Buat" }))) return;
+          if (!(await ask({ title: tr("Buat {n} ibadah?", { n: toCreate.length }), message: tr("{title} · {time}, {n} tanggal.", { title, time, n: toCreate.length }), confirmText: tr("Buat") }))) return;
           const items: Service[] = toCreate.map((date) => ({
             id: `svc-${date}-${time.replace(":", "")}-${Math.random().toString(36).slice(2, 6)}`,
             date,
@@ -343,11 +344,11 @@ function BulkModal({ year, month, onClose }: { year: number; month: number; onCl
             label: date === dates[0] ? firstLabel : "",
           }));
           await store.setMany("services", items as never);
-          celebrate(`${items.length} ibadah dibuat`);
+          celebrate(tr("{n} ibadah dibuat", { n: items.length }));
           onClose();
         }}
       >
-        Buat ibadah
+        {tr("Buat ibadah")}
       </Button>
     </Modal>
   );
@@ -372,25 +373,25 @@ function ServantsAdmin() {
   return (
     <>
       <Button className="w-full mb-3" onClick={() => setAdding(true)}>
-        <UserPlus size={16} /> Tambah akun baru
+        <UserPlus size={16} /> {tr("Tambah akun baru")}
       </Button>
       <div className="relative mb-3">
         <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-soft" />
-        <input className={cn(inputCls, "pl-9")} placeholder="Cari pelayan…" value={q} onChange={(e) => setQ(e.target.value)} />
+        <input className={cn(inputCls, "pl-9")} placeholder={tr("Cari pelayan…")} value={q} onChange={(e) => setQ(e.target.value)} />
       </div>
       <div className="flex gap-2 overflow-x-auto scrollbar-none -mx-4 px-4 mb-3">
-        {[{ id: "all", name: "Semua" }, { id: "coord", name: "Koordinator/Admin" }, ...ministries].map((m) => (
+        {[{ id: "all", name: tr("Semua") }, { id: "coord", name: tr("Koordinator/Admin") }, ...ministries].map((m) => (
           <button
             key={m.id}
             onClick={() => setFilter(m.id)}
             aria-pressed={filter === m.id}
-            className={cn("shrink-0 min-h-10 rounded-full border px-4 py-2 text-[15px] font-medium active:scale-[.97] transition", filter === m.id ? "bg-brand text-white border-brand shadow-sm" : "bg-card border-line text-ink")}
+            className={cn("shrink-0 min-h-10 rounded-full border px-4 py-2 text-[length:calc(15px*var(--fs))] font-medium active:scale-[.97] transition", filter === m.id ? "bg-brand text-white border-brand shadow-sm" : "bg-card border-line text-ink")}
           >
             {m.name}
           </button>
         ))}
       </div>
-      <SectionTitle>{list.length} pelayan</SectionTitle>
+      <SectionTitle>{list.length} {tr("pelayan")}</SectionTitle>
       <Card className="divide-y divide-line">
         {list.map((u) => (
           <button key={u.id} onClick={() => setEditing(u)} className="w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-surface">
@@ -399,9 +400,9 @@ function ServantsAdmin() {
               <div className="text-sm font-medium truncate flex items-center gap-1.5">
                 {u.name}
                 {u.active === false ? (
-                  <Badge className="bg-danger-soft text-danger-ink">Nonaktif</Badge>
+                  <Badge className="bg-danger-soft text-danger-ink">{tr("Nonaktif")}</Badge>
                 ) : (
-                  !isAvailableNow(u) && <Badge className="bg-surface text-ink-soft">OFF</Badge>
+                  !isAvailableNow(u) && <Badge className="bg-surface text-ink-soft">{tr("OFF")}</Badge>
                 )}
               </div>
               <div className="flex flex-wrap gap-1 mt-0.5">
@@ -420,7 +421,7 @@ function ServantsAdmin() {
           </button>
         ))}
       </Card>
-      {!list.length && <Empty icon={<Search size={20} />} title="Tidak ditemukan" />}
+      {!list.length && <Empty icon={<Search size={20} />} title={tr("Tidak ditemukan")} />}
       {editing && <UserModal user={editing} onClose={() => setEditing(null)} />}
       {adding && <AddAccountModal onClose={() => setAdding(false)} />}
     </>
@@ -436,7 +437,7 @@ function UserModal({ user, onClose }: { user: UserProfile; onClose: () => void }
   const positions = ministries.filter((m) => form.ministries.includes(m.id)).flatMap((m) => m.positions);
 
   return (
-    <Modal open onClose={onClose} title="Kelola pelayan">
+    <Modal open onClose={onClose} title={tr("Kelola pelayan")}>
       <div className="flex items-center gap-3 mb-4">
         <Avatar name={form.name} src={form.photoUrl} size={48} />
         <div className="min-w-0">
@@ -444,32 +445,32 @@ function UserModal({ user, onClose }: { user: UserProfile; onClose: () => void }
           <div className="text-xs text-ink-soft truncate">{displayLogin(form)}</div>
         </div>
       </div>
-      <Field label="Nama">
+      <Field label={tr("Nama")}>
         <input className={inputCls} value={form.name} onChange={(e) => set({ name: e.target.value })} />
       </Field>
-      <Field label="No. WhatsApp">
+      <Field label={tr("No. WhatsApp")}>
         <input className={inputCls} value={form.phone ?? ""} onChange={(e) => set({ phone: e.target.value })} />
       </Field>
-      <Field label="Hak akses">
+      <Field label={tr("Hak akses")}>
         <select className={inputCls} value={form.role} onChange={(e) => set({ role: e.target.value as Role })} disabled={isSelf}>
-          <option value="servant">Servant — pelayan</option>
-          <option value="coordinator">Coordinator — koordinator komisi</option>
-          <option value="superadmin">Superadmin — admin gereja</option>
+          <option value="servant">{tr("Servant — pelayan")}</option>
+          <option value="coordinator">{tr("Coordinator — koordinator komisi")}</option>
+          <option value="superadmin">{tr("Superadmin — admin gereja")}</option>
         </select>
       </Field>
       <div className="mb-3">
-        <span className="block text-sm font-medium text-ink-soft mb-2">Melayani di komisi</span>
+        <span className="block text-sm font-medium text-ink-soft mb-2">{tr("Melayani di komisi")}</span>
         <MinistryPicker value={form.ministries} onChange={(v) => set({ ministries: v })} />
       </div>
       {form.role !== "servant" && (
         <div className="mb-3">
-          <span className="block text-sm font-medium text-ink-soft mb-2">Otoritas koordinator (boleh mengatur jadwal)</span>
+          <span className="block text-sm font-medium text-ink-soft mb-2">{tr("Otoritas koordinator (boleh mengatur jadwal)")}</span>
           <MinistryPicker value={form.coordinatorOf} onChange={(v) => set({ coordinatorOf: v })} />
         </div>
       )}
       {positions.length > 0 && (
         <div className="mb-4">
-          <span className="block text-sm font-medium text-ink-soft mb-2">Posisi yang bisa diisi (kosong = semua)</span>
+          <span className="block text-sm font-medium text-ink-soft mb-2">{tr("Posisi yang bisa diisi (kosong = semua)")}</span>
           <div className="flex flex-wrap gap-2">
             {[...new Set(positions)].map((p) => {
               const on = form.skills.includes(p);
@@ -480,7 +481,7 @@ function UserModal({ user, onClose }: { user: UserProfile; onClose: () => void }
                   onClick={() => set({ skills: on ? form.skills.filter((x) => x !== p) : [...form.skills, p] })}
                   aria-pressed={on}
                   className={cn(
-                    "inline-flex items-center gap-1 min-h-9 rounded-full border px-3.5 py-1.5 text-[14px] font-medium active:scale-[.97] transition",
+                    "inline-flex items-center gap-1 min-h-9 rounded-full border px-3.5 py-1.5 text-[length:calc(14px*var(--fs))] font-medium active:scale-[.97] transition",
                     on ? "border-brand bg-brand-soft text-brand" : "border-line text-ink",
                   )}
                 >
@@ -497,11 +498,11 @@ function UserModal({ user, onClose }: { user: UserProfile; onClose: () => void }
         onClick={async () => {
           const { id, ...rest } = form;
           await store.update("users", id, rest);
-          toast("Data pelayan disimpan");
+          toast(tr("Data pelayan disimpan"));
           onClose();
         }}
       >
-        Simpan
+        {tr("Simpan")}
       </Button>
       {!isSelf && (
         <div className="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-line">
@@ -509,24 +510,24 @@ function UserModal({ user, onClose }: { user: UserProfile; onClose: () => void }
             variant="secondary"
             onClick={async () => {
               const on = user.active === false;
-              if (!on && !(await ask({ title: `Nonaktifkan ${user.name}?`, message: "Ia tidak bisa masuk dan tugas mendatangnya dikosongkan. Bisa diaktifkan lagi kapan saja.", confirmText: "Nonaktifkan", tone: "warning" }))) return;
+              if (!on && !(await ask({ title: tr("Nonaktifkan {name}?", { name: user.name }), message: tr("Ia tidak bisa masuk dan tugas mendatangnya dikosongkan. Bisa diaktifkan lagi kapan saja."), confirmText: tr("Nonaktifkan"), tone: "warning" }))) return;
               await setAccountActive(user, on, assignments, todayISO(), sDate);
-              toast(on ? "Akun diaktifkan kembali" : "Akun dinonaktifkan");
+              toast(on ? tr("Akun diaktifkan kembali") : tr("Akun dinonaktifkan"));
               onClose();
             }}
           >
-            {user.active === false ? "Aktifkan" : "Nonaktifkan"}
+            {user.active === false ? tr("Aktifkan") : tr("Nonaktifkan")}
           </Button>
           <Button
             variant="danger"
             onClick={async () => {
-              if (!(await ask({ title: `Hapus akun ${user.name}?`, message: "Tugas mendatangnya akan dikosongkan. Tindakan ini tidak bisa dibatalkan.", confirmText: "Hapus akun", tone: "danger" }))) return;
+              if (!(await ask({ title: tr("Hapus akun {name}?", { name: user.name }), message: tr("Tugas mendatangnya akan dikosongkan. Tindakan ini tidak bisa dibatalkan."), confirmText: tr("Hapus akun"), tone: "danger" }))) return;
               await deleteAccount(user, assignments, todayISO(), sDate);
-              toast("Akun dihapus");
+              toast(tr("Akun dihapus"));
               onClose();
             }}
           >
-            <Trash2 size={15} /> Hapus
+            <Trash2 size={15} /> {tr("Hapus")}
           </Button>
         </div>
       )}
@@ -548,23 +549,17 @@ function AddAccountModal({ onClose }: { onClose: () => void }) {
   const [created, setCreated] = useState<{ name: string; username: string; password: string; phone: string } | null>(null);
 
   if (created) {
-    const text = `Halo ${created.name.split(" ")[0]}! Akun GraceFlow ${church?.name ?? ""} kamu sudah dibuat 🙏
-
-Buka: ${window.location.origin}/login
-Username: ${created.username}
-Kata sandi: ${created.password}
-
-Setelah masuk, hubungkan emailmu di menu Profil → Akun & login.`;
+    const text = tr("Halo {p}! Akun GraceFlow {p2} kamu sudah dibuat 🙏\n\nBuka: {origin}/login\nUsername: {username}\nKata sandi: {password}\n\nSetelah masuk, hubungkan emailmu di menu Profil → Akun & login.", { p: created.name.split(" ")[0], p2: church?.name ?? "", origin: window.location.origin, username: created.username, password: created.password });
     const wa = created.phone.replace(/\D/g, "").replace(/^0/, "62");
     return (
-      <Modal open onClose={onClose} title="Akun berhasil dibuat">
-        <p className="text-sm text-ink-soft mb-3">Berikan data masuk ini ke {created.name}. Emailnya bisa ia hubungkan sendiri nanti di Profil.</p>
+      <Modal open onClose={onClose} title={tr("Akun berhasil dibuat")}>
+        <p className="text-sm text-ink-soft mb-3">{tr("Berikan data masuk ini ke")} {created.name}{tr(". Emailnya bisa ia hubungkan sendiri nanti di Profil.")}</p>
         <div className="rounded-xl bg-brand-soft p-4 space-y-1.5 text-sm">
           <p>
-            Username: <b className="font-mono">{created.username}</b>
+            {tr("Username:")} <b className="font-mono">{created.username}</b>
           </p>
           <p>
-            Kata sandi: <b className="font-mono">{created.password}</b>
+            {tr("Kata sandi:")} <b className="font-mono">{created.password}</b>
           </p>
         </div>
         <div className="grid grid-cols-2 gap-2 mt-4">
@@ -572,24 +567,24 @@ Setelah masuk, hubungkan emailmu di menu Profil → Akun & login.`;
             variant="secondary"
             onClick={async () => {
               await navigator.clipboard.writeText(text);
-              toast("Data masuk disalin");
+              toast(tr("Data masuk disalin"));
             }}
           >
-            <Copy size={15} /> Salin
+            <Copy size={15} /> {tr("Salin")}
           </Button>
           <Button variant="whatsapp" onClick={() => window.open(`https://wa.me/${wa}?text=${encodeURIComponent(text)}`, "_blank", "noopener")}>
-            <MessageCircle size={15} /> Kirim via WA
+            <MessageCircle size={15} /> {tr("Kirim via WA")}
           </Button>
         </div>
         <Button variant="ghost" className="w-full mt-2" onClick={onClose}>
-          Selesai
+          {tr("Selesai")}
         </Button>
       </Modal>
     );
   }
 
   return (
-    <Modal open onClose={onClose} title="Tambah akun baru">
+    <Modal open onClose={onClose} title={tr("Tambah akun baru")}>
       <form
         onSubmit={async (e) => {
           e.preventDefault();
@@ -597,7 +592,7 @@ Setelah masuk, hubungkan emailmu di menu Profil → Akun & login.`;
           setError("");
           try {
             await createAccount(church!.id, { name: name.trim(), username, password, phone: phone.trim(), role, ministries: ministryIds, coordinatorOf: coordOf });
-            celebrate(`Akun ${name} dibuat`);
+            celebrate(tr("Akun {name} dibuat", { name }));
             setCreated({ name: name.trim(), username, password, phone: phone.trim() });
           } catch (err) {
             setError(authErrorMessage(err));
@@ -606,38 +601,38 @@ Setelah masuk, hubungkan emailmu di menu Profil → Akun & login.`;
           }
         }}
       >
-        <Field label="Nama lengkap">
+        <Field label={tr("Nama lengkap")}>
           <input className={inputCls} value={name} onChange={(e) => setName(e.target.value)} required />
         </Field>
         <UsernameField value={username} onChange={setUsername} />
-        <Field label="Kata sandi awal" hint={demo ? "Mode demo: kata sandi tidak dipakai." : "Minimal 6 karakter. Akan ditampilkan setelah akun dibuat untuk diberikan ke pelayan."}>
+        <Field label={tr("Kata sandi awal")} hint={demo ? tr("Mode demo: kata sandi tidak dipakai.") : tr("Minimal 6 karakter. Akan ditampilkan setelah akun dibuat untuk diberikan ke pelayan.")}>
           <input type="text" className={inputCls} value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} autoComplete="new-password" />
         </Field>
-        <Field label="No. WhatsApp">
+        <Field label={tr("No. WhatsApp")}>
           <input className={inputCls} inputMode="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="08xxxxxxxxxx" />
         </Field>
-        <Field label="Hak akses">
+        <Field label={tr("Hak akses")}>
           <select className={inputCls} value={role} onChange={(e) => setRole(e.target.value as Role)}>
-            <option value="servant">Servant — pelayan</option>
-            <option value="coordinator">Coordinator — koordinator bidang</option>
-            <option value="superadmin">Superadmin — admin gereja</option>
+            <option value="servant">{tr("Servant — pelayan")}</option>
+            <option value="coordinator">{tr("Coordinator — koordinator bidang")}</option>
+            <option value="superadmin">{tr("Superadmin — admin gereja")}</option>
           </select>
         </Field>
         <div className="mb-3">
-          <span className="block text-sm font-medium text-ink-soft mb-2">Melayani di bidang</span>
+          <span className="block text-sm font-medium text-ink-soft mb-2">{tr("Melayani di bidang")}</span>
           <MinistryPicker value={ministryIds} onChange={setMinistryIds} />
         </div>
         {role !== "servant" && (
           <div className="mb-3">
-            <span className="block text-sm font-medium text-ink-soft mb-2">Koordinator untuk bidang</span>
+            <span className="block text-sm font-medium text-ink-soft mb-2">{tr("Koordinator untuk bidang")}</span>
             <MinistryPicker value={coordOf} onChange={setCoordOf} />
           </div>
         )}
         {error && <p className="text-sm text-danger-ink mb-3">{error}</p>}
         <Button className="w-full" disabled={busy || !!usernameError(username) || password.length < 6}>
-          <UserPlus size={16} /> Buat akun
+          <UserPlus size={16} /> {tr("Buat akun")}
         </Button>
-        <p className="text-[12px] text-ink-soft text-center mt-2">Pelayan menghubungkan emailnya sendiri nanti di Profil.</p>
+        <p className="text-[length:calc(12px*var(--fs))] text-ink-soft text-center mt-2">{tr("Pelayan menghubungkan emailnya sendiri nanti di Profil.")}</p>
       </form>
     </Modal>
   );
@@ -659,18 +654,18 @@ function MinistriesAdmin() {
       <>
         <div className="rounded-2xl bg-brand-soft text-brand px-4 py-3 mb-4 flex items-start gap-3">
           <GripVertical size={20} className="shrink-0 mt-0.5" aria-hidden />
-          <p className="text-[14px] leading-snug">
-            <b>Tahan</b> kartu sebentar sampai terangkat, lalu <b>geser</b> ke posisi baru. Bisa juga pakai tombol panah.
+          <p className="text-[length:calc(14px*var(--fs))] leading-snug">
+            <b>{tr("Tahan")}</b> {tr("kartu sebentar sampai terangkat, lalu")} <b>{tr("geser")}</b> {tr("ke posisi baru. Bisa juga pakai tombol panah.")}
           </p>
         </div>
         <SortableList
           items={order}
           getKey={(m) => m.id}
           className="space-y-2"
-          label="Urutan komisi"
+          label={tr("Urutan komisi")}
           onReorder={(next, { item, to }) => {
             setOrder(next);
-            setAnnounce(`${item.name} dipindah ke urutan ${to + 1}`);
+            setAnnounce(tr("{name} dipindah ke urutan {p}", { name: item.name, p: to + 1 }));
           }}
           renderItem={(m, h) => (
             <Card className={cn("p-3 flex items-center gap-3", h.dragging ? "border-brand" : "")}>
@@ -678,8 +673,8 @@ function MinistriesAdmin() {
               <span className="h-3 w-3 rounded-full shrink-0" style={{ background: m.color }} aria-hidden />
               <div className="flex-1 min-w-0">
                 <div className="font-semibold truncate">{m.name}</div>
-                <div className="text-[12px] text-ink-soft">
-                  Urutan {h.index + 1} · {m.positions.length} posisi
+                <div className="text-[length:calc(12px*var(--fs))] text-ink-soft">
+                  {tr("Urutan")} {h.index + 1} · {m.positions.length} {tr("posisi")}
                 </div>
               </div>
               <div className="flex gap-1 shrink-0">
@@ -687,7 +682,7 @@ function MinistriesAdmin() {
                   type="button"
                   onClick={h.moveUp}
                   disabled={h.isFirst}
-                  aria-label={`Naikkan ${m.name}`}
+                  aria-label={tr("Naikkan {name}", { name: m.name })}
                   className="h-10 w-10 grid place-items-center rounded-xl border border-line bg-card text-ink disabled:opacity-30 active:scale-95"
                 >
                   <ChevronUp size={18} />
@@ -696,7 +691,7 @@ function MinistriesAdmin() {
                   type="button"
                   onClick={h.moveDown}
                   disabled={h.isLast}
-                  aria-label={`Turunkan ${m.name}`}
+                  aria-label={tr("Turunkan {name}", { name: m.name })}
                   className="h-10 w-10 grid place-items-center rounded-xl border border-line bg-card text-ink disabled:opacity-30 active:scale-95"
                 >
                   <ChevronDown size={18} />
@@ -710,7 +705,7 @@ function MinistriesAdmin() {
         </p>
         <div className="sticky bottom-[max(1rem,env(safe-area-inset-bottom))] mt-4 grid grid-cols-2 gap-2 rounded-2xl bg-surface/90 backdrop-blur p-1">
           <Button variant="secondary" onClick={() => setOrder(null)} disabled={saving}>
-            Batal
+            {tr("Batal")}
           </Button>
           <Button
             disabled={saving || !changed}
@@ -718,16 +713,16 @@ function MinistriesAdmin() {
               setSaving(true);
               try {
                 await Promise.all(order.map((m, i) => (m.order === i + 1 ? null : store.update("ministries", m.id, { order: i + 1 }))));
-                celebrate("Urutan komisi disimpan");
+                celebrate(tr("Urutan komisi disimpan"));
                 setOrder(null);
               } catch (e) {
-                toast(`Gagal menyimpan: ${(e as Error).message}`);
+                toast(tr("Gagal menyimpan: {message}", { message: (e as Error).message }));
               } finally {
                 setSaving(false);
               }
             }}
           >
-            <Check size={16} /> Simpan urutan
+            <Check size={16} /> {tr("Simpan urutan")}
           </Button>
         </div>
       </>
@@ -738,10 +733,10 @@ function MinistriesAdmin() {
     <>
       <div className="grid grid-cols-[1fr_auto] gap-2 mb-4">
         <Button onClick={() => setEditing("new")}>
-          <Plus size={16} /> Tambah komisi
+          <Plus size={16} /> {tr("Tambah komisi")}
         </Button>
         <Button variant="secondary" onClick={() => setOrder(ministries)} disabled={ministries.length < 2}>
-          <ArrowUpDown size={16} /> Ubah urutan
+          <ArrowUpDown size={16} /> {tr("Ubah urutan")}
         </Button>
       </div>
       <div className="space-y-2">
@@ -754,14 +749,14 @@ function MinistriesAdmin() {
                 <div className="flex items-center gap-2">
                   <span className="h-3 w-3 rounded-full" style={{ background: m.color }} />
                   <span className="font-semibold flex-1">{m.name}</span>
-                  <span className="text-xs text-ink-soft">{members} anggota</span>
+                  <span className="text-xs text-ink-soft">{members} {tr("anggota")}</span>
                 </div>
                 <div className="flex flex-wrap gap-1 mt-2">
                   {m.positions.map((p) => (
                     <Badge key={p}>{p}</Badge>
                   ))}
                 </div>
-                <div className="text-[12px] text-ink-soft mt-2">Koordinator: {coords.map((c) => c.name).join(", ") || "—"}</div>
+                <div className="text-[length:calc(12px*var(--fs))] text-ink-soft mt-2">{tr("Koordinator:")} {coords.map((c) => c.name).join(", ") || "—"}</div>
               </Card>
             </button>
           );
@@ -782,12 +777,12 @@ function MinistryModal({ ministry, onClose }: { ministry?: Ministry; onClose: ()
   const finalPositions = typed && !positions.some((p) => p.toLowerCase() === typed.toLowerCase()) ? [...positions, typed] : positions;
 
   return (
-    <Modal open onClose={onClose} title={ministry ? "Ubah komisi" : "Tambah komisi"}>
+    <Modal open onClose={onClose} title={ministry ? tr("Ubah komisi") : tr("Tambah komisi")}>
       <div className="grid grid-cols-[1fr_auto] gap-2">
-        <Field label="Nama komisi">
-          <input className={inputCls} value={name} onChange={(e) => setName(e.target.value)} placeholder="mis. Sekolah Minggu" />
+        <Field label={tr("Nama komisi")}>
+          <input className={inputCls} value={name} onChange={(e) => setName(e.target.value)} placeholder={tr("mis. Sekolah Minggu")} />
         </Field>
-        <Field label="Warna">
+        <Field label={tr("Warna")}>
           <input type="color" className="h-[42px] w-14 rounded-xl border border-line" value={color} onChange={(e) => setColor(e.target.value)} />
         </Field>
       </div>
@@ -797,7 +792,7 @@ function MinistryModal({ ministry, onClose }: { ministry?: Ministry; onClose: ()
           <Button
             variant="danger"
             onClick={async () => {
-              if (!(await ask({ title: `Hapus komisi ${ministry.name}?`, message: "Posisi dan jadwal komisi ini tidak akan tampil lagi.", confirmText: "Hapus", tone: "danger" }))) return;
+              if (!(await ask({ title: tr("Hapus komisi {name}?", { name: ministry.name }), message: tr("Posisi dan jadwal komisi ini tidak akan tampil lagi."), confirmText: tr("Hapus"), tone: "danger" }))) return;
               await store.remove("ministries", ministry.id);
               onClose();
             }}
@@ -819,11 +814,11 @@ function MinistryModal({ ministry, onClose }: { ministry?: Ministry; onClose: ()
               order: ministry?.order ?? ministries.length + 1,
             };
             await store.set("ministries", id, data);
-            toast("Komisi disimpan");
+            toast(tr("Komisi disimpan"));
             onClose();
           }}
         >
-          Simpan
+          {tr("Simpan")}
         </Button>
       </div>
     </Modal>
@@ -839,16 +834,13 @@ function ChurchSettings() {
   const [busy, setBusy] = useState(false);
   if (!church) return null;
   const link = inviteLink(church.inviteCode);
-  const shareText = `Halo! Yuk gabung tim pelayanan ${church.name} di GraceFlow 🙏
-
-Buka: ${link}
-Atau masukkan kode undangan: *${church.inviteCode}*`;
+  const shareText = tr("Halo! Yuk gabung tim pelayanan {name} di GraceFlow 🙏\n\nBuka: {link}\nAtau masukkan kode undangan: *{inviteCode}*", { name: church.name, link, inviteCode: church.inviteCode });
 
   return (
     <>
-      <SectionTitle>Undang anggota</SectionTitle>
+      <SectionTitle>{tr("Undang anggota")}</SectionTitle>
       <Card className="p-4">
-        <p className="text-[13px] text-ink-soft">Bagikan kode atau link ini. Orang yang bergabung masuk sebagai <b>Servant</b>; atur bidang & perannya di tab Pelayan.</p>
+        <p className="text-[length:calc(13px*var(--fs))] text-ink-soft">{tr("Bagikan kode atau link ini. Orang yang bergabung masuk sebagai")} <b>{tr("Servant")}</b>{tr("; atur bidang & perannya di tab Pelayan.")}</p>
         <div className="mt-3 flex items-center gap-2">
           <div className="flex-1 rounded-xl bg-brand-soft text-brand text-2xl font-bold tracking-[0.3em] text-center py-3 font-mono">{church.inviteCode}</div>
         </div>
@@ -857,33 +849,33 @@ Atau masukkan kode undangan: *${church.inviteCode}*`;
             variant="secondary"
             onClick={async () => {
               await navigator.clipboard.writeText(link);
-              toast("Link undangan disalin");
+              toast(tr("Link undangan disalin"));
             }}
           >
-            <Copy size={15} /> Salin link
+            <Copy size={15} /> {tr("Salin link")}
           </Button>
           <Button variant="whatsapp" onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, "_blank", "noopener")}>
-            <MessageCircle size={15} /> Kirim via WA
+            <MessageCircle size={15} /> {tr("Kirim via WA")}
           </Button>
         </div>
         <button
           className="mt-3 text-xs text-ink-soft flex items-center gap-1 hover:text-danger-ink"
           onClick={async () => {
-            if (!(await ask({ title: "Buat kode undangan baru?", message: "Kode lama langsung tidak berlaku. Anggota yang sudah bergabung tidak terpengaruh.", confirmText: "Buat kode baru", tone: "warning" }))) return;
+            if (!(await ask({ title: tr("Buat kode undangan baru?"), message: tr("Kode lama langsung tidak berlaku. Anggota yang sudah bergabung tidak terpengaruh."), confirmText: tr("Buat kode baru"), tone: "warning" }))) return;
             await regenerateInviteCode(church);
-            toast("Kode undangan baru dibuat");
+            toast(tr("Kode undangan baru dibuat"));
           }}
         >
-          <RefreshCw size={12} /> Buat kode baru
+          <RefreshCw size={12} /> {tr("Buat kode baru")}
         </button>
       </Card>
 
-      <SectionTitle>Profil gereja</SectionTitle>
+      <SectionTitle>{tr("Profil gereja")}</SectionTitle>
       <Card className="p-4">
-        <Field label="Nama gereja">
+        <Field label={tr("Nama gereja")}>
           <input className={inputCls} value={name} onChange={(e) => setName(e.target.value)} />
         </Field>
-        <Field label="Kota">
+        <Field label={tr("Kota")}>
           <input className={inputCls} value={city} onChange={(e) => setCity(e.target.value)} />
         </Field>
         <Button
@@ -893,16 +885,16 @@ Atau masukkan kode undangan: *${church.inviteCode}*`;
             setBusy(true);
             await updateChurch(church.id, { name: name.trim(), city: city.trim() });
             setBusy(false);
-            toast("Profil gereja disimpan");
+            toast(tr("Profil gereja disimpan"));
           }}
         >
-          Simpan
+          {tr("Simpan")}
         </Button>
       </Card>
 
-      <SectionTitle>Warna gereja</SectionTitle>
+      <SectionTitle>{tr("Warna gereja")}</SectionTitle>
       <Card className="p-4">
-        <p className="text-[13px] text-ink-soft mb-3">Warna aksen default untuk semua anggota. Anggota tetap bisa memilih warnanya sendiri di Profil.</p>
+        <p className="text-[length:calc(13px*var(--fs))] text-ink-soft mb-3">{tr("Warna aksen default untuk semua anggota. Anggota tetap bisa memilih warnanya sendiri di Profil.")}</p>
         <div className="flex flex-wrap gap-2.5">
           {ACCENT_PRESETS.map((a) => {
             const selected = (church.accent ?? null) === a.value;
@@ -919,17 +911,17 @@ Atau masukkan kode undangan: *${church.inviteCode}*`;
             );
           })}
           <label
-            title="Warna kustom"
+            title={tr("Warna kustom")}
             className="relative h-9 w-9 rounded-full overflow-hidden border border-line cursor-pointer"
             style={{ background: "conic-gradient(#ef4444, #f59e0b, #22c55e, #06b6d4, #6366f1, #d946ef, #ef4444)" }}
           >
-            <input type="color" className="absolute inset-0 opacity-0 cursor-pointer" value={church.accent ?? "#0f766e"} onChange={(e) => updateChurch(church.id, { accent: e.target.value })} aria-label="Warna kustom" />
+            <input type="color" className="absolute inset-0 opacity-0 cursor-pointer" value={church.accent ?? "#0f766e"} onChange={(e) => updateChurch(church.id, { accent: e.target.value })} aria-label={tr("Warna kustom")} />
           </label>
         </div>
       </Card>
 
-      <p className="text-[12px] text-ink-soft mt-4">
-        {users.length} anggota · ID gereja: <span className="font-mono">{church.id}</span>
+      <p className="text-[length:calc(12px*var(--fs))] text-ink-soft mt-4">
+        {users.length} {tr("anggota · ID gereja:")} <span className="font-mono">{church.id}</span>
       </p>
     </>
   );

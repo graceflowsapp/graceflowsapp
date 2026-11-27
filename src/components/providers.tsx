@@ -10,6 +10,7 @@ import { sortServices } from "@/lib/scheduling";
 import { setChurchAccent } from "@/lib/theme";
 import { switchChurch as switchChurchAction } from "@/lib/tenancy";
 import type { Account, AppNotification, Assignment, Church, Ministry, Service, UserProfile } from "@/lib/types";
+import { tr } from "@/lib/i18n";
 
 const DEMO_USER_KEY = "graceflow-demo-user";
 
@@ -51,7 +52,7 @@ async function ensureAccount(user: User, name?: string) {
     // username-only accounts have a placeholder login email that is never shown
     email: isPlaceholderEmail(user.email) ? "" : (user.email ?? ""),
     ...(username ? { username } : {}),
-    name: name || user.displayName || username || user.email?.split("@")[0] || "Pelayan",
+    name: name || user.displayName || username || user.email?.split("@")[0] || tr("Pelayan"),
     churchIds: [],
     activeChurchId: null,
     createdAt: nowISO(),

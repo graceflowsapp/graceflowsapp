@@ -4,6 +4,7 @@ import { raw } from "./store";
 import { nowISO } from "./dates";
 import { DEFAULT_MINISTRIES } from "./seed";
 import type { Account, AppNotification, Church, UserProfile } from "./types";
+import { nm, tr, trIn } from "@/lib/i18n";
 
 // No 0/O/1/I so codes are easy to read aloud and type
 const ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -70,7 +71,7 @@ export async function createChurch(account: Account, data: { name: string; city?
 export async function joinChurch(account: Account, rawCode: string) {
   const code = rawCode.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
   const invite = await raw.get<{ churchId: string }>(`inviteCodes/${code}`);
-  if (!invite) throw new Error("Kode undangan tidak ditemukan. Periksa lagi atau minta kode baru ke admin gerejamu.");
+  if (!invite) throw new Error(tr("Kode undangan tidak ditemukan. Periksa lagi atau minta kode baru ke admin gerejamu."));
   const cid = invite.churchId;
   const memberPath = `churches/${cid}/members/${account.id}`;
 
@@ -82,7 +83,7 @@ export async function joinChurch(account: Account, rawCode: string) {
     current = null;
   }
   const alreadyActive = !!current && !current.deleted && current.active !== false;
-  if (current && !current.deleted && current.active === false) throw new Error(DEACTIVATED_MSG);
+  if (current && !current.deleted && current.active === false) throw new Error(tr(DEACTIVATED_MSG));
 
   if (!alreadyActive) {
     const rejoining = account.churchIds?.includes(cid) ?? false;
@@ -90,7 +91,7 @@ export async function joinChurch(account: Account, rawCode: string) {
       await raw.set(memberPath, memberProfile(account, "servant", { joinedWithCode: code }));
     } catch {
       // the rules only refuse this for a membership the admin deactivated (not removed)
-      throw new Error(DEACTIVATED_MSG);
+      throw new Error(tr(DEACTIVATED_MSG));
     }
     // now a member → allowed to read members and notify the admins
     const admins = await new Promise<UserProfile[]>((resolve) => {
@@ -101,11 +102,19 @@ export async function joinChurch(account: Account, rawCode: string) {
     });
     await Promise.all(
       admins.map((a) => {
+        const title = nm(rejoining ? "Anggota bergabung kembali" : "Anggota baru bergabung");
+        const body = nm(
+          rejoining
+            ? "{name} bergabung kembali lewat kode undangan. Atur bidang pelayanannya di menu Admin → Pelayan."
+            : "{name} bergabung lewat kode undangan. Atur bidang pelayanannya di menu Admin → Pelayan.",
+          { name: account.name },
+        );
         const n: AppNotification = {
           id: rid(),
           userId: a.id,
-          title: rejoining ? "Anggota bergabung kembali" : "Anggota baru bergabung",
-          body: `${account.name} ${rejoining ? "bergabung kembali" : "bergabung"} lewat kode undangan. Atur bidang pelayanannya di menu Admin → Pelayan.`,
+          title: trIn("id", title.k, title.p),
+          body: trIn("id", body.k, body.p),
+          i18n: { title, body },
           read: false,
           createdAt: nowISO(),
           link: "/admin",

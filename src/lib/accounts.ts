@@ -8,6 +8,7 @@ import { raw, store } from "./store";
 import { nowISO } from "./dates";
 import type { Account, Assignment, UserProfile } from "./types";
 import { normalizeUsername, placeholderEmail, usernameError, type UsernameDoc } from "./username";
+import { tr } from "@/lib/i18n";
 
 export interface NewAccount {
   name: string;
@@ -20,7 +21,7 @@ export interface NewAccount {
   coordinatorOf: string[];
 }
 
-const taken = () => Object.assign(new Error("Username sudah dipakai, coba yang lain."), { code: "app/username-taken" });
+const taken = () => Object.assign(new Error(tr("Username sudah dipakai, coba yang lain.")), { code: "app/username-taken" });
 
 /**
  * A church Admin registers a new user directly into their church, with a USERNAME (no email).

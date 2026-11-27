@@ -5,6 +5,7 @@ import { AppProvider } from "@/components/providers";
 import { Toaster } from "@/components/ui";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 import { ThemeSync } from "@/components/ThemeSync";
+import { LangRoot } from "@/components/LangRoot";
 import { InstallBanner } from "@/components/InstallPrompt";
 import { CelebrateHost, ConfirmHost } from "@/components/FeedbackHost";
 import { INSTALL_BOOT_SCRIPT, SURFACE_DARK, SURFACE_LIGHT, THEME_BOOT_SCRIPT } from "@/lib/theme-boot";
@@ -48,12 +49,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className={`${jakarta.variable} antialiased`}>
         <AppProvider>
-          {children}
-          <Toaster />
-          <ConfirmHost />
-          <CelebrateHost />
+          <LangRoot>
+            {children}
+            <Toaster />
+            <ConfirmHost />
+            <CelebrateHost />
+          </LangRoot>
         </AppProvider>
-        <InstallBanner />
+        <LangRoot>
+          <InstallBanner />
+        </LangRoot>
         <ServiceWorkerRegister />
         <ThemeSync />
       </body>

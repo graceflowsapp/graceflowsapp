@@ -10,6 +10,7 @@ import { HelpChatbot } from "./HelpChatbot";
 import { markNotificationsRead } from "@/lib/actions";
 import { haptic, confirmLogout } from "@/lib/feedback";
 import { relativeDay } from "@/lib/dates";
+import { showMsg, tr } from "@/lib/i18n";
 
 export function Logo({ className, subtitle }: { className?: string; subtitle?: string }) {
   return (
@@ -17,8 +18,8 @@ export function Logo({ className, subtitle }: { className?: string; subtitle?: s
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src="/icons/icon-192.png" alt="" width={32} height={32} className="h-8 w-8 rounded-full" />
       <div className="leading-tight">
-        <div className="font-bold text-ink text-[15px]">GraceFlow</div>
-        <div className="text-[10px] text-ink-soft -mt-0.5 truncate max-w-[160px]">{subtitle ?? "Jadwal pelayanan gereja"}</div>
+        <div className="font-bold text-ink text-[length:calc(15px*var(--fs))]">{tr("GraceFlow")}</div>
+        <div className="text-[length:calc(10px*var(--fs))] text-ink-soft -mt-0.5 truncate max-w-[160px]">{subtitle ?? tr("Jadwal pelayanan gereja")}</div>
       </div>
     </div>
   );
@@ -54,19 +55,19 @@ export function AppShell({ children }: { children: ReactNode }) {
     return (
       <div className="min-h-dvh grid place-items-center p-6 text-center">
         <div className="max-w-xs">
-          <p className="font-semibold">{!me || me.deleted ? `Kamu bukan anggota ${church.name}` : `Akunmu di ${church.name} dinonaktifkan`}</p>
-          <p className="text-sm text-ink-soft mt-1">Hubungi admin gereja jika menurutmu ini keliru.</p>
+          <p className="font-semibold">{!me || me.deleted ? tr("Kamu bukan anggota {name}", { name: church.name }) : tr("Akunmu di {name} dinonaktifkan", { name: church.name })}</p>
+          <p className="text-sm text-ink-soft mt-1">{tr("Hubungi admin gereja jika menurutmu ini keliru.")}</p>
           <div className="mt-4 flex flex-col gap-2">
             {others.map((c) => (
               <Button key={c.id} variant="secondary" onClick={() => switchChurch(c.id)}>
-                Buka {c.name}
+                {tr("Buka")} {c.name}
               </Button>
             ))}
             <Link href="/mulai" className="text-sm text-brand font-medium py-2">
-              Gabung / daftarkan gereja lain
+              {tr("Gabung / daftarkan gereja lain")}
             </Link>
             <Button variant="ghost" onClick={() => confirmLogout(logout)}>
-              Keluar
+              {tr("Keluar")}
             </Button>
           </div>
         </div>
@@ -76,7 +77,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   const churchSwitcher = (
     <div className="px-3 pt-3">
-      <p className="px-1 text-[10px] font-semibold uppercase tracking-wider text-ink-soft mb-1">Gereja</p>
+      <p className="px-1 text-[length:calc(10px*var(--fs))] font-semibold uppercase tracking-wider text-ink-soft mb-1">{tr("Gereja")}</p>
       {churches.map((c) => (
         <button
           key={c.id}
@@ -92,20 +93,20 @@ export function AppShell({ children }: { children: ReactNode }) {
         </button>
       ))}
       <Link href="/mulai" className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm text-brand font-medium hover:bg-surface">
-        <Plus size={14} /> Gabung / daftarkan gereja
+        <Plus size={14} /> {tr("Gabung / daftarkan gereja")}
       </Link>
     </div>
   );
 
   const isCoord =me.role === "superadmin" || (me.role === "coordinator" && me.coordinatorOf.length > 0);
   const nav = [
-    { href: "/", label: "Beranda", icon: Home },
-    { href: "/jadwal", label: "Jadwal", icon: CalendarDays },
-    ...(me.ministries.length > 0 ? [{ href: "/ketersediaan", label: "Ketersediaan", icon: ToggleRight }] : []),
-    ...(isCoord ? [{ href: "/koordinator", label: "Atur Jadwal", icon: LayoutGrid }] : []),
-    ...(isCoord ? [{ href: "/roles", label: "Peran", icon: Tags }] : []),
-    ...(me.role === "superadmin" ? [{ href: "/admin", label: "Admin", icon: ShieldCheck }] : []),
-    { href: "/profil", label: "Profil", icon: User },
+    { href: "/", label: tr("Beranda"), icon: Home },
+    { href: "/jadwal", label: tr("Jadwal"), icon: CalendarDays },
+    ...(me.ministries.length > 0 ? [{ href: "/ketersediaan", label: tr("Ketersediaan"), icon: ToggleRight }] : []),
+    ...(isCoord ? [{ href: "/koordinator", label: tr("Atur Jadwal"), icon: LayoutGrid }] : []),
+    ...(isCoord ? [{ href: "/roles", label: tr("Peran"), icon: Tags }] : []),
+    ...(me.role === "superadmin" ? [{ href: "/admin", label: tr("Admin"), icon: ShieldCheck }] : []),
+    { href: "/profil", label: tr("Profil"), icon: User },
   ];
   const unread = notifications.filter((n) => !n.read);
 
@@ -142,17 +143,17 @@ export function AppShell({ children }: { children: ReactNode }) {
       <header className="sticky top-0 z-30 bg-surface/85 backdrop-blur border-b border-line/60 pt-[env(safe-area-inset-top)]">
         <div className="mx-auto max-w-3xl flex items-center justify-between px-4 h-14">
           <div className="flex items-center gap-1">
-            <button className="md:hidden p-2 -ml-2 rounded-xl hover:bg-card" onClick={() => setMenuOpen(true)} aria-label="Buka menu" aria-expanded={menuOpen}>
+            <button className="md:hidden p-2 -ml-2 rounded-xl hover:bg-card" onClick={() => setMenuOpen(true)} aria-label={tr("Buka menu")} aria-expanded={menuOpen}>
               <Menu size={22} />
             </button>
             <Logo className="md:invisible" subtitle={church.name} />
           </div>
           <div className="flex items-center gap-1">
-            {demo && <span className="text-[10px] font-semibold uppercase tracking-wide bg-warning-soft text-warning-ink rounded-full px-2 py-0.5">Demo</span>}
-            <button className="relative p-2 rounded-xl hover:bg-card" onClick={() => setShowNotif(true)} aria-label="Notifikasi">
+            {demo && <span className="text-[length:calc(10px*var(--fs))] font-semibold uppercase tracking-wide bg-warning-soft text-warning-ink rounded-full px-2 py-0.5">{tr("Demo")}</span>}
+            <button className="relative p-2 rounded-xl hover:bg-card" onClick={() => setShowNotif(true)} aria-label={tr("Notifikasi")}>
               <Bell size={20} />
               {unread.length > 0 && (
-                <span className="absolute top-1 right-1 min-w-4 h-4 px-1 rounded-full bg-danger text-white text-[10px] font-bold grid place-items-center">{unread.length}</span>
+                <span className="absolute top-1 right-1 min-w-4 h-4 px-1 rounded-full bg-danger text-white text-[length:calc(10px*var(--fs))] font-bold grid place-items-center">{unread.length}</span>
               )}
             </button>
           </div>
@@ -179,11 +180,11 @@ export function AppShell({ children }: { children: ReactNode }) {
           )}
           style={{ transform: `translateX(${drag !== null ? (drag - 1) * 100 : menuOpen ? 0 : -100}%)` }}
           role="dialog"
-          aria-label="Menu"
+          aria-label={tr("Menu")}
         >
           <div className="flex items-center justify-between px-4 h-14 border-b border-line">
             <Logo subtitle={church.name} />
-            <button className="p-2 -mr-2 rounded-xl hover:bg-surface" onClick={() => setMenuOpen(false)} aria-label="Tutup menu">
+            <button className="p-2 -mr-2 rounded-xl hover:bg-surface" onClick={() => setMenuOpen(false)} aria-label={tr("Tutup menu")}>
               <X size={20} />
             </button>
           </div>
@@ -201,7 +202,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 <Link
                   key={href}
                   href={href}
-                  className={cn("flex items-center gap-3 rounded-xl px-3 py-3 text-[15px] font-medium", active ? "bg-brand-soft text-brand" : "text-ink hover:bg-surface")}
+                  className={cn("flex items-center gap-3 rounded-xl px-3 py-3 text-[length:calc(15px*var(--fs))] font-medium", active ? "bg-brand-soft text-brand" : "text-ink hover:bg-surface")}
                 >
                   <Icon size={20} /> {label}
                 </Link>
@@ -209,8 +210,8 @@ export function AppShell({ children }: { children: ReactNode }) {
             })}
           </nav>
           <div className="border-t border-line">{churchSwitcher}</div>
-          <button onClick={() => confirmLogout(logout)} className="mt-auto m-3 flex items-center gap-3 rounded-xl px-3 py-3 text-[15px] font-medium text-danger-ink hover:bg-danger-soft">
-            <LogOut size={20} /> {demo ? "Ganti peran (demo)" : "Keluar"}
+          <button onClick={() => confirmLogout(logout)} className="mt-auto m-3 flex items-center gap-3 rounded-xl px-3 py-3 text-[length:calc(15px*var(--fs))] font-medium text-danger-ink hover:bg-danger-soft">
+            <LogOut size={20} /> {demo ? tr("Ganti peran (demo)") : tr("Keluar")}
           </button>
         </aside>
       </div>
@@ -221,19 +222,19 @@ export function AppShell({ children }: { children: ReactNode }) {
           setShowNotif(false);
           if (unread.length) markNotificationsRead(unread.map((n) => n.id));
         }}
-        title="Notifikasi"
+        title={tr("Notifikasi")}
       >
         {notifications.length === 0 ? (
-          <Empty icon={<Bell size={20} />} title="Belum ada notifikasi" />
+          <Empty icon={<Bell size={20} />} title={tr("Belum ada notifikasi")} />
         ) : (
           <ul className="divide-y divide-line -my-2">
             {notifications.slice(0, 40).map((n) => (
               <li key={n.id} className="py-3 flex gap-3">
                 <span className={cn("mt-1.5 h-2 w-2 rounded-full shrink-0", n.read ? "bg-transparent" : "bg-brand")} />
                 <div>
-                  <p className="text-sm font-medium">{n.title}</p>
-                  <p className="text-sm text-ink-soft">{n.body}</p>
-                  <p className="text-[11px] text-ink-soft mt-1">{relativeDay(n.createdAt.slice(0, 10))}</p>
+                  <p className="text-sm font-medium">{showMsg(n.i18n?.title, n.title)}</p>
+                  <p className="text-sm text-ink-soft">{showMsg(n.i18n?.body, n.body)}</p>
+                  <p className="text-[length:calc(11px*var(--fs))] text-ink-soft mt-1">{relativeDay(n.createdAt.slice(0, 10))}</p>
                 </div>
               </li>
             ))}

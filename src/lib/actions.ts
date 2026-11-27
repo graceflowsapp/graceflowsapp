@@ -3,13 +3,23 @@
 import { store } from "./store";
 import type { AppNotification, Assignment, Ministry, MinistryGroup, Service, UserProfile } from "./types";
 import { formatDateShort, nowISO } from "./dates";
+import { nm, tr, trIn, type Msg } from "@/lib/i18n";
 
 function rid() {
   return Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
 }
 
-export async function notify(userId: string, title: string, body: string, link?: string) {
-  const n: AppNotification = { id: rid(), userId, title, body, read: false, createdAt: nowISO(), link };
+export async function notify(userId: string, title: Msg, body: Msg, link?: string) {
+  const n: AppNotification = {
+    id: rid(),
+    userId,
+    title: trIn("id", title.k, title.p),
+    body: trIn("id", body.k, body.p),
+    i18n: { title, body },
+    read: false,
+    createdAt: nowISO(),
+    link,
+  };
   await store.set("notifications", n.id, n);
 }
 
@@ -34,10 +44,10 @@ export async function assignSlot(params: {
   }
   const when = `${service.title} · ${formatDateShort(service.date)} ${service.time}`;
   if (userId && userId !== previousUserId) {
-    await notify(userId, "Tugas pelayanan baru", `Kamu dijadwalkan sebagai ${position} di ${when}${replacing ? ` (menggantikan ${replacing})` : ""}. Mohon konfirmasi kehadiran.`, "/");
+    await notify(userId, nm("Tugas pelayanan baru"), nm("Kamu dijadwalkan sebagai {position} di {when}{p}. Mohon konfirmasi kehadiran.", { position, when, p: replacing ? tr(" (menggantikan {replacing})", { replacing }) : "" }), "/");
   }
   if (previousUserId && previousUserId !== userId) {
-    await notify(previousUserId, "Jadwal diperbarui", `Kamu tidak lagi bertugas sebagai ${position} di ${when}.`, "/jadwal");
+    await notify(previousUserId, nm("Jadwal diperbarui"), nm("Kamu tidak lagi bertugas sebagai {position} di {when}.", { position, when }), "/jadwal");
   }
 }
 
@@ -47,7 +57,7 @@ export async function saveAssignments(items: Assignment[]) {
   for (const a of items) if (a.userId) perUser.set(a.userId, (perUser.get(a.userId) ?? 0) + 1);
   await Promise.all(
     [...perUser.entries()].map(([uid, n]) =>
-      notify(uid, "Jadwal pelayanan baru", `Kamu mendapat ${n} tugas baru. Cek tab Jadwal.`, "/jadwal"),
+      notify(uid, nm("Jadwal pelayanan baru"), nm("Kamu mendapat {n} tugas baru. Cek tab Jadwal.", { n }), "/jadwal"),
     ),
   );
 }
@@ -80,18 +90,18 @@ export async function respondAttendance(params: {
     ...(status === "declined" ? { userId: null } : {}),
     status,
     respondedAt: nowISO(),
-    subRequest: status === "declined" ? { reason: reason || "Berhalangan", requestedBy: me.id, requestedAt: nowISO() } : null,
+    subRequest: status === "declined" ? { reason: reason || tr("Berhalangan"), requestedBy: me.id, requestedAt: nowISO() } : null,
     updatedAt: nowISO(),
   });
   const coords = coordinatorsOf(a.ministryId, users).filter((c) => c.id !== me.id);
   await Promise.all(
     coords.map((c) =>
       status === "confirmed"
-        ? notify(c.id, `✅ ${me.name} hadir`, `Konfirmasi hadir sebagai ${a.position} di ${when}.`, "/koordinator")
+        ? notify(c.id, nm("✅ {name} hadir", { name: me.name }), nm("Konfirmasi hadir sebagai {position} di {when}.", { position: a.position, when }), "/koordinator")
         : notify(
             c.id,
-            `❌ ${me.name} berhalangan`,
-            `${me.name} dikeluarkan dari ${a.position} di ${when}. Alasan: ${reason || "-"}. Pilih pengganti yang tersedia di Atur Jadwal.`,
+            nm("❌ {name} berhalangan", { name: me.name }),
+            nm("{name} dikeluarkan dari {position} di {when}. Alasan: {p}. Pilih pengganti yang tersedia di Atur Jadwal.", { name: me.name, position: a.position, when, p: reason || "-" }),
             scheduleLink(service, a.ministryId),
           ),
     ),
@@ -103,10 +113,10 @@ export async function takeSubstitute(a: Assignment, me: UserProfile, service: Se
   await store.update("assignments", a.id, { userId: me.id, status: "confirmed", respondedAt: nowISO(), subRequest: null, updatedAt: nowISO() });
   const when = `${formatDateShort(service.date)} ${service.time}`;
   if (previous) {
-    await notify(previous, "Pengganti ditemukan 🙌", `${me.name} akan menggantikanmu sebagai ${a.position} (${when}).`, "/jadwal");
+    await notify(previous, nm("Pengganti ditemukan 🙌"), nm("{name} akan menggantikanmu sebagai {position} ({when}).", { name: me.name, position: a.position, when }), "/jadwal");
   }
   await Promise.all(
-    coordinatorsOf(a.ministryId, users).map((c) => notify(c.id, "Pengganti ditemukan", `${me.name} menggantikan sebagai ${a.position} (${when}).`, "/koordinator")),
+    coordinatorsOf(a.ministryId, users).map((c) => notify(c.id, nm("Pengganti ditemukan"), nm("{name} menggantikan sebagai {position} ({when}).", { name: me.name, position: a.position, when }), "/koordinator")),
   );
 }
 
@@ -126,13 +136,13 @@ const whenOf = (service: Service) => `${service.title} · ${formatDateShort(serv
 export async function requestSwap(params: { a: Assignment; me: UserProfile; to: UserProfile; service: Service; reason?: string }) {
   const { a, me, to, service, reason } = params;
   await store.update("assignments", a.id, {
-    swapRequest: { from: me.id, to: to.id, reason: reason || "Berhalangan", requestedAt: nowISO() },
+    swapRequest: { from: me.id, to: to.id, reason: reason || tr("Berhalangan"), requestedAt: nowISO() },
     updatedAt: nowISO(),
   });
   await notify(
     to.id,
-    "🔁 Permintaan tukar jadwal",
-    `${me.name} berhalangan (${reason || "-"}) dan meminta kamu menggantikan sebagai ${a.position} di ${whenOf(service)}. Terima atau tolak di Beranda.`,
+    nm("🔁 Permintaan tukar jadwal"),
+    nm("{name} berhalangan ({p}) dan meminta kamu menggantikan sebagai {position} di {p2}. Terima atau tolak di Beranda.", { name: me.name, p: reason || "-", position: a.position, p2: whenOf(service) }),
     "/",
   );
 }
@@ -140,7 +150,7 @@ export async function requestSwap(params: { a: Assignment; me: UserProfile; to: 
 export async function cancelSwap(a: Assignment) {
   const to = a.swapRequest?.to;
   await store.update("assignments", a.id, { swapRequest: null, updatedAt: nowISO() });
-  if (to) await notify(to, "Permintaan tukar dibatalkan", `Permintaan untuk menggantikan sebagai ${a.position} sudah dibatalkan.`, "/");
+  if (to) await notify(to, nm("Permintaan tukar dibatalkan"), nm("Permintaan untuk menggantikan sebagai {position} sudah dibatalkan.", { position: a.position }), "/");
 }
 
 /** The asked person accepts: they take the slot (confirmed); the requester and coordinators are told. */
@@ -154,12 +164,12 @@ export async function acceptSwap(a: Assignment, me: UserProfile, service: Servic
     subRequest: null,
     updatedAt: nowISO(),
   });
-  const fromName = users.find((u) => u.id === from)?.name ?? "Pelayan";
-  if (from) await notify(from, "Tukar jadwal diterima 🙌", `${me.name} menggantikanmu sebagai ${a.position} di ${whenOf(service)}.`, "/jadwal");
+  const fromName = users.find((u) => u.id === from)?.name ?? tr("Pelayan");
+  if (from) await notify(from, nm("Tukar jadwal diterima 🙌"), nm("{name} menggantikanmu sebagai {position} di {p}.", { name: me.name, position: a.position, p: whenOf(service) }), "/jadwal");
   await Promise.all(
     coordinatorsOf(a.ministryId, users)
       .filter((c) => c.id !== me.id)
-      .map((c) => notify(c.id, "🔁 Tukar jadwal", `${me.name} menggantikan ${fromName} sebagai ${a.position} di ${whenOf(service)}.`, scheduleLink(service, a.ministryId))),
+      .map((c) => notify(c.id, nm("🔁 Tukar jadwal"), nm("{name} menggantikan {fromName} sebagai {position} di {p}.", { name: me.name, fromName, position: a.position, p: whenOf(service) }), scheduleLink(service, a.ministryId))),
   );
 }
 
@@ -168,7 +178,7 @@ export async function rejectSwap(a: Assignment, me: UserProfile, service: Servic
   const from = a.swapRequest?.from;
   await store.update("assignments", a.id, { swapRequest: null, updatedAt: nowISO() });
   if (from) {
-    await notify(from, "Tukar jadwal ditolak", `${me.name} tidak bisa menggantikan sebagai ${a.position} di ${whenOf(service)}. Pilih pengganti lain.`, "/jadwal");
+    await notify(from, nm("Tukar jadwal ditolak"), nm("{name} tidak bisa menggantikan sebagai {position} di {p}. Pilih pengganti lain.", { name: me.name, position: a.position, p: whenOf(service) }), "/jadwal");
   }
 }
 
@@ -181,7 +191,7 @@ export async function saveGroups(ministryId: string, groups: MinistryGroup[]) {
 export async function addToMinistry(user: UserProfile, ministry: Ministry) {
   if (user.ministries.includes(ministry.id)) return;
   await store.update("users", user.id, { ministries: [...user.ministries, ministry.id] });
-  await notify(user.id, `Kamu ditambahkan ke ${ministry.name}`, `Koordinator menambahkanmu sebagai anggota ${ministry.name}. Jadwalmu akan muncul di menu Jadwal.`, "/jadwal");
+  await notify(user.id, nm("Kamu ditambahkan ke {name}", { name: ministry.name }), nm("Koordinator menambahkanmu sebagai anggota {name}. Jadwalmu akan muncul di menu Jadwal.", { name: ministry.name }), "/jadwal");
 }
 
 /** Coordinator removes someone from a komisi. Their existing schedule in it stays until the coordinator changes it. */

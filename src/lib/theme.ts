@@ -6,12 +6,23 @@ export interface ThemePrefs {
   mode: ThemeMode;
   /** null = default teal palette */
   accent: string | null;
+  /** Text size; "md" = the original size */
+  textSize: TextSize;
 }
 
-import { CHURCH_ACCENT_KEY, SURFACE_DARK, SURFACE_LIGHT, THEME_KEY } from "./theme-boot";
+export type TextSize = "sm" | "md" | "lg" | "xl";
+
+import { CHURCH_ACCENT_KEY, SURFACE_DARK, SURFACE_LIGHT, TEXT_SCALE, THEME_KEY } from "./theme-boot";
 
 export { THEME_KEY };
-export const DEFAULT_THEME: ThemePrefs = { mode: "system", accent: null };
+export const DEFAULT_THEME: ThemePrefs = { mode: "system", accent: null, textSize: "md" };
+
+export const TEXT_SIZES: { value: TextSize; label: string }[] = [
+  { value: "sm", label: "Kecil" },
+  { value: "md", label: "Normal" },
+  { value: "lg", label: "Besar" },
+  { value: "xl", label: "Sangat besar" },
+];
 
 export const ACCENT_PRESETS = [
   { name: "Teal (default)", value: null },
@@ -67,6 +78,7 @@ export function applyTheme(p: ThemePrefs) {
   const root = document.documentElement;
   const resolved = resolveMode(p.mode);
   root.dataset.theme = resolved;
+  root.style.setProperty("--fs", String(TEXT_SCALE[p.textSize] ?? 1));
   const accent = p.accent ?? churchAccent; // personal choice wins over the church default
   if (accent) {
     root.style.setProperty("--color-brand", accent);

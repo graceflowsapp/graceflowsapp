@@ -17,6 +17,7 @@ import { availabilityNotes, canFill, isActive, slotsForService, smartFill, type 
 import { openWhatsApp, scheduleToWhatsAppText } from "@/lib/whatsapp";
 import type { Assignment, Service, Slot } from "@/lib/types";
 import { ask, celebrate, haptic } from "@/lib/feedback";
+import { tr } from "@/lib/i18n";
 
 export default function CoordinatorPage() {
   const { services, assignments, ministries, users } = useApp();
@@ -92,29 +93,29 @@ export default function CoordinatorPage() {
   if (!mine.length) {
     return (
       <Card>
-        <Empty icon={<AlertTriangle size={20} />} title="Belum ada komisi yang kamu koordinasi" body="Minta Superadmin memberi akses koordinator." />
+        <Empty icon={<AlertTriangle size={20} />} title={tr("Belum ada komisi yang kamu koordinasi")} body={tr("Minta Superadmin memberi akses koordinator.")} />
       </Card>
     );
   }
 
   return (
     <div>
-      <h1 className="text-xl font-bold mb-3">Atur Jadwal</h1>
+      <h1 className="text-xl font-bold mb-3">{tr("Atur Jadwal")}</h1>
 
       <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 mb-3">
         <KomisiPicker options={mine} value={ministryId} onChange={setMinistryId} />
         {ministry && (
           <button
             onClick={() => setGroupsOpen(true)}
-            aria-label={`Grup ${ministry.name}, kelola`}
+            aria-label={tr("Grup {name}, kelola", { name: ministry.name })}
             className="flex items-center gap-2.5 rounded-2xl border border-line bg-card pl-2.5 pr-3.5 py-2.5 text-left shadow-[0_1px_2px_rgba(0,0,0,.04)] transition hover:border-brand active:scale-[.98]"
           >
             <span className="h-9 w-9 shrink-0 rounded-xl grid place-items-center bg-brand-soft text-brand">
               <Users size={18} />
             </span>
             <span className="flex-1 min-w-0">
-              <span className="block text-[12px] text-ink-soft">Grup</span>
-              <span className="block text-[15px] font-semibold text-brand whitespace-nowrap">{ministry.groups?.length ? `${ministry.groups.length} grup` : "Kelola"}</span>
+              <span className="block text-[length:calc(12px*var(--fs))] text-ink-soft">{tr("Grup")}</span>
+              <span className="block text-[length:calc(15px*var(--fs))] font-semibold text-brand whitespace-nowrap">{ministry.groups?.length ? tr("{n} grup", { n: ministry.groups.length }) : tr("Kelola")}</span>
             </span>
           </button>
         )}
@@ -123,8 +124,8 @@ export default function CoordinatorPage() {
 
       <div className="grid grid-cols-2 bg-card border border-line rounded-xl p-1 mb-3">
         {[
-          ["calendar", "Kalender"],
-          ["list", "Daftar ibadah"],
+          ["calendar", tr("Kalender")],
+          ["list", tr("Daftar ibadah")],
         ].map(([k, label]) => (
           <button key={k} onClick={() => setView(k as typeof view)} className={cn("rounded-lg py-2 text-sm font-medium", view === k ? "bg-brand text-white" : "text-ink-soft")}>
             {label}
@@ -142,9 +143,9 @@ export default function CoordinatorPage() {
           marks={marks}
           legend={
             <>
-              <LegendDot color="#27856f">Lengkap</LegendDot>
-              <LegendDot color="#d59b3c">Sebagian / ada yang berhalangan</LegendDot>
-              <LegendDot color="#dc5b5b">Kosong</LegendDot>
+              <LegendDot color="#27856f">{tr("Lengkap")}</LegendDot>
+              <LegendDot color="#d59b3c">{tr("Sebagian / ada yang berhalangan")}</LegendDot>
+              <LegendDot color="#dc5b5b">{tr("Kosong")}</LegendDot>
             </>
           }
         />
@@ -152,10 +153,10 @@ export default function CoordinatorPage() {
 
       <div className="grid grid-cols-2 gap-2 mt-3">
         <Button onClick={() => setFillScope("month")} disabled={!monthServices.length}>
-          <Wand2 size={16} /> Smart Fill bulan ini
+          <Wand2 size={16} /> {tr("Smart Fill bulan ini")}
         </Button>
         <Button variant="whatsapp" onClick={() => setExportOpen(true)} disabled={!monthServices.length}>
-          <MessageCircle size={16} /> Ekspor WhatsApp
+          <MessageCircle size={16} /> {tr("Ekspor WhatsApp")}
         </Button>
       </div>
 
@@ -165,7 +166,7 @@ export default function CoordinatorPage() {
         action={
           dayServices.length > 0 && (
             <button className="text-xs text-brand font-medium flex items-center gap-1" onClick={() => setFillScope("day")}>
-              <Wand2 size={13} /> Smart Fill tanggal ini
+              <Wand2 size={13} /> {tr("Smart Fill tanggal ini")}
             </button>
           )
         }
@@ -174,7 +175,7 @@ export default function CoordinatorPage() {
       </SectionTitle>
       {dayServices.length === 0 ? (
         <Card>
-          <Empty icon={<Music2 size={20} />} title="Tidak ada ibadah untuk komisi ini" body="Pilih tanggal yang memiliki titik di kalender." />
+          <Empty icon={<Music2 size={20} />} title={tr("Tidak ada ibadah untuk komisi ini")} body={tr("Pilih tanggal yang memiliki titik di kalender.")} />
         </Card>
       ) : (
         <div className="space-y-3">
@@ -187,10 +188,10 @@ export default function CoordinatorPage() {
         </>
       ) : (
         <>
-          <SectionTitle>Ibadah mendatang · {ministry?.name}</SectionTitle>
+          <SectionTitle>{tr("Ibadah mendatang ·")} {ministry?.name}</SectionTitle>
           {upcomingServices.length === 0 ? (
             <Card>
-              <Empty icon={<Music2 size={20} />} title="Belum ada ibadah mendatang" body="Superadmin perlu membuat jadwal ibadah terlebih dahulu." />
+              <Empty icon={<Music2 size={20} />} title={tr("Belum ada ibadah mendatang")} body={tr("Superadmin perlu membuat jadwal ibadah terlebih dahulu.")} />
             </Card>
           ) : (
             <div className="space-y-3">
@@ -245,26 +246,26 @@ function ServiceSlots({ service, ministryId, onPick, showDate }: { service: Serv
       <div className="flex flex-wrap items-center gap-1.5 mb-1">
         <span className={showDate ? "text-sm text-ink-soft" : "font-semibold"}>{serviceLine(service)}</span>
         <ServiceLabel label={service.label} />
-        <span className="ml-auto text-[11px] text-ink-soft">
-          {filled}/{slots.length} terisi · {confirmed} hadir
+        <span className="ml-auto text-[length:calc(11px*var(--fs))] text-ink-soft">
+          {filled}/{slots.length} {tr("terisi ·")} {confirmed} {tr("hadir")}
         </span>
       </div>
       {service.location && (
-        <div className="text-[12px] text-ink-soft flex items-center gap-1 mb-1">
+        <div className="text-[length:calc(12px*var(--fs))] text-ink-soft flex items-center gap-1 mb-1">
           <MapPin size={12} /> {service.location}
         </div>
       )}
       <div className="flex items-center gap-2 mb-3">
-        <button onClick={() => setEditRehearsal(true)} className="text-[12px] text-ink-soft flex items-center gap-1 hover:text-brand min-w-0">
+        <button onClick={() => setEditRehearsal(true)} className="text-[length:calc(12px*var(--fs))] text-ink-soft flex items-center gap-1 hover:text-brand min-w-0">
           <Music2 size={12} className="shrink-0" />
-          <span className="truncate">{rehearsal ? `Latihan ${rehearsal.at.replace("T", " ")}${rehearsal.place ? ` @ ${rehearsal.place}` : ""}` : "Atur jadwal latihan"}</span>
+          <span className="truncate">{rehearsal ? tr("Latihan {p}{p2}", { p: rehearsal.at.replace("T", " "), p2: rehearsal.place ? ` @ ${rehearsal.place}` : "" }) : tr("Atur jadwal latihan")}</span>
         </button>
         {groups.length > 0 && (
           <button
             onClick={() => setFillGroup(true)}
-            className="ml-auto shrink-0 inline-flex items-center gap-1.5 min-h-9 rounded-full border border-brand/40 bg-brand-soft text-brand px-3.5 text-[14px] font-semibold active:scale-[.97] transition"
+            className="ml-auto shrink-0 inline-flex items-center gap-1.5 min-h-9 rounded-full border border-brand/40 bg-brand-soft text-brand px-3.5 text-[length:calc(14px*var(--fs))] font-semibold active:scale-[.97] transition"
           >
-            <Users size={15} /> Isi dengan grup
+            <Users size={15} /> {tr("Isi dengan grup")}
           </button>
         )}
       </div>
@@ -282,7 +283,7 @@ function ServiceSlots({ service, ministryId, onPick, showDate }: { service: Serv
               <button onClick={() => onPick(slot)} className="w-full flex items-center gap-3 rounded-xl px-2 py-2 hover:bg-surface text-left">
                 <Avatar name={u?.name ?? "?"} src={u?.photoUrl} size={36} className={!u ? "opacity-25" : ""} />
                 <div className="flex-1 min-w-0">
-                  <div className="text-[11px] text-ink-soft">
+                  <div className="text-[length:calc(11px*var(--fs))] text-ink-soft">
                     {slot.position}
                     {u && slot.assignment?.groupId && groups.find((g) => g.id === slot.assignment!.groupId) && (
                       <span className="ml-1.5 font-semibold" style={{ color: ministry?.color }}>
@@ -291,16 +292,16 @@ function ServiceSlots({ service, ministryId, onPick, showDate }: { service: Serv
                     )}
                   </div>
                   <div className={cn("text-sm truncate", u ? "font-medium" : "text-danger italic")}>
-                    {u?.name ?? (sub ? "Kosong — pilih pengganti" : "Kosong — ketuk untuk isi")}
+                    {u?.name ?? (sub ? tr("Kosong — pilih pengganti") : tr("Kosong — ketuk untuk isi"))}
                   </div>
                   {sub && !u && (
-                    <div className="text-[11px] text-warning-ink truncate">
-                      {decliner?.name ?? "Pelayan"} berhalangan{sub.reason ? `: “${sub.reason}”` : ""}
+                    <div className="text-[length:calc(11px*var(--fs))] text-warning-ink truncate">
+                      {decliner?.name ?? tr("Pelayan")} {tr("berhalangan")}{sub.reason ? `: “${sub.reason}”` : ""}
                     </div>
                   )}
                   {u && slot.assignment?.swapRequest && (
-                    <div className="text-[11px] text-warning-ink truncate">
-                      Minta ditukar dengan {users.find((x) => x.id === slot.assignment!.swapRequest!.to)?.name ?? "pelayan lain"} · menunggu jawaban
+                    <div className="text-[length:calc(11px*var(--fs))] text-warning-ink truncate">
+                      {tr("Minta ditukar dengan")} {users.find((x) => x.id === slot.assignment!.swapRequest!.to)?.name ?? tr("pelayan lain")} {tr("· menunggu jawaban")}
                     </div>
                   )}
                   <NoteLines notes={notes} compact />
@@ -308,7 +309,7 @@ function ServiceSlots({ service, ministryId, onPick, showDate }: { service: Serv
                 {u && <StatusBadge status={slot.assignment?.status} />}
                 {sub && !u && (
                   <Badge className="bg-warning-soft text-warning-ink">
-                    <UserX size={11} /> Butuh pengganti
+                    <UserX size={11} /> {tr("Butuh pengganti")}
                   </Badge>
                 )}
               </button>
@@ -327,12 +328,12 @@ function RehearsalModal({ service, ministryId, onClose }: { service: Service; mi
   const [at, setAt] = useState(cur?.at ?? `${service.date}T19:00`);
   const [place, setPlace] = useState(cur?.place ?? "");
   return (
-    <Modal open onClose={onClose} title="Jadwal latihan">
-      <Field label="Waktu latihan">
+    <Modal open onClose={onClose} title={tr("Jadwal latihan")}>
+      <Field label={tr("Waktu latihan")}>
         <input type="datetime-local" className={inputCls} value={at} onChange={(e) => setAt(e.target.value)} />
       </Field>
-      <Field label="Tempat">
-        <input className={inputCls} value={place} onChange={(e) => setPlace(e.target.value)} placeholder="Ruang Musik" />
+      <Field label={tr("Tempat")}>
+        <input className={inputCls} value={place} onChange={(e) => setPlace(e.target.value)} placeholder={tr("Ruang Musik")} />
       </Field>
       <div className="flex gap-2">
         {cur && (
@@ -345,18 +346,18 @@ function RehearsalModal({ service, ministryId, onClose }: { service: Service; mi
               onClose();
             }}
           >
-            Hapus
+            {tr("Hapus")}
           </Button>
         )}
         <Button
           className="flex-1"
           onClick={async () => {
             await store.update("services", service.id, { rehearsals: { ...(service.rehearsals ?? {}), [ministryId]: { at, place } } });
-            celebrate("Jadwal latihan disimpan");
+            celebrate(tr("Jadwal latihan disimpan"));
             onClose();
           }}
         >
-          Simpan
+          {tr("Simpan")}
         </Button>
       </div>
     </Modal>
@@ -405,19 +406,19 @@ function AssignModal({ slot, onClose }: { slot: Slot; onClose: () => void }) {
       replacing: userId && decliner ? decliner.name : undefined,
     });
     if (userId) haptic("success");
-    toast(userId ? "Pelayan dijadwalkan & diberi notifikasi" : "Slot dikosongkan");
+    toast(userId ? tr("Pelayan dijadwalkan & diberi notifikasi") : tr("Slot dikosongkan"));
     onClose();
   };
 
   return (
     <Modal open onClose={onClose} title={`${slot.position} · ${slot.service.title}`}>
       <div className="flex items-start gap-2 mb-3">
-        <p className="flex-1 text-[13px] text-ink-soft">{formatDateLong(slot.service.date)} · diurutkan dari yang tersedia & paling jarang melayani bulan ini.</p>
+        <p className="flex-1 text-[length:calc(13px*var(--fs))] text-ink-soft">{formatDateLong(slot.service.date)} {tr("· diurutkan dari yang tersedia & paling jarang melayani bulan ini.")}</p>
         {!searchOpen && (
           <button
             type="button"
             onClick={() => setSearchOpen(true)}
-            aria-label={`Cari anggota ${slot.ministry.name}`}
+            aria-label={tr("Cari anggota {name}", { name: slot.ministry.name })}
             className="h-10 w-10 shrink-0 grid place-items-center rounded-xl border border-line bg-card text-ink hover:border-brand hover:text-brand active:scale-95 transition"
           >
             <Search size={18} />
@@ -430,18 +431,18 @@ function AssignModal({ slot, onClose }: { slot: Slot; onClose: () => void }) {
             value={q}
             onChange={setQ}
             autoFocus
-            placeholder={`Cari di ${slot.ministry.name}…`}
+            placeholder={tr("Cari di {name}…", { name: slot.ministry.name })}
             onClear={() => {
               setQ("");
               setSearchOpen(false);
             }}
           />
-          {searching && <p className="text-[12px] text-ink-soft mt-1.5">Mencari di semua anggota {slot.ministry.name}.</p>}
+          {searching && <p className="text-[length:calc(12px*var(--fs))] text-ink-soft mt-1.5">{tr("Mencari di semua anggota")} {slot.ministry.name}.</p>}
         </div>
       )}
       {sub && !current && (
-        <div className="rounded-xl bg-warning-soft text-warning-ink text-[13px] px-3 py-2 mb-3">
-          <b>{decliner?.name ?? "Pelayan"}</b> berhalangan{sub.reason ? ` (“${sub.reason}”)` : ""} dan sudah dikeluarkan dari slot ini. Pilih pengganti yang tersedia. Dia akan diminta konfirmasi.
+        <div className="rounded-xl bg-warning-soft text-warning-ink text-[length:calc(13px*var(--fs))] px-3 py-2 mb-3">
+          <b>{decliner?.name ?? tr("Pelayan")}</b> {tr("berhalangan")}{sub.reason ? ` (“${sub.reason}”)` : ""} {tr("dan sudah dikeluarkan dari slot ini. Pilih pengganti yang tersedia. Dia akan diminta konfirmasi.")}
         </div>
       )}
       <ul className="space-y-1 -mx-2">
@@ -453,9 +454,9 @@ function AssignModal({ slot, onClose }: { slot: Slot; onClose: () => void }) {
                   blockers.length &&
                   u.id !== current &&
                   !(await ask({
-                    title: blockers.some((n) => n.kind === "conflict") ? "Jadwal bentrok" : `${u.name} sedang tidak tersedia`,
-                    message: `${blockers.map((n) => "• " + n.text).join("\n")}\n\nTetap jadwalkan ${u.name}?`,
-                    confirmText: "Tetap jadwalkan",
+                    title: blockers.some((n) => n.kind === "conflict") ? tr("Jadwal bentrok") : tr("{name} sedang tidak tersedia", { name: u.name }),
+                    message: tr("{p}\n\nTetap jadwalkan {name}?", { p: blockers.map((n) => "• " + n.text).join("\n"), name: u.name }),
+                    confirmText: tr("Tetap jadwalkan"),
                     tone: "warning",
                   }))
                 )
@@ -466,9 +467,9 @@ function AssignModal({ slot, onClose }: { slot: Slot; onClose: () => void }) {
                   u.id !== current &&
                   !blockers.length &&
                   !(await ask({
-                    title: `Ganti ${users.find((x) => x.id === current)?.name ?? "pelayan"}?`,
-                    message: `${u.name} akan menggantikannya sebagai ${slot.position}. Keduanya akan diberi notifikasi.`,
-                    confirmText: "Ganti",
+                    title: tr("Ganti {p}?", { p: users.find((x) => x.id === current)?.name ?? tr("pelayan") }),
+                    message: tr("{name} akan menggantikannya sebagai {position}. Keduanya akan diberi notifikasi.", { name: u.name, position: slot.position }),
+                    confirmText: tr("Ganti"),
                   }))
                 )
                   return;
@@ -479,30 +480,30 @@ function AssignModal({ slot, onClose }: { slot: Slot; onClose: () => void }) {
               <Avatar name={u.name} src={u.photoUrl} size={36} className={cn(!free && "opacity-60")} />
               <div className="flex-1 min-w-0">
                 <div className={cn("text-sm font-medium truncate", !free && "text-ink-soft")}>{u.name}</div>
-                <div className="text-[11px] text-ink-soft">
-                  {load}× bulan ini{free && <span className="text-success font-medium"> · Tersedia</span>}
+                <div className="text-[length:calc(11px*var(--fs))] text-ink-soft">
+                  {load}{tr("× bulan ini")}{free && <span className="text-success font-medium"> {tr("· Tersedia")}</span>}
                 </div>
                 <NoteLines notes={notes} />
               </div>
-              {u.id === current && <Badge className="bg-brand text-white">Saat ini</Badge>}
-              {!skilled && <Badge>Bukan posisinya</Badge>}
+              {u.id === current && <Badge className="bg-brand text-white">{tr("Saat ini")}</Badge>}
+              {!skilled && <Badge>{tr("Bukan posisinya")}</Badge>}
             </button>
           </li>
         ))}
         {rows.length === 0 && (
-          <p className="text-sm text-ink-soft px-2 py-4">{searching ? `Tidak ada anggota ${slot.ministry.name} bernama “${q.trim()}”.` : "Belum ada pelayan di komisi ini untuk posisi tersebut."}</p>
+          <p className="text-sm text-ink-soft px-2 py-4">{searching ? tr("Tidak ada anggota {name} bernama “{p}”.", { name: slot.ministry.name, p: q.trim() }) : tr("Belum ada pelayan di komisi ini untuk posisi tersebut.")}</p>
         )}
       </ul>
       <div className="flex gap-2 mt-4">
         <Button variant="ghost" size="sm" onClick={() => setShowAll(!showAll)}>
-          {showAll ? "Hanya yang sesuai posisi" : "Tampilkan semua anggota komisi"}
+          {showAll ? tr("Hanya yang sesuai posisi") : tr("Tampilkan semua anggota komisi")}
         </Button>
         {current && (
           <Button variant="danger" size="sm" className="ml-auto" onClick={async () => {
-              if (!(await ask({ title: "Kosongkan slot ini?", message: `${users.find((x) => x.id === current)?.name ?? "Pelayan"} tidak lagi bertugas sebagai ${slot.position} dan akan diberi notifikasi.`, confirmText: "Kosongkan", tone: "danger" }))) return;
+              if (!(await ask({ title: tr("Kosongkan slot ini?"), message: tr("{p} tidak lagi bertugas sebagai {position} dan akan diberi notifikasi.", { p: users.find((x) => x.id === current)?.name ?? tr("Pelayan"), position: slot.position }), confirmText: tr("Kosongkan"), tone: "danger" }))) return;
               pick(null);
             }}>
-            <UserMinus size={14} /> Kosongkan
+            <UserMinus size={14} /> {tr("Kosongkan")}
           </Button>
         )}
       </div>
@@ -521,13 +522,15 @@ function SmartFillModal({ scope, targets, ministryId, label, onClose }: { scope:
   const empty = targets.flatMap((s) => slotsForService(s, ministries, map, [ministryId])).filter((x) => !x.assignment?.userId).length;
 
   return (
-    <Modal open onClose={onClose} title={`Smart Fill · ${label}`}>
-      <p className="text-[13px] text-ink-soft mb-3">
-        {scope === "month" ? "Semua" : "Slot"} kosong diisi berdasarkan ketersediaan (status ON), kecocokan posisi, tanpa bentrok, dan pemerataan jumlah tugas bulan ini.
+    <Modal open onClose={onClose} title={tr("Smart Fill · {label}", { label })}>
+      <p className="text-[length:calc(13px*var(--fs))] text-ink-soft mb-3">
+        {scope === "month"
+          ? tr("Semua slot kosong diisi berdasarkan ketersediaan (status ON), kecocokan posisi, tanpa bentrok, dan pemerataan jumlah tugas bulan ini.")
+          : tr("Slot kosong diisi berdasarkan ketersediaan (status ON), kecocokan posisi, tanpa bentrok, dan pemerataan jumlah tugas bulan ini.")}
       </p>
       <div className="rounded-xl bg-surface px-3 py-2 text-sm mb-3">
-        <b>{result.length}</b> dari {empty} slot kosong bisa diisi.
-        {result.length < empty && <span className="text-warning-ink"> Sisanya tidak memiliki kandidat yang tersedia.</span>}
+        <b>{result.length}</b> {tr("dari")} {empty} {tr("slot kosong bisa diisi.")}
+        {result.length < empty && <span className="text-warning-ink"> {tr("Sisanya tidak memiliki kandidat yang tersedia.")}</span>}
       </div>
       <ul className="max-h-72 overflow-y-auto divide-y divide-line mb-4">
         {result.map((a) => {
@@ -538,7 +541,7 @@ function SmartFillModal({ scope, targets, ministryId, label, onClose }: { scope:
               <Avatar name={u?.name} src={u?.photoUrl} size={30} />
               <div className="flex-1 min-w-0">
                 <div className="truncate font-medium">{u?.name}</div>
-                <div className="text-[11px] text-ink-soft">
+                <div className="text-[length:calc(11px*var(--fs))] text-ink-soft">
                   {a.position} · {s.date.slice(8)}/{s.date.slice(5, 7)} {s.title}
                 </div>
               </div>
@@ -551,21 +554,21 @@ function SmartFillModal({ scope, targets, ministryId, label, onClose }: { scope:
           variant="secondary"
           onClick={() => setResult(smartFill({ targetServices: targets, ministryIds: [ministryId], ministries, users, allServices: services, assignments }))}
         >
-          Acak ulang
+          {tr("Acak ulang")}
         </Button>
         <Button
           className="flex-1"
           disabled={!result.length || busy}
           onClick={async () => {
-            if (!(await ask({ title: `Terapkan Smart Fill?`, message: `${result.length} slot akan diisi dan setiap pelayan yang dijadwalkan diberi notifikasi.`, confirmText: "Terapkan" }))) return;
+            if (!(await ask({ title: tr("Terapkan Smart Fill?"), message: tr("{n} slot akan diisi dan setiap pelayan yang dijadwalkan diberi notifikasi.", { n: result.length }), confirmText: tr("Terapkan") }))) return;
             setBusy(true);
             await saveAssignments(result);
-            celebrate(`${result.length} slot terisi`);
-            toast("Pelayan sudah diberi notifikasi");
+            celebrate(tr("{n} slot terisi", { n: result.length }));
+            toast(tr("Pelayan sudah diberi notifikasi"));
             onClose();
           }}
         >
-          <Wand2 size={16} /> Terapkan
+          <Wand2 size={16} /> {tr("Terapkan")}
         </Button>
       </div>
     </Modal>
@@ -604,7 +607,7 @@ function ExportModal({
     assignments,
     users,
     churchName: church?.name ?? "",
-    heading: `Jadwal ${ministry.name} — ${scope === "day" ? formatDateLong(selected) : monthLabel}`,
+    heading: tr("Jadwal {name} — {p}", { name: ministry.name, p: scope === "day" ? formatDateLong(selected) : monthLabel }),
   });
 
   const map = new Map(assignments.map((a) => [a.id, a]));
@@ -617,13 +620,13 @@ function ExportModal({
   };
 
   return (
-    <Modal open onClose={onClose} title="Ekspor ke WhatsApp" wide>
+    <Modal open onClose={onClose} title={tr("Ekspor ke WhatsApp")} wide>
       <div className="grid grid-cols-2 bg-surface rounded-xl p-1 mb-4">
         <button onClick={() => setTab("text")} className={cn("rounded-lg py-1.5 text-sm font-medium", tab === "text" ? "bg-card shadow-sm" : "text-ink-soft")}>
-          Teks rapi
+          {tr("Teks rapi")}
         </button>
         <button onClick={() => setTab("poster")} className={cn("rounded-lg py-1.5 text-sm font-medium", tab === "poster" ? "bg-card shadow-sm" : "text-ink-soft")}>
-          Poster foto
+          {tr("Poster foto")}
         </button>
       </div>
 
@@ -632,26 +635,26 @@ function ExportModal({
           <div className="flex gap-2 mb-3">
             {dayServices.length > 0 && (
               <button onClick={() => setScope("day")} className={cn("rounded-full border px-3 py-1 text-xs", scope === "day" ? "border-brand bg-brand-soft text-brand" : "border-line")}>
-                Tanggal terpilih
+                {tr("Tanggal terpilih")}
               </button>
             )}
             <button onClick={() => setScope("month")} className={cn("rounded-full border px-3 py-1 text-xs", scope === "month" ? "border-brand bg-brand-soft text-brand" : "border-line")}>
-              Sebulan
+              {tr("Sebulan")}
             </button>
           </div>
-          <pre className="whitespace-pre-wrap text-[12px] bg-[#e7ffdb] text-[#1f2b1f] rounded-xl p-3 max-h-80 overflow-y-auto font-sans">{text}</pre>
+          <pre className="whitespace-pre-wrap text-[length:calc(12px*var(--fs))] bg-[#e7ffdb] text-[#1f2b1f] rounded-xl p-3 max-h-80 overflow-y-auto font-sans">{text}</pre>
           <div className="flex gap-2 mt-3">
             <Button
               variant="secondary"
               onClick={async () => {
                 await navigator.clipboard.writeText(text);
-                toast("Teks disalin");
+                toast(tr("Teks disalin"));
               }}
             >
-              <Copy size={15} /> Salin
+              <Copy size={15} /> {tr("Salin")}
             </Button>
             <Button variant="whatsapp" className="flex-1" onClick={() => openWhatsApp(text)}>
-              <MessageCircle size={16} /> Buka WhatsApp
+              <MessageCircle size={16} /> {tr("Buka WhatsApp")}
             </Button>
           </div>
         </>
@@ -688,13 +691,13 @@ function ExportModal({
                   a.download = `jadwal-${ministry.id}-${posterService?.date}.png`;
                   a.click();
                 } catch (e) {
-                  toast(`Gagal membuat poster: ${(e as Error).message}`);
+                  toast(tr("Gagal membuat poster: {message}", { message: (e as Error).message }));
                 } finally {
                   setBusy(false);
                 }
               }}
             >
-              <Download size={15} /> Unduh PNG
+              <Download size={15} /> {tr("Unduh PNG")}
             </Button>
             <Button
               variant="whatsapp"
@@ -707,22 +710,22 @@ function ExportModal({
                   const blob = await (await fetch(url)).blob();
                   const file = new File([blob], `jadwal-${ministry.id}.png`, { type: "image/png" });
                   if (navigator.canShare?.({ files: [file] })) {
-                    await navigator.share({ files: [file], title: `Jadwal ${ministry.name}` });
+                    await navigator.share({ files: [file], title: tr("Jadwal {name}", { name: ministry.name }) });
                   } else {
                     const a = document.createElement("a");
                     a.href = url;
                     a.download = file.name;
                     a.click();
-                    toast("Perangkat tidak mendukung share langsung — poster diunduh, kirim lewat WhatsApp.");
+                    toast(tr("Perangkat tidak mendukung share langsung — poster diunduh, kirim lewat WhatsApp."));
                   }
                 } catch (e) {
-                  if ((e as Error).name !== "AbortError") toast(`Gagal: ${(e as Error).message}`);
+                  if ((e as Error).name !== "AbortError") toast(tr("Gagal: {message}", { message: (e as Error).message }));
                 } finally {
                   setBusy(false);
                 }
               }}
             >
-              <ImageIcon size={16} /> Bagikan poster
+              <ImageIcon size={16} /> {tr("Bagikan poster")}
             </Button>
           </div>
         </>
@@ -746,7 +749,7 @@ function NoteLines({ notes, compact }: { notes: AvailabilityNote[]; compact?: bo
       {notes.map((n, i) => {
         const { cls, Icon } = NOTE_STYLE[n.kind];
         return (
-          <li key={i} className={cn("flex items-start gap-1 text-[11px] leading-snug", cls)}>
+          <li key={i} className={cn("flex items-start gap-1 text-[length:calc(11px*var(--fs))] leading-snug", cls)}>
             <Icon size={11} className="mt-[2px] shrink-0" aria-hidden />
             <span className={cn(compact && "truncate")}>{n.text}</span>
           </li>
@@ -796,8 +799,8 @@ function KomisiPicker({ options, value, onChange }: { options: { id: string; nam
           <Layers size={18} />
         </span>
         <span className="flex-1 min-w-0">
-          <span className="block text-[12px] text-ink-soft">Komisi</span>
-          <span className="block text-[15px] font-semibold leading-snug line-clamp-2">{current?.name ?? "Pilih komisi"}</span>
+          <span className="block text-[length:calc(12px*var(--fs))] text-ink-soft">{tr("Komisi@@label")}</span>
+          <span className="block text-[length:calc(15px*var(--fs))] font-semibold leading-snug line-clamp-2">{current?.name ?? tr("Pilih komisi")}</span>
         </span>
         {!single && <ChevronDown size={18} className={cn("shrink-0 text-ink-soft transition-transform duration-200", open && "rotate-180")} />}
       </button>
@@ -805,7 +808,7 @@ function KomisiPicker({ options, value, onChange }: { options: { id: string; nam
       {open && (
         <ul
           role="listbox"
-          aria-label="Pilih komisi"
+          aria-label={tr("Pilih komisi")}
           className="absolute left-0 top-full z-30 mt-2 w-[min(19rem,calc(100vw-2rem))] max-h-[60vh] overflow-y-auto origin-top-left rounded-2xl border border-line bg-card p-1.5 shadow-xl animate-[gf-drop_.18s_ease-out]"
         >
           {options.map((m) => {
@@ -820,7 +823,7 @@ function KomisiPicker({ options, value, onChange }: { options: { id: string; nam
                     onChange(m.id);
                     setOpen(false);
                   }}
-                  className={cn("w-full flex items-center gap-3 rounded-xl px-3 py-3 text-left text-[15px] transition-colors", selected ? "bg-brand-soft font-semibold" : "hover:bg-surface")}
+                  className={cn("w-full flex items-center gap-3 rounded-xl px-3 py-3 text-left text-[length:calc(15px*var(--fs))] transition-colors", selected ? "bg-brand-soft font-semibold" : "hover:bg-surface")}
                 >
                   <span className="h-3.5 w-3.5 shrink-0 rounded-full" style={{ background: m.color }} />
                   <span className="flex-1 min-w-0 truncate">{m.name}</span>

@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Card, cn } from "./ui";
 import { formatMonth, monthGrid, todayISO } from "@/lib/dates";
+import { tr } from "@/lib/i18n";
 
 export interface DayMark {
   /** Up to 3 coloured dots under the date */
@@ -38,7 +39,7 @@ export function MonthCalendar({
   return (
     <Card className="p-4">
       <div className="flex items-center justify-between mb-3">
-        <button className="p-2 rounded-lg hover:bg-surface" onClick={() => shift(-1)} aria-label="Bulan sebelumnya">
+        <button className="p-2 rounded-lg hover:bg-surface" onClick={() => shift(-1)} aria-label={tr("Bulan sebelumnya")}>
           <ChevronLeft size={18} />
         </button>
         <button
@@ -48,16 +49,16 @@ export function MonthCalendar({
             onMonthChange(d.getFullYear(), d.getMonth());
             onSelect(today);
           }}
-          title="Kembali ke hari ini"
+          title={tr("Kembali ke hari ini")}
         >
           {formatMonth(year, month)}
         </button>
-        <button className="p-2 rounded-lg hover:bg-surface" onClick={() => shift(1)} aria-label="Bulan berikutnya">
+        <button className="p-2 rounded-lg hover:bg-surface" onClick={() => shift(1)} aria-label={tr("Bulan berikutnya")}>
           <ChevronRight size={18} />
         </button>
       </div>
-      <div className="grid grid-cols-7 text-center text-[11px] text-ink-soft mb-1">
-        {["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"].map((d) => (
+      <div className="grid grid-cols-7 text-center text-[length:calc(11px*var(--fs))] text-ink-soft mb-1">
+        {[tr("Sen"), tr("Sel"), tr("Rab"), tr("Kam"), tr("Jum"), tr("Sab"), tr("Min")].map((d) => (
           <div key={d}>{d}</div>
         ))}
       </div>
@@ -87,7 +88,7 @@ export function MonthCalendar({
           );
         })}
       </div>
-      {legend && <div className="flex flex-wrap gap-3 mt-3 text-[11px] text-ink-soft">{legend}</div>}
+      {legend && <div className="flex flex-wrap gap-3 mt-3 text-[length:calc(11px*var(--fs))] text-ink-soft">{legend}</div>}
     </Card>
   );
 }

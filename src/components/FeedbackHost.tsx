@@ -5,6 +5,7 @@ import { AlertTriangle, Check, HelpCircle, Trash2 } from "lucide-react";
 import type { AskOptions } from "@/lib/feedback";
 import { haptic } from "@/lib/feedback";
 import { Button, cn } from "@/components/ui";
+import { tr } from "@/lib/i18n";
 
 type AskRequest = AskOptions & { resolve: (ok: boolean) => void };
 
@@ -75,18 +76,18 @@ export function ConfirmHost() {
         >
           <Icon size={22} />
         </div>
-        <h3 className="font-semibold text-ink text-[17px] leading-snug">{req.title}</h3>
+        <h3 className="font-semibold text-ink text-[length:calc(17px*var(--fs))] leading-snug">{req.title}</h3>
         {req.message && <p className="text-sm text-ink-soft mt-1.5 leading-relaxed whitespace-pre-line">{req.message}</p>}
         <div className="grid grid-cols-2 gap-2 mt-5">
           <Button variant="secondary" onClick={() => finish(false)}>
-            {req.cancelText ?? "Batal"}
+            {req.cancelText ?? tr("Batal")}
           </Button>
           <Button
             ref={okRef}
             variant={tone === "danger" ? "dangerSolid" : tone === "warning" ? "warningSolid" : "primary"}
             onClick={() => finish(true)}
           >
-            {req.confirmText ?? "Ya, lanjut"}
+            {req.confirmText ?? tr("Ya, lanjut")}
           </Button>
         </div>
       </div>

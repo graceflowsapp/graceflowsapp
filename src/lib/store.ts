@@ -15,6 +15,7 @@ import {
 import { firestore, isFirebaseConfigured } from "./firebase";
 import type { CollectionName } from "./types";
 import { buildSeed } from "./seed";
+import { tr } from "./i18n";
 
 type Doc = { id: string } & Record<string, unknown>;
 export type Filter = { field: string; value: unknown };
@@ -203,7 +204,7 @@ export function setChurchScope(churchId: string | null) {
 }
 
 export function churchPath(col: CollectionName, churchId = scope) {
-  if (!churchId) throw new Error("Belum memilih gereja");
+  if (!churchId) throw new Error(tr("Belum memilih gereja"));
   return `churches/${churchId}/${SUB[col]}`;
 }
 

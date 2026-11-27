@@ -9,6 +9,7 @@ import faqData from "@/data/faq.json";
 import type { FaqItem } from "@/lib/chatbot/types";
 import { buildIndex, faqRolesFor, match, related } from "@/lib/chatbot/match";
 import { getSemanticStatus, onSemanticStatus, semanticScores, startSemantic, type SemanticStatus } from "@/lib/chatbot/semantic";
+import { tr } from "@/lib/i18n";
 
 const ALL_FAQ = faqData as FaqItem[];
 const STORAGE_KEY = "graceflow-help-chat";
@@ -176,10 +177,10 @@ export function HelpChatbot() {
     const q = retryQ.current;
     retryQ.current = null;
     if (sem.state === "off") {
-      push({ from: "bot", kind: "note", text: "Maaf, pemahaman yang lebih pintar tidak bisa dipakai di perangkat ini (" + sem.reason + "). Coba tanyakan dengan kata lain ya." });
+      push({ from: "bot", kind: "note", text: tr("Maaf, pemahaman yang lebih pintar tidak bisa dipakai di perangkat ini (") + sem.reason + tr("). Coba tanyakan dengan kata lain ya.") });
       return;
     }
-    push({ from: "bot", kind: "note", text: q ? "Sudah siap! Saya coba jawab lagi pertanyaanmu…" : "Sudah siap! Silakan tanyakan lagi pertanyaanmu." });
+    push({ from: "bot", kind: "note", text: q ? tr("Sudah siap! Saya coba jawab lagi pertanyaanmu…") : tr("Sudah siap! Silakan tanyakan lagi pertanyaanmu.") });
     if (q) setTimeout(() => ask(q, false), 300);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sem]);
@@ -216,16 +217,16 @@ export function HelpChatbot() {
 
   if (!me) return null;
 
-  const chip = "rounded-full border border-brand/40 bg-card text-brand px-3 py-1.5 text-[13.5px] sm:px-3.5 sm:py-2 sm:text-[15px] font-medium text-left hover:bg-brand-soft active:scale-[.98] transition";
+  const chip = "rounded-full border border-brand/40 bg-card text-brand px-3 py-1.5 text-[length:calc(13.5px*var(--fs))] sm:px-3.5 sm:py-2 sm:text-[length:calc(15px*var(--fs))] font-medium text-left hover:bg-brand-soft active:scale-[.98] transition";
 
   const renderBot = (m: Extract<Msg, { from: "bot" }>) => {
     if (m.kind === "welcome") {
       return (
         <>
           <p>
-            Halo, {me.name.split(" ")[0]}! 👋 Saya asisten bantuan GraceFlow. Mau tanya cara memakai aplikasi ini? Ketik pertanyaanmu, atau pilih di bawah:
+            {tr("Halo,")} {me.name.split(" ")[0]}{tr("! 👋 Saya asisten bantuan GraceFlow. Mau tanya cara memakai aplikasi ini? Ketik pertanyaanmu, atau pilih di bawah:")}
           </p>
-          <p className="mt-2.5 text-[12px] sm:mt-3 sm:text-[13px] font-semibold text-ink-soft">Pertanyaan populer</p>
+          <p className="mt-2.5 text-[length:calc(12px*var(--fs))] sm:mt-3 sm:text-[length:calc(13px*var(--fs))] font-semibold text-ink-soft">{tr("Pertanyaan populer")}</p>
           <div className="mt-1.5 flex flex-col gap-2">
             {popular.map((id) => (
               <button key={id} className={chip} onClick={() => pick(id)}>
@@ -233,10 +234,10 @@ export function HelpChatbot() {
               </button>
             ))}
           </div>
-          <p className="mt-2.5 text-[12px] sm:mt-3 sm:text-[13px] font-semibold text-ink-soft">Atau pilih topik</p>
+          <p className="mt-2.5 text-[length:calc(12px*var(--fs))] sm:mt-3 sm:text-[length:calc(13px*var(--fs))] font-semibold text-ink-soft">{tr("Atau pilih topik")}</p>
           <div className="mt-1.5 flex flex-wrap gap-2">
             {categories.map((k) => (
-              <button key={k} className={cn(chip, "py-1 text-[13px] sm:py-1.5 sm:text-[14px]")} onClick={() => pickCategory(k)}>
+              <button key={k} className={cn(chip, "py-1 text-[length:calc(13px*var(--fs))] sm:py-1.5 sm:text-[length:calc(14px*var(--fs))]")} onClick={() => pickCategory(k)}>
                 {k}
               </button>
             ))}
@@ -247,7 +248,7 @@ export function HelpChatbot() {
     if (m.kind === "category") {
       return (
         <>
-          <p>Ini pertanyaan tentang “{m.kategori}”. Pilih salah satu:</p>
+          <p>{tr("Ini pertanyaan tentang “")}{m.kategori}{tr("”. Pilih salah satu:")}</p>
           <div className="mt-2 flex flex-col gap-2">
             {items
               .filter((f) => f.kategori === m.kategori)
@@ -263,7 +264,7 @@ export function HelpChatbot() {
     if (m.kind === "clarify") {
       return (
         <>
-          <p>Maksudnya yang ini? 🤔</p>
+          <p>{tr("Maksudnya yang ini? 🤔")}</p>
           <div className="mt-2 flex flex-col gap-2">
             {m.options
               .filter((id) => byId.has(id))
@@ -273,13 +274,13 @@ export function HelpChatbot() {
                 </button>
               ))}
             <button
-              className="text-[13px] sm:text-[14px] text-ink-soft underline text-left px-1 py-1"
+              className="text-[length:calc(13px*var(--fs))] sm:text-[length:calc(14px*var(--fs))] text-ink-soft underline text-left px-1 py-1"
               onClick={() => {
-                push({ from: "user", text: "Bukan semuanya" });
+                push({ from: "user", text: tr("Bukan semuanya") });
                 replyLater({ from: "bot", kind: "unknown" });
               }}
             >
-              Bukan semuanya
+              {tr("Bukan semuanya")}
             </button>
           </div>
         </>
@@ -289,21 +290,21 @@ export function HelpChatbot() {
     if (m.kind === "unknown") {
       return (
         <>
-          <p>Maaf, saya belum paham 🙏</p>
+          <p>{tr("Maaf, saya belum paham 🙏")}</p>
           {sem.state === "idle" && (
             <div className="mt-2 rounded-xl border border-brand/30 bg-brand-soft p-3">
-              <p className="text-[13px] sm:text-[14px]">Mau saya pakai pemahaman bahasa yang lebih pintar? Saya jadi lebih mengerti pertanyaan dengan kata-kata sendiri.</p>
+              <p className="text-[length:calc(13px*var(--fs))] sm:text-[length:calc(14px*var(--fs))]">{tr("Mau saya pakai pemahaman bahasa yang lebih pintar? Saya jadi lebih mengerti pertanyaan dengan kata-kata sendiri.")}</p>
               <button
                 onClick={() => enableSmart(m.q)}
-                className="mt-2 w-full inline-flex items-center justify-center gap-2 rounded-xl bg-brand text-white px-4 py-2 text-[14px] sm:py-2.5 sm:text-[15px] font-semibold hover:bg-brand-dark active:scale-[.98] transition"
+                className="mt-2 w-full inline-flex items-center justify-center gap-2 rounded-xl bg-brand text-white px-4 py-2 text-[length:calc(14px*var(--fs))] sm:py-2.5 sm:text-[length:calc(15px*var(--fs))] font-semibold hover:bg-brand-dark active:scale-[.98] transition"
               >
-                <Sparkles size={17} /> Aktifkan
+                <Sparkles size={17} /> {tr("Aktifkan")}
               </button>
-              <p className="mt-1.5 text-[12px] text-ink-soft text-center">Unduh ±145 MB, sekali saja. Sebaiknya pakai Wi-Fi.</p>
+              <p className="mt-1.5 text-[length:calc(12px*var(--fs))] text-ink-soft text-center">{tr("Unduh ±145 MB, sekali saja. Sebaiknya pakai Wi-Fi.")}</p>
             </div>
           )}
-          {sem.state === "loading" && <p className="mt-2 text-[13px] sm:text-[14px] text-ink-soft">Sedang menyiapkan pemahaman bahasa… lihat progres di atas.</p>}
-          <p className="mt-1">Coba tanyakan dengan kata lain yang lebih singkat, misalnya “cara konfirmasi hadir”. Kalau masih bingung, silakan hubungi sekretariat atau admin gereja.</p>
+          {sem.state === "loading" && <p className="mt-2 text-[length:calc(13px*var(--fs))] sm:text-[length:calc(14px*var(--fs))] text-ink-soft">{tr("Sedang menyiapkan pemahaman bahasa… lihat progres di atas.")}</p>}
+          <p className="mt-1">{tr("Coba tanyakan dengan kata lain yang lebih singkat, misalnya “cara konfirmasi hadir”. Kalau masih bingung, silakan hubungi sekretariat atau admin gereja.")}</p>
           <div className="mt-2 flex flex-wrap gap-2">
             {popular.slice(0, 3).map((id) => (
               <button key={id} className={chip} onClick={() => pick(id)}>
@@ -315,7 +316,7 @@ export function HelpChatbot() {
       );
     }
     const f = byId.get(m.faqId);
-    if (!f) return <p>Maaf, jawaban ini tidak tersedia untuk akunmu.</p>;
+    if (!f) return <p>{tr("Maaf, jawaban ini tidak tersedia untuk akunmu.")}</p>;
     const more = f.kategori === "Sapaan" ? [] : related(items, f, 3);
     return (
       <>
@@ -324,7 +325,7 @@ export function HelpChatbot() {
           <ol className="mt-2 space-y-2">
             {f.langkah.map((s, i) => (
               <li key={i} className="flex gap-2 sm:gap-2.5">
-                <span className="grid place-items-center h-6 w-6 text-[12.5px] sm:h-7 sm:w-7 sm:text-[14px] shrink-0 rounded-full bg-brand text-white font-bold" aria-hidden>
+                <span className="grid place-items-center h-6 w-6 text-[length:calc(12.5px*var(--fs))] sm:h-7 sm:w-7 sm:text-[length:calc(14px*var(--fs))] shrink-0 rounded-full bg-brand text-white font-bold" aria-hidden>
                   {i + 1}
                 </span>
                 <span className="sm:pt-0.5">{s}</span>
@@ -335,14 +336,14 @@ export function HelpChatbot() {
         {f.link && (
           <button
             onClick={() => go(f.link!)}
-            className="mt-3 w-full inline-flex items-center justify-center gap-2 rounded-xl bg-brand text-white px-4 py-2.5 text-[14.5px] sm:py-3 sm:text-[16px] font-semibold hover:bg-brand-dark active:scale-[.98] transition"
+            className="mt-3 w-full inline-flex items-center justify-center gap-2 rounded-xl bg-brand text-white px-4 py-2.5 text-[length:calc(14.5px*var(--fs))] sm:py-3 sm:text-[length:max(16px,calc(16px*var(--fs)))] font-semibold hover:bg-brand-dark active:scale-[.98] transition"
           >
-            Bawa saya ke sana <ArrowRight size={18} className="size-4 sm:size-[18px]" />
+            {tr("Bawa saya ke sana")} <ArrowRight size={18} className="size-4 sm:size-[18px]" />
           </button>
         )}
         {more.length > 0 && (
           <>
-            <p className="mt-2.5 text-[12px] sm:mt-3 sm:text-[13px] font-semibold text-ink-soft">Pertanyaan terkait</p>
+            <p className="mt-2.5 text-[length:calc(12px*var(--fs))] sm:mt-3 sm:text-[length:calc(13px*var(--fs))] font-semibold text-ink-soft">{tr("Pertanyaan terkait")}</p>
             <div className="mt-1.5 flex flex-col gap-2">
               {more.map((r) => (
                 <button key={r.id} className={chip} onClick={() => pick(r.id)}>
@@ -362,7 +363,7 @@ export function HelpChatbot() {
         <button
           ref={fabRef}
           onClick={() => setOpen(true)}
-          aria-label="Buka bantuan: tanya cara memakai aplikasi"
+          aria-label={tr("Buka bantuan: tanya cara memakai aplikasi")}
           aria-haspopup="dialog"
           className="fixed z-40 right-4 bottom-[max(1rem,env(safe-area-inset-bottom))] md:right-6 md:bottom-6 [html[data-install-banner]_&]:bottom-[calc(max(0.75rem,env(safe-area-inset-bottom))+5.75rem)] h-14 w-14 rounded-full bg-brand text-white shadow-lg grid place-items-center hover:bg-brand-dark active:scale-95 transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand/40"
         >
@@ -379,7 +380,7 @@ export function HelpChatbot() {
         <div
           role="dialog"
           aria-modal="true"
-          aria-label="Bantuan GraceFlow"
+          aria-label={tr("Bantuan GraceFlow")}
           className={cn(
             "fixed z-50 flex flex-col bg-surface text-ink shadow-2xl animate-[gf-up_.2s_ease-out]",
             // phone: floating panel above the bottom edge (not full screen); desktop: panel bottom-right
@@ -391,28 +392,28 @@ export function HelpChatbot() {
           <div className="flex items-center gap-2.5 px-3.5 h-14 sm:gap-3 sm:px-4 sm:h-16 bg-brand text-white shrink-0">
             <HelpCircle size={26} className="size-[22px] sm:size-[26px]" aria-hidden />
             <div className="flex-1 min-w-0">
-              <h2 className="font-bold text-[15.5px] sm:text-[17px] leading-tight">Bantuan</h2>
-              <p className="text-[12px] sm:text-[13px] opacity-90 truncate">Tanya cara memakai GraceFlow</p>
+              <h2 className="font-bold text-[length:calc(15.5px*var(--fs))] sm:text-[length:calc(17px*var(--fs))] leading-tight">{tr("Bantuan")}</h2>
+              <p className="text-[length:calc(12px*var(--fs))] sm:text-[length:calc(13px*var(--fs))] opacity-90 truncate">{tr("Tanya cara memakai GraceFlow")}</p>
             </div>
-            <button onClick={reset} className="p-2 rounded-xl hover:bg-white/15" aria-label="Mulai percakapan baru">
+            <button onClick={reset} className="p-2 rounded-xl hover:bg-white/15" aria-label={tr("Mulai percakapan baru")}>
               <RotateCcw size={20} />
             </button>
-            <button onClick={close} className="p-2 -mr-1 rounded-xl hover:bg-white/15" aria-label="Tutup bantuan">
+            <button onClick={close} className="p-2 -mr-1 rounded-xl hover:bg-white/15" aria-label={tr("Tutup bantuan")}>
               <X size={24} className="size-[22px] sm:size-6" />
             </button>
           </div>
 
           {sem.state === "loading" && (
-            <div className="flex items-center gap-2 px-3.5 py-1.5 text-[12px] sm:px-4 sm:py-2 sm:text-[13px] bg-brand-soft text-brand shrink-0" role="status">
+            <div className="flex items-center gap-2 px-3.5 py-1.5 text-[length:calc(12px*var(--fs))] sm:px-4 sm:py-2 sm:text-[length:calc(13px*var(--fs))] bg-brand-soft text-brand shrink-0" role="status">
               <Loader2 size={15} className="animate-spin shrink-0" />
               <span className="flex-1">
-                {sem.stage === "download" ? "Menyiapkan pemahaman bahasa (sekali saja)" : "Mempelajari daftar pertanyaan"}… {sem.pct}%
+                {sem.stage === "download" ? tr("Menyiapkan pemahaman bahasa (sekali saja)") : tr("Mempelajari daftar pertanyaan")}… {sem.pct}%
               </span>
             </div>
           )}
 
           {/* messages */}
-          <div ref={listRef} className="flex-1 overflow-y-auto px-2.5 py-3 space-y-2.5 text-[14.5px] leading-relaxed sm:px-3 sm:py-4 sm:space-y-3 sm:text-[16px]" aria-live="polite">
+          <div ref={listRef} className="flex-1 overflow-y-auto px-2.5 py-3 space-y-2.5 text-[length:calc(14.5px*var(--fs))] leading-relaxed sm:px-3 sm:py-4 sm:space-y-3 sm:text-[length:max(16px,calc(16px*var(--fs)))]" aria-live="polite">
             {msgs.map((m) =>
               m.from === "user" ? (
                 <div key={m.id} className="flex justify-end">
@@ -425,14 +426,14 @@ export function HelpChatbot() {
               ),
             )}
             {typing && (
-              <div className="flex" role="status" aria-label="Sedang mengetik">
-                <div className="rounded-2xl rounded-bl-md bg-card border border-line px-3.5 py-2.5 sm:px-4 sm:py-3 text-ink-soft text-[13.5px] sm:text-[15px] flex items-center gap-2">
+              <div className="flex" role="status" aria-label={tr("Sedang mengetik")}>
+                <div className="rounded-2xl rounded-bl-md bg-card border border-line px-3.5 py-2.5 sm:px-4 sm:py-3 text-ink-soft text-[length:calc(13.5px*var(--fs))] sm:text-[length:calc(15px*var(--fs))] flex items-center gap-2">
                   <span className="flex gap-1" aria-hidden>
                     {[0, 1, 2].map((i) => (
                       <span key={i} className="h-2 w-2 rounded-full bg-ink-soft animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
                     ))}
                   </span>
-                  sedang mengetik...
+                  {tr("sedang mengetik...")}
                 </div>
               </div>
             )}
@@ -447,23 +448,23 @@ export function HelpChatbot() {
             }}
           >
             <label htmlFor="help-chat-input" className="sr-only">
-              Tulis pertanyaan
+              {tr("Tulis pertanyaan")}
             </label>
             <input
               id="help-chat-input"
               ref={inputRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Tulis pertanyaanmu…"
+              placeholder={tr("Tulis pertanyaanmu…")}
               autoComplete="off"
               enterKeyHint="send"
               maxLength={200}
-              className="flex-1 min-w-0 rounded-xl border border-line bg-surface px-3.5 py-2.5 sm:px-4 sm:py-3 text-[16px] text-ink outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
+              className="flex-1 min-w-0 rounded-xl border border-line bg-surface px-3.5 py-2.5 sm:px-4 sm:py-3 text-[length:max(16px,calc(16px*var(--fs)))] text-ink outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
             />
             <button
               type="submit"
               disabled={!input.trim() || typing}
-              aria-label="Kirim pertanyaan"
+              aria-label={tr("Kirim pertanyaan")}
               className="h-11 w-11 sm:h-12 sm:w-12 shrink-0 rounded-xl bg-brand text-white grid place-items-center hover:bg-brand-dark disabled:opacity-40 active:scale-95 transition"
             >
               <Send size={20} className="size-[18px] sm:size-5" />

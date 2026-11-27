@@ -9,6 +9,7 @@ import { Button, Card, Field, cn, inputCls, toast } from "@/components/ui";
 import { Logo } from "@/components/AppShell";
 import { createChurch, joinChurch } from "@/lib/tenancy";
 import { displayLogin } from "@/lib/username";
+import { tr } from "@/lib/i18n";
 
 const PENDING_CODE_KEY = "graceflow-pending-invite";
 
@@ -67,15 +68,15 @@ function Start() {
     <div className="min-h-dvh flex flex-col items-center px-4 py-10 bg-gradient-to-b from-brand-soft to-surface">
       <div className="w-full max-w-sm">
         <Logo className="justify-center mb-6" />
-        <h1 className="text-center text-xl font-bold">Halo, {account.name.split(" ")[0]} 👋</h1>
+        <h1 className="text-center text-xl font-bold">{tr("Halo,")} {account.name.split(" ")[0]} 👋</h1>
         <p className="text-center text-sm text-ink-soft mt-1 mb-6">
-          {churches.length ? "Gabung ke gereja lain atau daftarkan gereja baru." : "Satu langkah lagi: hubungkan akunmu dengan gerejamu."}
+          {churches.length ? tr("Gabung ke gereja lain atau daftarkan gereja baru.") : tr("Satu langkah lagi: hubungkan akunmu dengan gerejamu.")}
         </p>
 
         <div className="grid grid-cols-2 bg-card border border-line rounded-xl p-1 mb-4">
           {[
-            ["join", "Punya kode undangan"],
-            ["create", "Daftarkan gereja"],
+            ["join", tr("Punya kode undangan")],
+            ["create", tr("Daftarkan gereja")],
           ].map(([k, label]) => (
             <button key={k} onClick={() => setTab(k as typeof tab)} className={cn("rounded-lg py-2 text-sm font-medium", tab === k ? "bg-brand text-white" : "text-ink-soft")}>
               {label}
@@ -87,7 +88,7 @@ function Start() {
 
         {churches.length > 0 && (
           <Card className="p-3 mt-4">
-            <p className="text-xs text-ink-soft mb-2">Gereja kamu</p>
+            <p className="text-xs text-ink-soft mb-2">{tr("Gereja kamu")}</p>
             {churches.map((c) => (
               <button
                 key={c.id}
@@ -99,14 +100,14 @@ function Start() {
               >
                 <span className="h-2.5 w-2.5 rounded-full" style={{ background: c.accent ?? "#0f766e" }} />
                 <span className="flex-1">{c.name}</span>
-                <span className="text-xs text-brand">Buka →</span>
+                <span className="text-xs text-brand">{tr("Buka →")}</span>
               </button>
             ))}
           </Card>
         )}
 
         <button onClick={() => confirmLogout(logout)} className="block mx-auto mt-6 text-xs text-ink-soft underline">
-          Keluar ({displayLogin(account)})
+          {tr("Keluar (")}{displayLogin(account)})
         </button>
       </div>
     </div>
@@ -122,8 +123,8 @@ function JoinForm({ code, setCode, onDone }: { code: string; setCode: (c: string
       <div className="h-11 w-11 rounded-xl bg-brand-soft text-brand grid place-items-center mb-3">
         <KeyRound size={20} />
       </div>
-      <p className="font-semibold">Gabung dengan kode undangan</p>
-      <p className="text-[13px] text-ink-soft mb-4">Minta kode 6 huruf dari admin gerejamu (menu Admin → Gereja).</p>
+      <p className="font-semibold">{tr("Gabung dengan kode undangan")}</p>
+      <p className="text-[length:calc(13px*var(--fs))] text-ink-soft mb-4">{tr("Minta kode 6 huruf dari admin gerejamu (menu Admin → Gereja).")}</p>
       <form
         onSubmit={async (e) => {
           e.preventDefault();
@@ -131,7 +132,7 @@ function JoinForm({ code, setCode, onDone }: { code: string; setCode: (c: string
           setError("");
           try {
             await joinChurch(account!, code);
-            toast("Berhasil bergabung 🎉");
+            toast(tr("Berhasil bergabung 🎉"));
             onDone();
           } catch (err) {
             setError((err as Error).message);
@@ -144,7 +145,7 @@ function JoinForm({ code, setCode, onDone }: { code: string; setCode: (c: string
           className={cn(inputCls, "text-center text-2xl font-mono font-bold tracking-[0.3em] uppercase")}
           value={code}
           onChange={(e) => setCode(e.target.value.toUpperCase().slice(0, 8))}
-          placeholder="ABC123"
+          placeholder={tr("ABC123")}
           autoCapitalize="characters"
           autoComplete="off"
           required
@@ -152,7 +153,7 @@ function JoinForm({ code, setCode, onDone }: { code: string; setCode: (c: string
         />
         {error && <p className="text-sm text-danger-ink mt-2">{error}</p>}
         <Button className="w-full mt-3" disabled={busy || code.length < 4}>
-          Gabung
+          {tr("Gabung")}
         </Button>
       </form>
     </Card>
@@ -171,8 +172,8 @@ function CreateForm({ onDone }: { onDone: () => void }) {
       <div className="h-11 w-11 rounded-xl bg-brand-soft text-brand grid place-items-center mb-3">
         <ChurchIcon size={20} />
       </div>
-      <p className="font-semibold">Daftarkan gereja baru</p>
-      <p className="text-[13px] text-ink-soft mb-4">Kamu akan menjadi Admin gereja ini dan bisa mengundang pelayan lain. Data setiap gereja terpisah dan tidak terlihat oleh gereja lain.</p>
+      <p className="font-semibold">{tr("Daftarkan gereja baru")}</p>
+      <p className="text-[length:calc(13px*var(--fs))] text-ink-soft mb-4">{tr("Kamu akan menjadi Admin gereja ini dan bisa mengundang pelayan lain. Data setiap gereja terpisah dan tidak terlihat oleh gereja lain.")}</p>
       <form
         onSubmit={async (e) => {
           e.preventDefault();
@@ -180,7 +181,7 @@ function CreateForm({ onDone }: { onDone: () => void }) {
           setError("");
           try {
             await createChurch(account!, { name, city, withDefaultMinistries: defaults });
-            toast("Gereja terdaftar 🎉 Undang anggotamu dari menu Admin → Gereja");
+            toast(tr("Gereja terdaftar 🎉 Undang anggotamu dari menu Admin → Gereja"));
             onDone();
           } catch (err) {
             setError((err as Error).message);
@@ -189,26 +190,26 @@ function CreateForm({ onDone }: { onDone: () => void }) {
           }
         }}
       >
-        <Field label="Nama gereja">
-          <input className={inputCls} value={name} onChange={(e) => setName(e.target.value)} placeholder="mis. GIA Makassar" required />
+        <Field label={tr("Nama gereja")}>
+          <input className={inputCls} value={name} onChange={(e) => setName(e.target.value)} placeholder={tr("mis. GIA Makassar")} required />
         </Field>
-        <Field label="Kota">
-          <input className={inputCls} value={city} onChange={(e) => setCity(e.target.value)} placeholder="Makassar" />
+        <Field label={tr("Kota")}>
+          <input className={inputCls} value={city} onChange={(e) => setCity(e.target.value)} placeholder={tr("Makassar")} />
         </Field>
         <label className="flex items-start gap-2 text-sm mb-4">
           <input type="checkbox" className="mt-1 accent-[var(--color-brand)]" checked={defaults} onChange={(e) => setDefaults(e.target.checked)} />
           <span>
-            Mulai dengan bidang pelayanan umum
-            <span className="block text-[12px] text-ink-soft">Praise & Worship, Musik, Multimedia, Usher, PBK Youth — bisa diubah nanti.</span>
+            {tr("Mulai dengan bidang pelayanan umum")}
+            <span className="block text-[length:calc(12px*var(--fs))] text-ink-soft">{tr("Praise & Worship, Musik, Multimedia, Usher, PBK Youth — bisa diubah nanti.")}</span>
           </span>
         </label>
         {error && <p className="text-sm text-danger-ink mb-2">{error}</p>}
         <Button className="w-full" disabled={busy || !name.trim()}>
-          Daftarkan gereja
+          {tr("Daftarkan gereja")}
         </Button>
       </form>
-      <p className="text-[11px] text-ink-soft mt-3 text-center">
-        Sudah ada gerejamu di GraceFlow? Minta kode undangan ke admin, jangan daftar ulang.
+      <p className="text-[length:calc(11px*var(--fs))] text-ink-soft mt-3 text-center">
+        {tr("Sudah ada gerejamu di GraceFlow? Minta kode undangan ke admin, jangan daftar ulang.")}
       </p>
     </Card>
   );

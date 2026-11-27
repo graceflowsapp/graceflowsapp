@@ -5,6 +5,7 @@ import { ChevronDown, ChevronUp, GripVertical, Plus, X } from "lucide-react";
 import { Button, cn, inputCls } from "./ui";
 import { SortableList } from "./SortableList";
 import { ask, haptic } from "@/lib/feedback";
+import { tr } from "@/lib/i18n";
 
 const POSITION_SUGGESTIONS = [
   "Worship Leader",
@@ -58,14 +59,14 @@ export function PositionsEditor({
       onChange([...value, ...fresh]);
       haptic("tap");
     }
-    setError(dupes.length ? `“${dupes[0]}” sudah ada.` : "");
+    setError(dupes.length ? tr("“{p}” sudah ada.", { p: dupes[0] }) : "");
     setDraft("");
     inputRef.current?.focus();
   };
 
   const remove = async (p: string) => {
     // removing a posisi that already exists hides its old schedule — make sure that's intended
-    if (original.includes(p) && !(await ask({ title: `Hapus posisi “${p}”?`, message: "Jadwal lama untuk posisi ini tidak akan tampil lagi setelah disimpan.", confirmText: "Hapus", tone: "danger" }))) return;
+    if (original.includes(p) && !(await ask({ title: tr("Hapus posisi “{p}”?", { p }), message: tr("Jadwal lama untuk posisi ini tidak akan tampil lagi setelah disimpan."), confirmText: tr("Hapus"), tone: "danger" }))) return;
     onChange(value.filter((x) => x !== p));
     haptic("tap");
   };
@@ -79,25 +80,25 @@ export function PositionsEditor({
   return (
     <div className="mb-4">
       <span className="block text-sm font-medium text-ink-soft mb-2">
-        Posisi / slot <span className="font-normal">({value.length})</span>
+        {tr("Posisi / slot")} <span className="font-normal">({value.length})</span>
       </span>
 
       {/* added posisi, in the order the slots appear in Atur Jadwal */}
       {value.length > 0 ? (
         <>
           {value.length > 1 && (
-            <p className="flex items-center gap-1.5 text-[12px] text-ink-soft mb-2">
-              <GripVertical size={14} aria-hidden /> Tahan & geser (atau pakai panah) untuk mengatur urutan slot di jadwal.
+            <p className="flex items-center gap-1.5 text-[length:calc(12px*var(--fs))] text-ink-soft mb-2">
+              <GripVertical size={14} aria-hidden /> {tr("Tahan & geser (atau pakai panah) untuk mengatur urutan slot di jadwal.")}
             </p>
           )}
           <SortableList
             items={value}
             getKey={(p) => p}
             className="space-y-1.5 mb-3"
-            label="Urutan posisi"
+            label={tr("Urutan posisi")}
             onReorder={(next, { item, to }) => {
               onChange(next);
-              setAnnounce(`${item} dipindah ke urutan ${to + 1}`);
+              setAnnounce(tr("{item} dipindah ke urutan {p}", { item, p: to + 1 }));
             }}
             renderItem={(p, h) => (
               <div
@@ -107,19 +108,19 @@ export function PositionsEditor({
                 )}
               >
                 <GripVertical size={18} className="shrink-0 text-brand/60" aria-hidden />
-                <span className="w-5 shrink-0 text-center text-[13px] font-semibold text-brand/70">{h.index + 1}</span>
-                <span className="flex-1 min-w-0 truncate text-[15px] font-medium text-brand">{p}</span>
+                <span className="w-5 shrink-0 text-center text-[length:calc(13px*var(--fs))] font-semibold text-brand/70">{h.index + 1}</span>
+                <span className="flex-1 min-w-0 truncate text-[length:calc(15px*var(--fs))] font-medium text-brand">{p}</span>
                 {value.length > 1 && (
                   <>
-                    <button type="button" onClick={h.moveUp} disabled={h.isFirst} aria-label={`Naikkan ${p}`} className={arrowCls}>
+                    <button type="button" onClick={h.moveUp} disabled={h.isFirst} aria-label={tr("Naikkan {p}", { p })} className={arrowCls}>
                       <ChevronUp size={17} />
                     </button>
-                    <button type="button" onClick={h.moveDown} disabled={h.isLast} aria-label={`Turunkan ${p}`} className={arrowCls}>
+                    <button type="button" onClick={h.moveDown} disabled={h.isLast} aria-label={tr("Turunkan {p}", { p })} className={arrowCls}>
                       <ChevronDown size={17} />
                     </button>
                   </>
                 )}
-                <button type="button" onClick={() => remove(p)} aria-label={`Hapus ${p}`} className="grid place-items-center h-9 w-9 shrink-0 rounded-full text-brand hover:bg-brand/15 active:scale-90 transition">
+                <button type="button" onClick={() => remove(p)} aria-label={tr("Hapus {p}", { p })} className="grid place-items-center h-9 w-9 shrink-0 rounded-full text-brand hover:bg-brand/15 active:scale-90 transition">
                   <X size={16} strokeWidth={2.5} />
                 </button>
               </div>
@@ -130,14 +131,14 @@ export function PositionsEditor({
           </p>
         </>
       ) : (
-        <p className="text-[14px] text-ink-soft rounded-xl bg-surface px-3 py-2.5 mb-3">Belum ada posisi. Tambahkan di bawah.</p>
+        <p className="text-[length:calc(14px*var(--fs))] text-ink-soft rounded-xl bg-surface px-3 py-2.5 mb-3">{tr("Belum ada posisi. Tambahkan di bawah.")}</p>
       )}
 
       {/* add one */}
       <div className="flex gap-2">
         <input
           ref={inputRef}
-          className={cn(inputCls, "flex-1 min-w-0 text-[16px]")}
+          className={cn(inputCls, "flex-1 min-w-0 text-[length:max(16px,calc(16px*var(--fs)))]")}
           value={draft}
           onChange={(e) => {
             setDraft(e.target.value);
@@ -157,31 +158,31 @@ export function PositionsEditor({
               add(text);
             }
           }}
-          placeholder="Nama posisi, mis. Gitar"
+          placeholder={tr("Nama posisi, mis. Gitar")}
           enterKeyHint="done"
-          aria-label="Nama posisi baru"
+          aria-label={tr("Nama posisi baru")}
         />
         <Button type="button" onClick={() => add(draft)} disabled={!draft.trim()} className="shrink-0">
-          <Plus size={16} /> Tambah
+          <Plus size={16} /> {tr("Tambah")}
         </Button>
       </div>
       {error ? (
-        <p className="text-[13px] text-danger-ink mt-1.5">{error}</p>
+        <p className="text-[length:calc(13px*var(--fs))] text-danger-ink mt-1.5">{error}</p>
       ) : (
-        original.length > 0 && <p className="text-[12px] text-ink-soft mt-1.5">Menghapus atau mengganti nama posisi akan memutus jadwal lama untuk posisi tersebut.</p>
+        original.length > 0 && <p className="text-[length:calc(12px*var(--fs))] text-ink-soft mt-1.5">{tr("Menghapus atau mengganti nama posisi akan memutus jadwal lama untuk posisi tersebut.")}</p>
       )}
 
       {/* or just choose */}
       {suggestions.length > 0 && (
         <>
-          <span className="block text-[13px] font-medium text-ink-soft mt-3 mb-2">Atau pilih cepat</span>
+          <span className="block text-[length:calc(13px*var(--fs))] font-medium text-ink-soft mt-3 mb-2">{tr("Atau pilih cepat")}</span>
           <div className="flex flex-wrap gap-2">
             {shownSuggestions.map((p) => (
               <button
                 key={p}
                 type="button"
                 onClick={() => add(p)}
-                className="inline-flex items-center gap-1 min-h-9 rounded-full border border-dashed border-line bg-card px-3.5 py-1.5 text-[14px] text-ink hover:border-brand hover:text-brand active:scale-[.97] transition"
+                className="inline-flex items-center gap-1 min-h-9 rounded-full border border-dashed border-line bg-card px-3.5 py-1.5 text-[length:calc(14px*var(--fs))] text-ink hover:border-brand hover:text-brand active:scale-[.97] transition"
               >
                 <Plus size={14} /> {p}
               </button>
@@ -191,9 +192,9 @@ export function PositionsEditor({
                 type="button"
                 onClick={() => setShowAllSuggestions((v) => !v)}
                 aria-expanded={showAllSuggestions}
-                className="inline-flex items-center min-h-9 rounded-full px-3 py-1.5 text-[14px] font-semibold text-brand hover:bg-brand-soft active:scale-[.97] transition"
+                className="inline-flex items-center min-h-9 rounded-full px-3 py-1.5 text-[length:calc(14px*var(--fs))] font-semibold text-brand hover:bg-brand-soft active:scale-[.97] transition"
               >
-                {showAllSuggestions ? "Tampilkan lebih sedikit" : `Lihat semua (+${hiddenCount})`}
+                {showAllSuggestions ? tr("Tampilkan lebih sedikit") : tr("Lihat semua (+{hiddenCount})", { hiddenCount })}
               </button>
             )}
           </div>

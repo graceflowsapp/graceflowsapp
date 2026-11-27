@@ -3,6 +3,7 @@
 import { forwardRef } from "react";
 import type { Ministry, Service, Slot, UserProfile } from "@/lib/types";
 import { formatDateLong, formatDateTimeLocal } from "@/lib/dates";
+import { tr } from "@/lib/i18n";
 
 export const POSTER_W = 1080;
 export const POSTER_H = 1350;
@@ -46,7 +47,7 @@ export const Poster = forwardRef<HTMLDivElement, { service: Service; ministry: M
     >
       <div style={{ position: "absolute", right: -160, top: -160, width: 520, height: 520, borderRadius: "50%", background: ministry.color, opacity: 0.25 }} />
       <div style={{ fontSize: 30, letterSpacing: 6, textTransform: "uppercase", opacity: 0.7 }}>{churchName}</div>
-      <div style={{ fontSize: 76, fontWeight: 800, lineHeight: 1.05, marginTop: 16 }}>Tim {ministry.name}</div>
+      <div style={{ fontSize: 76, fontWeight: 800, lineHeight: 1.05, marginTop: 16 }}>{tr("Tim")} {ministry.name}</div>
       <div style={{ fontSize: 38, marginTop: 18, fontWeight: 600 }}>{formatDateLong(service.date)}</div>
       <div style={{ fontSize: 30, marginTop: 8, opacity: 0.85 }}>
         {[service.title, service.session, `${service.time} WITA`].filter(Boolean).join(" · ")}
@@ -99,8 +100,8 @@ export const Poster = forwardRef<HTMLDivElement, { service: Service; ministry: M
       </div>
 
       <div style={{ display: "flex", justifyContent: "space-between", fontSize: 26, opacity: 0.85, borderTop: "2px solid rgba(255,255,255,.2)", paddingTop: 28 }}>
-        <span>{service.briefingTime ? `🙏 Doa ${service.briefingTime}` : ""}</span>
-        <span>{rehearsal ? `🎵 Latihan ${formatDateTimeLocal(rehearsal.at)}` : ""}</span>
+        <span>{service.briefingTime ? tr("🙏 Doa {briefingTime}", { briefingTime: service.briefingTime }) : ""}</span>
+        <span>{rehearsal ? tr("🎵 Latihan {p}", { p: formatDateTimeLocal(rehearsal.at) }) : ""}</span>
       </div>
     </div>
   );

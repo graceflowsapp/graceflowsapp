@@ -9,6 +9,7 @@ import { formatDateLong, formatDateTimeLocal, relativeDay, todayISO } from "@/li
 import { slotsForService, sortServices, swapCandidates } from "@/lib/scheduling";
 import type { Assignment, AttendanceStatus, Ministry, Service } from "@/lib/types";
 import { ask, celebrate, haptic } from "@/lib/feedback";
+import { tr } from "@/lib/i18n";
 
 export interface Duty {
   assignment: Assignment;
@@ -54,16 +55,16 @@ export function StatusBadge({ status }: { status?: AttendanceStatus }) {
   if (status === "confirmed")
     return (
       <Badge className="bg-success-soft text-success">
-        <Check size={11} /> Hadir
+        <Check size={11} /> {tr("Hadir")}
       </Badge>
     );
   if (status === "declined")
     return (
       <Badge className="bg-danger-soft text-danger-ink">
-        <X size={11} /> Berhalangan
+        <X size={11} /> {tr("Berhalangan")}
       </Badge>
     );
-  return <Badge className="bg-surface text-ink-soft">Belum konfirmasi</Badge>;
+  return <Badge className="bg-surface text-ink-soft">{tr("Belum konfirmasi")}</Badge>;
 }
 
 export function DutyCard({ duty, highlight }: { duty: Duty; highlight?: boolean }) {
@@ -75,15 +76,15 @@ export function DutyCard({ duty, highlight }: { duty: Duty; highlight?: boolean 
   const rehearsal = service.rehearsals?.[ministry.id];
   const status = assignment.status ?? "pending";
   const isPast = service.date < todayISO();
-  const swapTo = assignment.swapRequest ? users.find((u) => u.id === assignment.swapRequest!.to) ?? { name: "pengganti" } : null;
+  const swapTo = assignment.swapRequest ? users.find((u) => u.id === assignment.swapRequest!.to) ?? { name: tr("pengganti") } : null;
 
   const confirm = async () => {
     if (!me) return;
     setBusy(true);
     try {
       await respondAttendance({ a: assignment, me, service, status: "confirmed", users });
-      celebrate("Siap melayani! 🙌");
-      toast("Koordinator sudah diberi tahu");
+      celebrate(tr("Siap melayani! 🙌"));
+      toast(tr("Koordinator sudah diberi tahu"));
     } finally {
       setBusy(false);
     }
@@ -93,7 +94,7 @@ export function DutyCard({ duty, highlight }: { duty: Duty; highlight?: boolean 
     <Card className={cn("overflow-hidden", highlight && "border-brand/30")}>
       {highlight && (
         <div className="bg-brand text-white px-4 py-3">
-          <div className="text-[11px] uppercase tracking-wider opacity-80">Tugas berikutnya · {relativeDay(service.date)}</div>
+          <div className="text-[length:calc(11px*var(--fs))] uppercase tracking-wider opacity-80">{tr("Tugas berikutnya ·")} {relativeDay(service.date)}</div>
           <div className="text-lg font-bold">{formatDateLong(service.date)}</div>
         </div>
       )}
@@ -101,7 +102,7 @@ export function DutyCard({ duty, highlight }: { duty: Duty; highlight?: boolean 
         {!highlight && (
           <div className="flex items-center justify-between mb-1">
             <span className="text-sm font-semibold">{formatDateLong(service.date)}</span>
-            <span className="text-[11px] text-ink-soft">{relativeDay(service.date)}</span>
+            <span className="text-[length:calc(11px*var(--fs))] text-ink-soft">{relativeDay(service.date)}</span>
           </div>
         )}
         <div className="flex flex-wrap items-center gap-1.5">
@@ -114,7 +115,7 @@ export function DutyCard({ duty, highlight }: { duty: Duty; highlight?: boolean 
           {!highlight && <StatusBadge status={status} />}
         </div>
 
-        <div className="mt-3 grid gap-1.5 text-[13px] text-ink-soft">
+        <div className="mt-3 grid gap-1.5 text-[length:calc(13px*var(--fs))] text-ink-soft">
           {service.location && (
             <div className="flex items-center gap-2">
               <MapPin size={14} /> {service.location}
@@ -122,12 +123,12 @@ export function DutyCard({ duty, highlight }: { duty: Duty; highlight?: boolean 
           )}
           {service.briefingTime && (
             <div className="flex items-center gap-2">
-              <Clock size={14} /> Doa / briefing <b className="text-ink">{service.briefingTime}</b>
+              <Clock size={14} /> {tr("Doa / briefing")} <b className="text-ink">{service.briefingTime}</b>
             </div>
           )}
           {rehearsal && (
             <div className="flex items-center gap-2">
-              <Music2 size={14} /> Latihan <b className="text-ink">{formatDateTimeLocal(rehearsal.at)}</b>
+              <Music2 size={14} /> {tr("Latihan")} <b className="text-ink">{formatDateTimeLocal(rehearsal.at)}</b>
               {rehearsal.place && <span>@ {rehearsal.place}</span>}
             </div>
           )}
@@ -135,26 +136,26 @@ export function DutyCard({ duty, highlight }: { duty: Duty; highlight?: boolean 
 
         {/* Attendance */}
         {!isPast && swapTo && (
-          <div className="mt-4 rounded-xl bg-warning-soft text-warning-ink text-[13px] px-3 py-2 flex items-center gap-2">
+          <div className="mt-4 rounded-xl bg-warning-soft text-warning-ink text-[length:calc(13px*var(--fs))] px-3 py-2 flex items-center gap-2">
             <Repeat2 size={15} className="shrink-0" />
             <span className="flex-1">
-              Menunggu <b>{swapTo.name}</b> menerima permintaan tukar. Kamu masih terjadwal sampai dia menerima.
+              {tr("Menunggu")} <b>{swapTo.name}</b> {tr("menerima permintaan tukar. Kamu masih terjadwal sampai dia menerima.")}
             </span>
             <button
-              className="text-[12px] underline shrink-0"
+              className="text-[length:calc(12px*var(--fs))] underline shrink-0"
               disabled={busy}
               onClick={async () => {
-                if (!(await ask({ title: "Batalkan permintaan tukar?", message: `${swapTo.name} tidak jadi diminta menggantikan.`, confirmText: "Batalkan permintaan" }))) return;
+                if (!(await ask({ title: tr("Batalkan permintaan tukar?"), message: tr("{name} tidak jadi diminta menggantikan.", { name: swapTo.name }), confirmText: tr("Batalkan permintaan") }))) return;
                 setBusy(true);
                 try {
                   await cancelSwap(assignment);
-                  toast("Permintaan tukar dibatalkan");
+                  toast(tr("Permintaan tukar dibatalkan"));
                 } finally {
                   setBusy(false);
                 }
               }}
             >
-              Batalkan
+              {tr("Batalkan")}
             </button>
           </div>
         )}
@@ -162,32 +163,32 @@ export function DutyCard({ duty, highlight }: { duty: Duty; highlight?: boolean 
           <div className="mt-4">
             {status === "pending" && (
               <>
-                <p className="text-[13px] font-medium mb-2">Bisa hadir?</p>
+                <p className="text-[length:calc(13px*var(--fs))] font-medium mb-2">{tr("Bisa hadir?")}</p>
                 <div className="grid grid-cols-2 gap-2">
                   <Button variant="success" disabled={busy} onClick={confirm}>
-                    <Check size={16} /> Hadir
+                    <Check size={16} /> {tr("Hadir")}
                   </Button>
                   <Button variant="secondary" disabled={busy} onClick={() => setShowDecline(true)}>
-                    <X size={16} /> Berhalangan
+                    <X size={16} /> {tr("Berhalangan")}
                   </Button>
                 </div>
               </>
             )}
             {status === "confirmed" && (
-              <div className="flex items-center gap-2 rounded-xl bg-success-soft text-success text-[13px] px-3 py-2">
-                <Check size={15} /> <span className="flex-1">Kamu sudah konfirmasi hadir</span>
-                <button className="text-[12px] underline" onClick={() => setShowDecline(true)}>
-                  Berhalangan?
+              <div className="flex items-center gap-2 rounded-xl bg-success-soft text-success text-[length:calc(13px*var(--fs))] px-3 py-2">
+                <Check size={15} /> <span className="flex-1">{tr("Kamu sudah konfirmasi hadir")}</span>
+                <button className="text-[length:calc(12px*var(--fs))] underline" onClick={() => setShowDecline(true)}>
+                  {tr("Berhalangan?")}
                 </button>
               </div>
             )}
             {status === "declined" && (
-              <div className="flex items-center gap-2 rounded-xl bg-warning-soft text-warning-ink text-[13px] px-3 py-2">
+              <div className="flex items-center gap-2 rounded-xl bg-warning-soft text-warning-ink text-[length:calc(13px*var(--fs))] px-3 py-2">
                 <span className="flex-1">
-                  Berhalangan — menunggu pengganti{assignment.subRequest?.reason && <i> · {assignment.subRequest.reason}</i>}
+                  {tr("Berhalangan — menunggu pengganti")}{assignment.subRequest?.reason && <i> · {assignment.subRequest.reason}</i>}
                 </span>
-                <button className="text-[12px] underline shrink-0" disabled={busy} onClick={confirm}>
-                  Ternyata bisa
+                <button className="text-[length:calc(12px*var(--fs))] underline shrink-0" disabled={busy} onClick={confirm}>
+                  {tr("Ternyata bisa")}
                 </button>
               </div>
             )}
@@ -195,7 +196,7 @@ export function DutyCard({ duty, highlight }: { duty: Duty; highlight?: boolean 
         )}
 
         <Button variant="ghost" size="sm" className="w-full mt-2" onClick={() => setShowTeam(true)}>
-          <Users size={15} /> Lihat tim
+          <Users size={15} /> {tr("Lihat tim")}
         </Button>
       </div>
       <TeamModal open={showTeam} onClose={() => setShowTeam(false)} service={service} focusMinistry={ministry.id} />
@@ -216,7 +217,7 @@ export function TeamModal({ open, onClose, service, focusMinistry }: { open: boo
   return (
     <Modal open={open} onClose={onClose} title={`${service.title} · ${formatDateLong(service.date)}`}>
       {(service.session || service.location) && (
-        <p className="text-[13px] text-ink-soft -mt-1 mb-4 flex items-center gap-1.5">
+        <p className="text-[length:calc(13px*var(--fs))] text-ink-soft -mt-1 mb-4 flex items-center gap-1.5">
           <MapPin size={13} /> {[service.session, service.time, service.location].filter(Boolean).join(" · ")}
         </p>
       )}
@@ -225,7 +226,7 @@ export function TeamModal({ open, onClose, service, focusMinistry }: { open: boo
           <div className="flex items-center gap-2 mb-2">
             <span className="h-2.5 w-2.5 rounded-full" style={{ background: g[0].ministry.color }} />
             <span className="text-sm font-semibold">{g[0].ministry.name}</span>
-            {g[0].ministry.id === focusMinistry && <Badge>Tim kamu</Badge>}
+            {g[0].ministry.id === focusMinistry && <Badge>{tr("Tim kamu")}</Badge>}
           </div>
           <ul className="space-y-2">
             {g.map((s) => {
@@ -235,14 +236,14 @@ export function TeamModal({ open, onClose, service, focusMinistry }: { open: boo
                   <Avatar name={u?.name ?? "—"} src={u?.photoUrl} size={34} className={!u ? "opacity-30" : ""} />
                   <div className="min-w-0 flex-1">
                     <div className={cn("text-sm truncate", !u && "text-ink-soft italic")}>
-                      {u ? u.name : "Belum terisi"} {u?.id === me?.id && <span className="text-brand">(kamu)</span>}
+                      {u ? u.name : tr("Belum terisi")} {u?.id === me?.id && <span className="text-brand">{tr("(kamu)")}</span>}
                     </div>
-                    <div className="text-[11px] text-ink-soft">{s.position}</div>
+                    <div className="text-[length:calc(11px*var(--fs))] text-ink-soft">{s.position}</div>
                   </div>
-                  {u && s.assignment?.status === "confirmed" && <Check size={15} className="text-success" aria-label="Hadir" />}
+                  {u && s.assignment?.status === "confirmed" && <Check size={15} className="text-success" aria-label={tr("Hadir")} />}
                   {u?.phone && u.id !== me?.id && (
-                    <a className="text-[11px] text-success font-medium" href={`https://wa.me/${u.phone.replace(/\D/g, "").replace(/^0/, "62")}`} target="_blank" rel="noreferrer">
-                      Chat
+                    <a className="text-[length:calc(11px*var(--fs))] text-success font-medium" href={`https://wa.me/${u.phone.replace(/\D/g, "").replace(/^0/, "62")}`} target="_blank" rel="noreferrer">
+                      {tr("Chat")}
                     </a>
                   )}
                 </li>
@@ -264,7 +265,7 @@ function DeclineModal({ open, onClose, duty }: { open: boolean; onClose: () => v
   const [reason, setReason] = useState("");
   const [pickId, setPickId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const presets = ["Sakit", "Ujian / tugas kampus", "Di luar kota", "Acara keluarga", "Pekerjaan"];
+  const presets = [tr("Sakit"), tr("Ujian / tugas kampus"), tr("Di luar kota"), tr("Acara keluarga"), tr("Pekerjaan")];
   const candidates = useMemo(
     () => (open ? swapCandidates(duty.assignment, duty.service, users, services, assignments) : []),
     [open, duty, users, services, assignments],
@@ -277,7 +278,7 @@ function DeclineModal({ open, onClose, duty }: { open: boolean; onClose: () => v
     try {
       await requestSwap({ a: duty.assignment, me, to: picked, service: duty.service, reason: reason.trim() });
       haptic("success");
-      toast(`Permintaan tukar dikirim ke ${picked.name}`);
+      toast(tr("Permintaan tukar dikirim ke {name}", { name: picked.name }));
       onClose();
     } finally {
       setBusy(false);
@@ -286,12 +287,12 @@ function DeclineModal({ open, onClose, duty }: { open: boolean; onClose: () => v
 
   const handToCoordinator = async () => {
     if (!me) return;
-    if (!(await ask({ title: "Serahkan ke koordinator?", message: "Kamu akan dikeluarkan dari tugas ini dan koordinator akan mencari pengganti.", confirmText: "Serahkan", tone: "warning" }))) return;
+    if (!(await ask({ title: tr("Serahkan ke koordinator?"), message: tr("Kamu akan dikeluarkan dari tugas ini dan koordinator akan mencari pengganti."), confirmText: tr("Serahkan"), tone: "warning" }))) return;
     setBusy(true);
     try {
       await respondAttendance({ a: duty.assignment, me, service: duty.service, status: "declined", reason: reason.trim(), users });
       haptic("warning");
-      toast("Koordinator sudah diberi tahu 🙏");
+      toast(tr("Koordinator sudah diberi tahu 🙏"));
       onClose();
     } finally {
       setBusy(false);
@@ -299,9 +300,9 @@ function DeclineModal({ open, onClose, duty }: { open: boolean; onClose: () => v
   };
 
   return (
-    <Modal open={open} onClose={onClose} title="Berhalangan hadir">
+    <Modal open={open} onClose={onClose} title={tr("Berhalangan hadir")}>
       <p className="text-sm text-ink-soft mb-4">
-        {duty.assignment.position} · {formatDateLong(duty.service.date)}. Pilih pengganti yang tersedia. Kamu tetap terjadwal sampai dia menerima.
+        {duty.assignment.position} · {formatDateLong(duty.service.date)}{tr(". Pilih pengganti yang tersedia. Kamu tetap terjadwal sampai dia menerima.")}
       </p>
       <div className="flex flex-wrap gap-2 mb-3">
         {presets.map((p) => (
@@ -310,15 +311,15 @@ function DeclineModal({ open, onClose, duty }: { open: boolean; onClose: () => v
           </button>
         ))}
       </div>
-      <Field label="Alasan (opsional)">
-        <textarea className={inputCls} rows={2} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Ceritakan singkat…" />
+      <Field label={tr("Alasan (opsional)")}>
+        <textarea className={inputCls} rows={2} value={reason} onChange={(e) => setReason(e.target.value)} placeholder={tr("Ceritakan singkat…")} />
       </Field>
 
-      <p className="text-[13px] font-semibold mb-2 flex items-center gap-1.5">
-        <Repeat2 size={14} /> Tukar dengan yang tersedia
+      <p className="text-[length:calc(13px*var(--fs))] font-semibold mb-2 flex items-center gap-1.5">
+        <Repeat2 size={14} /> {tr("Tukar dengan yang tersedia")}
       </p>
       {candidates.length ? (
-        <ul className="space-y-1 -mx-1 mb-4 max-h-60 overflow-y-auto" role="radiogroup" aria-label="Pilih pengganti">
+        <ul className="space-y-1 -mx-1 mb-4 max-h-60 overflow-y-auto" role="radiogroup" aria-label={tr("Pilih pengganti")}>
           {candidates.map(({ u, load }) => (
             <li key={u.id}>
               <button
@@ -336,8 +337,8 @@ function DeclineModal({ open, onClose, duty }: { open: boolean; onClose: () => v
                 <Avatar name={u.name} src={u.photoUrl} size={34} />
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-medium truncate">{u.name}</div>
-                  <div className="text-[11px] text-ink-soft">
-                    <span className="text-success font-medium">Tersedia</span> · {load}× bulan ini
+                  <div className="text-[length:calc(11px*var(--fs))] text-ink-soft">
+                    <span className="text-success font-medium">{tr("Tersedia")}</span> · {load}{tr("× bulan ini")}
                   </div>
                 </div>
                 <span className={cn("h-5 w-5 rounded-full border-2 grid place-items-center shrink-0", pickId === u.id ? "border-brand" : "border-line")}>
@@ -348,23 +349,23 @@ function DeclineModal({ open, onClose, duty }: { open: boolean; onClose: () => v
           ))}
         </ul>
       ) : (
-        <p className="text-[13px] text-ink-soft rounded-xl bg-surface px-3 py-2 mb-4">Tidak ada pelayan lain yang tersedia untuk posisi ini di jadwal tersebut.</p>
+        <p className="text-[length:calc(13px*var(--fs))] text-ink-soft rounded-xl bg-surface px-3 py-2 mb-4">{tr("Tidak ada pelayan lain yang tersedia untuk posisi ini di jadwal tersebut.")}</p>
       )}
 
       {candidates.length > 0 && (
         <Button className="w-full" disabled={busy || !picked} onClick={sendSwap}>
-          <Repeat2 size={16} /> {picked ? `Minta ${picked.name.split(" ")[0]} menggantikan` : "Pilih pengganti dulu"}
+          <Repeat2 size={16} /> {picked ? tr("Minta {p} menggantikan", { p: picked.name.split(" ")[0] }) : tr("Pilih pengganti dulu")}
         </Button>
       )}
       <button
         className={cn(
           "w-full text-center",
-          candidates.length ? "mt-3 text-[12px] text-ink-soft underline" : "rounded-xl bg-warning text-white py-2.5 text-sm font-semibold",
+          candidates.length ? "mt-3 text-[length:calc(12px*var(--fs))] text-ink-soft underline" : "rounded-xl bg-warning text-white py-2.5 text-sm font-semibold",
         )}
         disabled={busy}
         onClick={handToCoordinator}
       >
-        {candidates.length ? "Tidak ada yang bisa? Serahkan ke koordinator" : "Serahkan ke koordinator"}
+        {candidates.length ? tr("Tidak ada yang bisa? Serahkan ke koordinator") : tr("Serahkan ke koordinator")}
       </button>
     </Modal>
   );

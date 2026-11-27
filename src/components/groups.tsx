@@ -15,6 +15,7 @@ import { ask, celebrate, haptic } from "@/lib/feedback";
 import { formatDateLong } from "@/lib/dates";
 import { assignmentId, availabilityNotes, canFill, declinedService, findConflicts, isActive, isAvailableForService, type AvailabilityNote } from "@/lib/scheduling";
 import type { Ministry, MinistryGroup, Service } from "@/lib/types";
+import { tr } from "@/lib/i18n";
 
 function rid() {
   return Math.random().toString(36).slice(2, 8) + Date.now().toString(36).slice(-4);
@@ -42,10 +43,10 @@ export function GroupsModal({ ministry, onClose }: { ministry: Ministry; onClose
   }
 
   return (
-    <Modal open onClose={onClose} title={`Grup ${ministry.name}`}>
-      <p className="text-[14px] text-ink-soft mb-4">Susun tim tetap (mis. Singer Grup A). Di Atur Jadwal, satu ibadah bisa langsung diisi dengan satu grup.</p>
+    <Modal open onClose={onClose} title={tr("Grup {name}", { name: ministry.name })}>
+      <p className="text-[length:calc(14px*var(--fs))] text-ink-soft mb-4">{tr("Susun tim tetap (mis. Singer Grup A). Di Atur Jadwal, satu ibadah bisa langsung diisi dengan satu grup.")}</p>
       {groups.length === 0 ? (
-        <p className="text-[14px] text-ink-soft rounded-xl bg-surface px-3 py-3 mb-4">Belum ada grup.</p>
+        <p className="text-[length:calc(14px*var(--fs))] text-ink-soft rounded-xl bg-surface px-3 py-3 mb-4">{tr("Belum ada grup.")}</p>
       ) : (
         <ul className="space-y-2 mb-4">
           {groups.map((g) => (
@@ -54,12 +55,12 @@ export function GroupsModal({ ministry, onClose }: { ministry: Ministry; onClose
                 <Users size={18} />
               </span>
               <div className="flex-1 min-w-0">
-                <div className="text-[15px] font-semibold">{g.name}</div>
-                <div className="text-[13px] text-ink-soft">
-                  {g.slots.length} orang · {g.slots.map((s) => nameOf(s.userId)).join(", ")}
+                <div className="text-[length:calc(15px*var(--fs))] font-semibold">{g.name}</div>
+                <div className="text-[length:calc(13px*var(--fs))] text-ink-soft">
+                  {g.slots.length} {tr("orang ·")} {g.slots.map((s) => nameOf(s.userId)).join(", ")}
                 </div>
               </div>
-              <button className="p-2 rounded-lg hover:bg-surface text-ink-soft" aria-label={`Ubah ${g.name}`} onClick={() => setEditing(g)}>
+              <button className="p-2 rounded-lg hover:bg-surface text-ink-soft" aria-label={tr("Ubah {name}", { name: g.name })} onClick={() => setEditing(g)}>
                 <Pencil size={17} />
               </button>
             </li>
@@ -67,7 +68,7 @@ export function GroupsModal({ ministry, onClose }: { ministry: Ministry; onClose
         </ul>
       )}
       <Button className="w-full" onClick={() => setEditing("new")}>
-        <Plus size={16} /> Buat grup baru
+        <Plus size={16} /> {tr("Buat grup baru")}
       </Button>
     </Modal>
   );
@@ -89,13 +90,13 @@ function GroupEditor({ ministry, group, onBack, onSaved }: { ministry: Ministry;
   const dupes = new Set(chosen.filter((id, i) => chosen.indexOf(id) !== i));
   const nameTaken = groups.some((g) => g.id !== group?.id && g.name.trim().toLowerCase() === name.trim().toLowerCase());
   const problem = !name.trim()
-    ? "Isi nama grup."
+    ? tr("Isi nama grup.")
     : nameTaken
-      ? "Nama grup sudah dipakai."
+      ? tr("Nama grup sudah dipakai.")
       : chosen.length === 0
-        ? "Pilih minimal satu orang."
+        ? tr("Pilih minimal satu orang.")
         : dupes.size
-          ? "Satu orang hanya bisa di satu posisi dalam grup yang sama."
+          ? tr("Satu orang hanya bisa di satu posisi dalam grup yang sama.")
           : null;
 
   const save = async () => {
@@ -117,23 +118,23 @@ function GroupEditor({ ministry, group, onBack, onSaved }: { ministry: Ministry;
 
   const remove = async () => {
     if (!group) return;
-    if (!(await ask({ title: `Hapus ${group.name}?`, message: "Jadwal yang sudah diisi dengan grup ini tetap ada.", confirmText: "Hapus", tone: "danger" }))) return;
+    if (!(await ask({ title: tr("Hapus {name}?", { name: group.name }), message: tr("Jadwal yang sudah diisi dengan grup ini tetap ada."), confirmText: tr("Hapus"), tone: "danger" }))) return;
     await saveGroups(ministry.id, groups.filter((g) => g.id !== group.id));
-    toast("Grup dihapus");
+    toast(tr("Grup dihapus"));
     onSaved();
   };
 
   return (
-    <Modal open onClose={onBack} title={group ? `Ubah ${group.name}` : "Grup baru"}>
-      <button onClick={onBack} className="flex items-center gap-1 text-[14px] text-ink-soft mb-3 -mt-1 hover:text-brand">
-        <ArrowLeft size={16} /> Semua grup
+    <Modal open onClose={onBack} title={group ? tr("Ubah {name}", { name: group.name }) : tr("Grup baru")}>
+      <button onClick={onBack} className="flex items-center gap-1 text-[length:calc(14px*var(--fs))] text-ink-soft mb-3 -mt-1 hover:text-brand">
+        <ArrowLeft size={16} /> {tr("Semua grup")}
       </button>
       <label className="block mb-4">
-        <span className="block text-sm font-medium text-ink-soft mb-1.5">Nama grup</span>
-        <input className={cn(inputCls, "text-[16px]")} value={name} onChange={(e) => setName(e.target.value)} placeholder="mis. Singer Grup A" />
+        <span className="block text-sm font-medium text-ink-soft mb-1.5">{tr("Nama grup")}</span>
+        <input className={cn(inputCls, "text-[length:max(16px,calc(16px*var(--fs)))]")} value={name} onChange={(e) => setName(e.target.value)} placeholder={tr("mis. Singer Grup A")} />
       </label>
 
-      <span className="block text-sm font-medium text-ink-soft mb-2">Siapa mengisi posisi apa</span>
+      <span className="block text-sm font-medium text-ink-soft mb-2">{tr("Siapa mengisi posisi apa")}</span>
       <ul className="space-y-2 mb-4">
         {ministry.positions.map((p) => {
           const v = seats[p] ?? "";
@@ -143,7 +144,7 @@ function GroupEditor({ ministry, group, onBack, onSaved }: { ministry: Ministry;
               <button
                 type="button"
                 onClick={() => setPickingFor(p)}
-                aria-label={`${p}: ${picked ? picked.name : "belum dipilih"}. Ketuk untuk memilih`}
+                aria-label={tr("{p}: {p2}. Ketuk untuk memilih", { p, p2: picked ? picked.name : tr("belum dipilih") })}
                 className={cn(
                   "w-full flex items-center gap-3 rounded-2xl border px-3 py-2.5 text-left active:scale-[.99] transition",
                   picked ? "border-line bg-card hover:border-brand" : "border-dashed border-line bg-surface hover:border-brand",
@@ -158,9 +159,9 @@ function GroupEditor({ ministry, group, onBack, onSaved }: { ministry: Ministry;
                   </span>
                 )}
                 <span className="flex-1 min-w-0">
-                  <span className="block text-[12px] text-ink-soft">{p}</span>
-                  <span className={cn("block text-[16px] truncate", picked ? "font-semibold" : "text-ink-soft")}>{picked ? picked.name : "Pilih orang"}</span>
-                  {picked && !canFill(picked, ministry.id, p) && <span className="block text-[12px] text-warning-ink">Biasanya bukan posisinya</span>}
+                  <span className="block text-[length:calc(12px*var(--fs))] text-ink-soft">{p}</span>
+                  <span className={cn("block text-[length:max(16px,calc(16px*var(--fs)))] truncate", picked ? "font-semibold" : "text-ink-soft")}>{picked ? picked.name : tr("Pilih orang")}</span>
+                  {picked && !canFill(picked, ministry.id, p) && <span className="block text-[length:calc(12px*var(--fs))] text-warning-ink">{tr("Biasanya bukan posisinya")}</span>}
                 </span>
                 <ChevronRight size={18} className="text-ink-soft shrink-0" />
               </button>
@@ -170,10 +171,10 @@ function GroupEditor({ ministry, group, onBack, onSaved }: { ministry: Ministry;
       </ul>
       <PersonPicker
         open={pickingFor !== null}
-        title={pickingFor ? `Pilih ${pickingFor}` : ""}
-        subtitle={name.trim() || "Grup baru"}
+        title={pickingFor ? tr("Pilih {pickingFor}", { pickingFor }) : ""}
+        subtitle={name.trim() || tr("Grup baru")}
         selectedId={pickingFor ? seats[pickingFor] || null : null}
-        clearLabel="Kosongkan posisi ini"
+        clearLabel={tr("Kosongkan posisi ini")}
         people={members.map((m) => {
           const elsewhere = Object.entries(seats).find(([pos, id]) => id === m.id && pos !== pickingFor)?.[0];
           const skilled = pickingFor ? canFill(m, ministry.id, pickingFor) : true;
@@ -181,12 +182,12 @@ function GroupEditor({ ministry, group, onBack, onSaved }: { ministry: Ministry;
             user: m,
             muted: !skilled,
             notes: [
-              ...(elsewhere ? [`Sekarang di ${elsewhere} (akan dipindah)`] : []),
-              ...(!skilled ? ["Biasanya bukan posisinya"] : []),
+              ...(elsewhere ? [tr("Sekarang di {elsewhere} (akan dipindah)", { elsewhere })] : []),
+              ...(!skilled ? [tr("Biasanya bukan posisinya")] : []),
             ],
           };
         })}
-        emptyText="Belum ada anggota di komisi ini."
+        emptyText={tr("Belum ada anggota di komisi ini.")}
         onPick={(id) => {
           if (!pickingFor) return;
           setSeats((s) => {
@@ -199,16 +200,16 @@ function GroupEditor({ ministry, group, onBack, onSaved }: { ministry: Ministry;
         }}
         onClose={() => setPickingFor(null)}
       />
-      {problem && (name || chosen.length > 0) && <p className="text-[13px] text-danger-ink mb-3">{problem}</p>}
+      {problem && (name || chosen.length > 0) && <p className="text-[length:calc(13px*var(--fs))] text-danger-ink mb-3">{problem}</p>}
 
       <div className="flex gap-2">
         {group && (
-          <Button variant="danger" onClick={remove} aria-label="Hapus grup">
+          <Button variant="danger" onClick={remove} aria-label={tr("Hapus grup")}>
             <Trash2 size={16} />
           </Button>
         )}
         <Button className="flex-1" disabled={busy || !!problem} onClick={save}>
-          Simpan grup
+          {tr("Simpan grup")}
         </Button>
       </div>
     </Modal>
@@ -244,7 +245,7 @@ export function GroupFillModal({ service, ministry, onClose }: { service: Servic
         const notes: AvailabilityNote[] = u
           ? availabilityNotes(u, service, { services, assignments, ministries, ignoreAssignmentId: slotId, ignoreAssignmentIds: groupSlotIds, ministryId: ministry.id, position: s.position })
           : [];
-        if (!u || !isActive(u)) notes.unshift({ kind: "off", text: "Sudah tidak aktif / keluar dari gereja" });
+        if (!u || !isActive(u)) notes.unshift({ kind: "off", text: tr("Sudah tidak aktif / keluar dari gereja") });
         const blocked = notes.some((n) => n.kind !== "info");
         return { s, slotId, current, u, notes, blocked, same: current === s.userId };
       });
@@ -280,9 +281,9 @@ export function GroupFillModal({ service, ministry, onClose }: { service: Servic
     if (
       replacing.length &&
       !(await ask({
-        title: `Ganti ${replacing.length} orang yang sudah terjadwal?`,
-        message: `${replacing.join(", ")} akan dikeluarkan dari slotnya dan diberi notifikasi.`,
-        confirmText: "Ya, jadwalkan",
+        title: tr("Ganti {n} orang yang sudah terjadwal?", { n: replacing.length }),
+        message: tr("{p} akan dikeluarkan dari slotnya dan diberi notifikasi.", { p: replacing.join(", ") }),
+        confirmText: tr("Ya, jadwalkan"),
         tone: "warning",
       }))
     )
@@ -305,7 +306,7 @@ export function GroupFillModal({ service, ministry, onClose }: { service: Servic
       }
       haptic("success");
       celebrate(`${group.name} dijadwalkan`);
-      toast(`${changes.length} pelayan diberi notifikasi`);
+      toast(tr("{n} pelayan diberi notifikasi", { n: changes.length }));
       onClose();
     } finally {
       setBusy(false);
@@ -313,13 +314,13 @@ export function GroupFillModal({ service, ministry, onClose }: { service: Servic
   };
 
   return (
-    <Modal open onClose={onClose} title="Isi dengan grup">
-      <p className="text-[14px] text-ink-soft mb-3">
+    <Modal open onClose={onClose} title={tr("Isi dengan grup")}>
+      <p className="text-[length:calc(14px*var(--fs))] text-ink-soft mb-3">
         {service.title} · {formatDateLong(service.date)} {service.time}
       </p>
 
       {/* pick a group */}
-      <div className="flex flex-wrap gap-2 mb-4" role="radiogroup" aria-label="Pilih grup">
+      <div className="flex flex-wrap gap-2 mb-4" role="radiogroup" aria-label={tr("Pilih grup")}>
         {groups.map((g) => (
           <button
             key={g.id}
@@ -330,7 +331,7 @@ export function GroupFillModal({ service, ministry, onClose }: { service: Servic
               setGroupId(g.id);
             }}
             className={cn(
-              "min-h-10 rounded-full border px-4 py-2 text-[15px] font-medium active:scale-[.97] transition",
+              "min-h-10 rounded-full border px-4 py-2 text-[length:calc(15px*var(--fs))] font-medium active:scale-[.97] transition",
               g.id === groupId ? "text-white border-transparent shadow-sm" : "bg-card border-line text-ink",
             )}
             style={g.id === groupId ? { background: ministry.color } : undefined}
@@ -341,10 +342,10 @@ export function GroupFillModal({ service, ministry, onClose }: { service: Servic
       </div>
 
       {group && unavailable > 0 && (
-        <div className="rounded-xl bg-warning-soft text-warning-ink text-[13px] px-3 py-2 mb-3 flex items-start gap-2">
+        <div className="rounded-xl bg-warning-soft text-warning-ink text-[length:calc(13px*var(--fs))] px-3 py-2 mb-3 flex items-start gap-2">
           <UserX size={15} className="mt-0.5 shrink-0" />
           <span>
-            {unavailable} anggota tidak tersedia untuk ibadah ini. Pilih <b>Ganti</b> untuk menukar dengan orang lain, atau biarkan <b>Lewati</b>.
+            {unavailable} {tr("anggota tidak tersedia untuk ibadah ini. Pilih")} <b>{tr("Ganti")}</b> {tr("untuk menukar dengan orang lain, atau biarkan")} <b>{tr("Lewati")}</b>.
           </span>
         </div>
       )}
@@ -358,18 +359,18 @@ export function GroupFillModal({ service, ministry, onClose }: { service: Servic
               <div className="flex items-start gap-3">
                 <Avatar name={r.u?.name ?? "?"} src={r.u?.photoUrl} size={36} className={cn(r.blocked && "opacity-60")} />
                 <div className="flex-1 min-w-0">
-                  <div className="text-[12px] text-ink-soft">{r.s.position}</div>
-                  <div className={cn("text-[15px] font-medium truncate", r.blocked && "text-ink-soft line-through decoration-1")}>{r.u?.name ?? "Anggota dihapus"}</div>
+                  <div className="text-[length:calc(12px*var(--fs))] text-ink-soft">{r.s.position}</div>
+                  <div className={cn("text-[length:calc(15px*var(--fs))] font-medium truncate", r.blocked && "text-ink-soft line-through decoration-1")}>{r.u?.name ?? tr("Anggota dihapus")}</div>
                   <NoteList notes={r.notes} />
                   {r.same ? (
-                    <div className={cn("text-[12px] mt-0.5", r.blocked ? "text-ink-soft" : "text-success")}>Sudah terjadwal di slot ini</div>
+                    <div className={cn("text-[length:calc(12px*var(--fs))] mt-0.5", r.blocked ? "text-ink-soft" : "text-success")}>{tr("Sudah terjadwal di slot ini")}</div>
                   ) : (
                     r.current &&
                     targets[i] &&
-                    targets[i] !== r.current && <div className="text-[12px] text-ink-soft mt-0.5">Menggantikan {nameOf(r.current)} di slot ini</div>
+                    targets[i] !== r.current && <div className="text-[length:calc(12px*var(--fs))] text-ink-soft mt-0.5">{tr("Menggantikan")} {nameOf(r.current)} {tr("di slot ini")}</div>
                   )}
                 </div>
-                {!r.blocked && !r.same && <Badge className="bg-success-soft text-success">Tersedia</Badge>}
+                {!r.blocked && !r.same && <Badge className="bg-success-soft text-success">{tr("Tersedia")}</Badge>}
               </div>
 
               {/* every row: fill with the member (if available), skip, or switch with someone else */}
@@ -380,28 +381,28 @@ export function GroupFillModal({ service, ministry, onClose }: { service: Servic
                     <button
                       onClick={() => setChoice(r, { mode: "fill" })}
                       aria-pressed={c.mode === "fill"}
-                      className={cn("min-h-10 rounded-xl border text-[14px] font-medium", c.mode === "fill" ? "border-success bg-success-soft text-success" : "border-line text-ink-soft")}
+                      className={cn("min-h-10 rounded-xl border text-[length:calc(14px*var(--fs))] font-medium", c.mode === "fill" ? "border-success bg-success-soft text-success" : "border-line text-ink-soft")}
                     >
-                      Isi
+                      {tr("Isi")}
                     </button>
                   )}
                   <button
                     onClick={() => setChoice(r, { mode: "skip" })}
                     aria-pressed={c.mode === "skip"}
-                    className={cn("min-h-10 rounded-xl border text-[14px] font-medium", c.mode === "skip" ? "border-ink bg-card text-ink" : "border-line text-ink-soft")}
+                    className={cn("min-h-10 rounded-xl border text-[length:calc(14px*var(--fs))] font-medium", c.mode === "skip" ? "border-ink bg-card text-ink" : "border-line text-ink-soft")}
                   >
-                    Lewati
+                    {tr("Lewati")}
                   </button>
                   <button
                     onClick={() => options.length && setPickRow(r.slotId)}
                     disabled={!options.length && c.mode !== "replace"}
                     aria-pressed={c.mode === "replace"}
                     className={cn(
-                      "min-h-10 rounded-xl border text-[14px] font-medium disabled:opacity-40",
+                      "min-h-10 rounded-xl border text-[length:calc(14px*var(--fs))] font-medium disabled:opacity-40",
                       c.mode === "replace" ? "border-brand bg-brand-soft text-brand" : "border-line text-ink-soft",
                     )}
                   >
-                    {options.length || c.mode === "replace" ? "Ganti" : "Tak ada pengganti"}
+                    {options.length || c.mode === "replace" ? tr("Ganti") : tr("Tak ada pengganti")}
                   </button>
                   {c.mode === "replace" && (
                     <button
@@ -414,25 +415,25 @@ export function GroupFillModal({ service, ministry, onClose }: { service: Servic
                     >
                       <Avatar name={nameOf(c.userId)} src={users.find((u) => u.id === c.userId)?.photoUrl} size={36} className="shrink-0" />
                       <span className="flex-1 min-w-0">
-                        <span className="block text-[12px] text-brand">Pengganti</span>
-                        <span className="block text-[15px] font-semibold truncate">{nameOf(c.userId)}</span>
+                        <span className="block text-[length:calc(12px*var(--fs))] text-brand">{tr("Pengganti")}</span>
+                        <span className="block text-[length:calc(15px*var(--fs))] font-semibold truncate">{nameOf(c.userId)}</span>
                       </span>
-                      <span className="text-[13px] font-semibold text-brand shrink-0">Ubah</span>
+                      <span className="text-[length:calc(13px*var(--fs))] font-semibold text-brand shrink-0">{tr("Ubah")}</span>
                     </button>
                   )}
                   <PersonPicker
                     open={pickRow === r.slotId}
-                    title={`Pengganti ${r.s.position}`}
-                    subtitle={`untuk ${r.u?.name ?? "anggota"} · ${formatDateLong(service.date)}`}
+                    title={tr("Pengganti {position}", { position: r.s.position })}
+                    subtitle={tr("untuk {p} · {p2}", { p: r.u?.name ?? tr("anggota"), p2: formatDateLong(service.date) })}
                     selectedId={c.mode === "replace" ? c.userId : null}
-                    people={options.map((o) => ({ user: o, notes: ["Tersedia"] }))}
-                    emptyText="Tidak ada orang lain yang tersedia untuk posisi ini."
+                    people={options.map((o) => ({ user: o, notes: [tr("Tersedia")] }))}
+                    emptyText={tr("Tidak ada orang lain yang tersedia untuk posisi ini.")}
                     onPick={(id) => id && setChoice(r, { mode: "replace", userId: id })}
                     onClose={() => setPickRow(null)}
                   />
                   {c.mode === "skip" && (
-                    <p className={cn("text-[12px] text-ink-soft", r.blocked ? "col-span-2" : "col-span-3")}>
-                      Slot {r.s.position} dibiarkan seperti sekarang{r.current ? ` (${nameOf(r.current)})` : " (kosong)"}.
+                    <p className={cn("text-[length:calc(12px*var(--fs))] text-ink-soft", r.blocked ? "col-span-2" : "col-span-3")}>
+                      {tr("Slot")} {r.s.position} {tr("dibiarkan seperti sekarang")}{r.current ? ` (${nameOf(r.current)})` : tr(" (kosong)")}.
                     </p>
                   )}
                 </div>
@@ -443,12 +444,12 @@ export function GroupFillModal({ service, ministry, onClose }: { service: Servic
       </ul>
 
       {doubled.length > 0 && (
-        <p className="rounded-xl bg-danger-soft text-danger-ink text-[13px] px-3 py-2 mb-3">
-          {doubled.map((id) => nameOf(id)).join(", ")} akan bertugas di dua posisi. Pilih <b>Ganti</b> atau <b>Lewati</b> pada salah satu slot.
+        <p className="rounded-xl bg-danger-soft text-danger-ink text-[length:calc(13px*var(--fs))] px-3 py-2 mb-3">
+          {doubled.map((id) => nameOf(id)).join(", ")} {tr("akan bertugas di dua posisi. Pilih")} <b>{tr("Ganti")}</b> {tr("atau")} <b>{tr("Lewati")}</b> {tr("pada salah satu slot.")}
         </p>
       )}
       <Button className="w-full" disabled={busy || !group || changes.length === 0 || doubled.length > 0} onClick={apply}>
-        <Users size={16} /> {changes.length ? `Jadwalkan ${changes.length} orang` : "Tidak ada perubahan"}
+        <Users size={16} /> {changes.length ? tr("Jadwalkan {n} orang", { n: changes.length }) : tr("Tidak ada perubahan")}
       </Button>
     </Modal>
   );
@@ -459,7 +460,7 @@ function NoteList({ notes }: { notes: AvailabilityNote[] }) {
   return (
     <ul className="mt-0.5 space-y-0.5">
       {notes.map((n, i) => (
-        <li key={i} className={cn("text-[12px] leading-snug", n.kind === "conflict" ? "text-danger-ink" : n.kind === "declined" ? "text-warning-ink" : "text-ink-soft")}>
+        <li key={i} className={cn("text-[length:calc(12px*var(--fs))] leading-snug", n.kind === "conflict" ? "text-danger-ink" : n.kind === "declined" ? "text-warning-ink" : "text-ink-soft")}>
           {n.text}
         </li>
       ))}

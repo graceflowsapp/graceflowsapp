@@ -3,6 +3,7 @@
 import { useEffect, useState, type ComponentProps, type ReactNode } from "react";
 import { X } from "lucide-react";
 import { haptic } from "@/lib/feedback";
+import { tr } from "@/lib/i18n";
 
 export function cn(...c: (string | false | null | undefined)[]) {
   return c.filter(Boolean).join(" ");
@@ -85,7 +86,7 @@ export function Avatar({ name, src, size = 40, className }: { name?: string; src
 export function Badge({ children, color, className }: { children: ReactNode; color?: string; className?: string }) {
   return (
     <span
-      className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium", !color && "bg-surface text-ink-soft", className)}
+      className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[length:calc(11px*var(--fs))] font-medium", !color && "bg-surface text-ink-soft", className)}
       style={color ? { background: `${color}1f`, color } : undefined}
     >
       {children}
@@ -142,7 +143,7 @@ export function Modal({ open, onClose, title, children, wide }: { open: boolean;
       >
         <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-line">
           <h3 className="font-semibold text-ink">{title}</h3>
-          <button onClick={onClose} className="p-1.5 -mr-1.5 rounded-lg hover:bg-surface" aria-label="Tutup">
+          <button onClick={onClose} className="p-1.5 -mr-1.5 rounded-lg hover:bg-surface" aria-label={tr("Tutup")}>
             <X size={18} />
           </button>
         </div>
@@ -157,7 +158,7 @@ export function Field({ label, children, hint }: { label: string; children: Reac
     <label className="block mb-3">
       <span className="block text-xs font-medium text-ink-soft mb-1">{label}</span>
       {children}
-      {hint && <span className="block text-[11px] text-ink-soft mt-1">{hint}</span>}
+      {hint && <span className="block text-[length:calc(11px*var(--fs))] text-ink-soft mt-1">{hint}</span>}
     </label>
   );
 }

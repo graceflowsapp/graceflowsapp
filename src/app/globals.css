@@ -24,10 +24,21 @@
   --color-card: #ffffff; /* cards, sheets, inputs */
 
   --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+
+  /* Text sizes follow the "Ukuran teks" setting (Profil → Tampilan): --fs on <html>, 1 = normal.
+     Arbitrary sizes in the code use text-[length:calc(Npx*var(--fs))] for the same reason. */
+  --text-xs: calc(0.75rem * var(--fs));
+  --text-sm: calc(0.875rem * var(--fs));
+  --text-base: calc(1rem * var(--fs));
+  --text-lg: calc(1.125rem * var(--fs));
+  --text-xl: calc(1.25rem * var(--fs));
+  --text-2xl: calc(1.5rem * var(--fs));
+  --text-3xl: calc(1.875rem * var(--fs));
 }
 
 :root {
   color-scheme: light;
+  --fs: 1;
 }
 
 /* ---------- Dark mode (set by src/lib/theme.ts on <html data-theme="dark">) ---------- */
@@ -71,6 +82,7 @@ body {
 
 body {
   font-family: var(--font-sans);
+  font-size: calc(1rem * var(--fs));
   transition: background-color 0.2s ease;
 }
 

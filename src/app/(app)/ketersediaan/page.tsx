@@ -10,6 +10,7 @@ import { formatDateLong, formatDateShort, toISODate, todayISO } from "@/lib/date
 import { isAvailableNow, isAvailableOn, isPositionOn, positionKey, rolesFor } from "@/lib/scheduling";
 import type { Service } from "@/lib/types";
 import { ask } from "@/lib/feedback";
+import { tr } from "@/lib/i18n";
 
 const SEASONS = ["Ujian Kampus", "Cuti", "Di Luar Kota", "Sakit / Pemulihan", "Fokus Keluarga", "Istirahat Pelayanan"];
 const WEEKS_AHEAD = 8;
@@ -32,7 +33,7 @@ export default function AvailabilityPage() {
   if (me.ministries.length === 0) {
     return (
       <Card>
-        <Empty icon={<CalendarOff size={20} />} title="Kamu belum terdaftar di bidang pelayanan" body="Minta Superadmin menambahkanmu ke bidang pelayanan terlebih dahulu." />
+        <Empty icon={<CalendarOff size={20} />} title={tr("Kamu belum terdaftar di bidang pelayanan")} body={tr("Minta Superadmin menambahkanmu ke bidang pelayanan terlebih dahulu.")} />
       </Card>
     );
   }
@@ -48,10 +49,10 @@ export default function AvailabilityPage() {
     const duties = myDutiesIn(s);
     if (!on && duties.length) {
       const ok = await ask({
-        title: "Kamu sudah dijadwalkan",
-        message: `Kamu bertugas sebagai ${duties.map((d) => d.position).join(", ")} di ibadah ini. Mematikan berarti kamu berhalangan, dan koordinator akan diberi tahu.`,
-        confirmText: "Ya, berhalangan",
-        cancelText: "Tetap ON",
+        title: tr("Kamu sudah dijadwalkan"),
+        message: tr("Kamu bertugas sebagai {p} di ibadah ini. Mematikan berarti kamu berhalangan, dan koordinator akan diberi tahu.", { p: duties.map((d) => d.position).join(", ") }),
+        confirmText: tr("Ya, berhalangan"),
+        cancelText: tr("Tetap ON"),
         tone: "warning",
       });
       if (!ok) return;
@@ -61,10 +62,10 @@ export default function AvailabilityPage() {
       await updateProfile(me.id, { unavailableServices: on ? offServices.filter((x) => x !== s.id) : [...new Set([...offServices, s.id])] });
       if (!on) {
         for (const a of duties.filter((d) => d.status !== "declined")) {
-          await respondAttendance({ a, me, service: s, status: "declined", reason: "OFF di halaman ketersediaan", users });
+          await respondAttendance({ a, me, service: s, status: "declined", reason: tr("OFF di halaman ketersediaan"), users });
         }
       }
-      toast(on ? "ON — bisa melayani" : duties.length ? "OFF — koordinator sudah diberi tahu" : "OFF — kamu tidak akan dijadwalkan");
+      toast(on ? tr("ON — bisa melayani") : duties.length ? tr("OFF — koordinator sudah diberi tahu") : tr("OFF — kamu tidak akan dijadwalkan"));
     } finally {
       setBusyId(null);
     }
@@ -76,30 +77,30 @@ export default function AvailabilityPage() {
 
   const setGeneral = async (on: boolean) => {
     if (on) await updateProfile(me.id, { available: true, unavailableReason: "", unavailableUntil: "" });
-    else await updateProfile(me.id, { available: false, unavailableReason: me.unavailableReason || SEASONS[0] });
+    else await updateProfile(me.id, { available: false, unavailableReason: me.unavailableReason || tr(SEASONS[0]) });
   };
 
   return (
     <div>
-      <h1 className="text-xl font-bold">Availability (Ketersediaan)</h1>
-      <p className="text-sm text-ink-soft mt-0.5 mb-5">Toggle ON / OFF jadwal ibadah dan peran pelayanan yang bisa kamu layani.</p>
+      <h1 className="text-xl font-bold">{tr("Availability (Ketersediaan)")}</h1>
+      <p className="text-sm text-ink-soft mt-0.5 mb-5">{tr("Toggle ON / OFF jadwal ibadah dan peran pelayanan yang bisa kamu layani.")}</p>
 
       {/* General / season status */}
       <Card className={cn("p-4", !generalOn && "border-warning/40 bg-warning-soft/40")}>
         <Row
-          title="Status umum"
-          subtitle={generalOn ? "Siap dijadwalkan di semua ibadah" : `Sedang rehat · ${me.unavailableReason || "tidak tersedia"}${me.unavailableUntil ? ` s/d ${formatDateShort(me.unavailableUntil)}` : ""}`}
+          title={tr("Status umum")}
+          subtitle={generalOn ? tr("Siap dijadwalkan di semua ibadah") : tr("Sedang rehat · {p}{p2}", { p: me.unavailableReason || tr("tidak tersedia"), p2: me.unavailableUntil ? ` s/d ${formatDateShort(me.unavailableUntil)}` : "" })}
           on={generalOn}
-          onLabel="ON (Siap)"
-          offLabel="OFF (Rehat)"
+          onLabel={tr("ON (Siap)")}
+          offLabel={tr("OFF (Rehat)")}
           onChange={setGeneral}
           icon={!generalOn ? <Moon size={16} className="text-warning-ink" /> : undefined}
         />
         {!generalOn && (
           <div className="mt-4 pt-4 border-t border-line">
-            <p className="text-xs font-medium text-ink-soft mb-2">Musim hidup</p>
+            <p className="text-xs font-medium text-ink-soft mb-2">{tr("Musim hidup")}</p>
             <div className="flex flex-wrap gap-2 mb-3">
-              {SEASONS.map((s) => (
+              {SEASONS.map((x) => tr(x)).map((s) => (
                 <button
                   key={s}
                   onClick={() => updateProfile(me.id, { unavailableReason: s })}
@@ -109,7 +110,7 @@ export default function AvailabilityPage() {
                 </button>
               ))}
             </div>
-            <Field label="Aktif kembali otomatis setelah" hint="Kosongkan jika belum tahu.">
+            <Field label={tr("Aktif kembali otomatis setelah")} hint={tr("Kosongkan jika belum tahu.")}>
               <input type="date" className={inputCls} value={me.unavailableUntil ?? ""} onChange={(e) => updateProfile(me.id, { unavailableUntil: e.target.value })} />
             </Field>
           </div>
@@ -117,11 +118,11 @@ export default function AvailabilityPage() {
       </Card>
 
       {/* Per service */}
-      <h2 className="font-semibold mt-7">Ketersediaan Jadwal Ibadah</h2>
-      <p className="text-[13px] text-ink-soft mb-3">Matikan (OFF) jika kamu berhalangan hadir pada ibadah tertentu.</p>
+      <h2 className="font-semibold mt-7">{tr("Ketersediaan Jadwal Ibadah")}</h2>
+      <p className="text-[length:calc(13px*var(--fs))] text-ink-soft mb-3">{tr("Matikan (OFF) jika kamu berhalangan hadir pada ibadah tertentu.")}</p>
       {upcoming.length === 0 ? (
         <Card>
-          <Empty icon={<CalendarOff size={20} />} title="Belum ada ibadah mendatang" />
+          <Empty icon={<CalendarOff size={20} />} title={tr("Belum ada ibadah mendatang")} />
         </Card>
       ) : (
         <Card className="divide-y divide-line">
@@ -136,10 +137,10 @@ export default function AvailabilityPage() {
                       {[s.title, s.session].filter(Boolean).join(" · ")} <ServiceLabel label={s.label} />
                     </span>
                   }
-                  subtitle={`${formatDateLong(s.date)} • Pkl ${s.time}${s.location ? ` • ${s.location}` : ""}`}
+                  subtitle={tr("{p} • Pkl {time}{p2}", { p: formatDateLong(s.date), time: s.time, p2: s.location ? ` • ${s.location}` : "" })}
                   on={!seasonOff && !offServices.includes(s.id)}
-                  onLabel="ON (Bisa Melayani)"
-                  offLabel={seasonOff ? "OFF (Status umum)" : "OFF (Berhalangan)"}
+                  onLabel={tr("ON (Bisa Melayani)")}
+                  offLabel={seasonOff ? tr("OFF (Status umum)") : tr("OFF (Berhalangan)")}
                   disabled={seasonOff || busyId === s.id}
                   onChange={(v) => toggleService(s, v)}
                 />
@@ -147,7 +148,7 @@ export default function AvailabilityPage() {
                   <div className="mt-2 flex flex-wrap gap-1">
                     {duties.map((d) => (
                       <Badge key={d.id} className="bg-brand-soft text-brand">
-                        Bertugas: {d.position}
+                        {tr("Bertugas:")} {d.position}
                       </Badge>
                     ))}
                   </div>
@@ -159,8 +160,8 @@ export default function AvailabilityPage() {
       )}
 
       {/* Per role */}
-      <h2 className="font-semibold mt-7">Ketersediaan Peran (Role)</h2>
-      <p className="text-[13px] text-ink-soft mb-3">Toggle ON / OFF peran pelayanan yang siap kamu jalankan.</p>
+      <h2 className="font-semibold mt-7">{tr("Ketersediaan Peran (Role)")}</h2>
+      <p className="text-[length:calc(13px*var(--fs))] text-ink-soft mb-3">{tr("Toggle ON / OFF peran pelayanan yang siap kamu jalankan.")}</p>
       <div className="space-y-3">
         {roles.map(({ ministry, positions }) => (
           <Card key={ministry.id} className="overflow-hidden">
@@ -175,10 +176,10 @@ export default function AvailabilityPage() {
                   <div key={key} className="px-4 py-3.5">
                     <Row
                       title={p}
-                      subtitle="Ketersediaan melayani untuk peran ini"
+                      subtitle={tr("Ketersediaan melayani untuk peran ini")}
                       on={isPositionOn(me, ministry.id, p)}
-                      onLabel="ON (Siap)"
-                      offLabel="OFF (Tidak siap)"
+                      onLabel={tr("ON (Siap)")}
+                      offLabel={tr("OFF (Tidak siap)")}
                       onChange={(v) => toggleRole(key, v)}
                     />
                   </div>
@@ -188,7 +189,7 @@ export default function AvailabilityPage() {
           </Card>
         ))}
       </div>
-      <p className="text-[12px] text-ink-soft mt-3">Tugas yang sudah dijadwalkan tetap berlaku. Jika berhalangan, gunakan tombol “Berhalangan” di tugas tersebut.</p>
+      <p className="text-[length:calc(12px*var(--fs))] text-ink-soft mt-3">{tr("Tugas yang sudah dijadwalkan tetap berlaku. Jika berhalangan, gunakan tombol “Berhalangan” di tugas tersebut.")}</p>
     </div>
   );
 }
@@ -217,11 +218,11 @@ function Row({
       {icon}
       <div className="flex-1 min-w-0">
         <div className="text-sm font-semibold">{title}</div>
-        <div className="text-[12px] text-ink-soft">{subtitle}</div>
-        <div className={cn("text-[11px] font-semibold mt-1", on ? "text-success" : "text-danger-ink")}>{on ? onLabel : offLabel}</div>
+        <div className="text-[length:calc(12px*var(--fs))] text-ink-soft">{subtitle}</div>
+        <div className={cn("text-[length:calc(11px*var(--fs))] font-semibold mt-1", on ? "text-success" : "text-danger-ink")}>{on ? onLabel : offLabel}</div>
       </div>
       <div className={cn(disabled && "opacity-50 pointer-events-none")}>
-        <Toggle checked={on} onChange={onChange} label={typeof title === "string" ? title : "Ketersediaan"} />
+        <Toggle checked={on} onChange={onChange} label={typeof title === "string" ? title : tr("Ketersediaan")} />
       </div>
     </div>
   );

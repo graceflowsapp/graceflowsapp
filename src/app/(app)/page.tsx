@@ -10,6 +10,7 @@ import { acceptSwap, rejectSwap, takeSubstitute } from "@/lib/actions";
 import { formatDateLong, formatDateShort, todayISO } from "@/lib/dates";
 import { canFill, findConflicts, isAvailableNow, statsFor } from "@/lib/scheduling";
 import { ask, celebrate, haptic } from "@/lib/feedback";
+import { tr } from "@/lib/i18n";
 
 const VERSES = [
   ["Marilah kepada-Ku, semua yang letih lesu dan berbeban berat, Aku akan memberi kelegaan kepadamu.", "Matius 11:28"],
@@ -21,7 +22,7 @@ const VERSES = [
 
 function greeting() {
   const h = new Date().getHours();
-  return h < 11 ? "Selamat pagi" : h < 15 ? "Selamat siang" : h < 19 ? "Selamat sore" : "Selamat malam";
+  return h < 11 ? tr("Selamat pagi") : h < 15 ? tr("Selamat siang") : h < 19 ? tr("Selamat sore") : tr("Selamat malam");
 }
 
 export default function HomePage() {
@@ -73,8 +74,8 @@ export default function HomePage() {
           <Card className="p-3 mb-4 flex items-center gap-3 bg-ink text-card border-ink">
             <Moon size={18} />
             <div className="text-sm flex-1">
-              Status kamu <b>OFF</b> — {me.unavailableReason || "tidak tersedia"}
-              {me.unavailableUntil && ` sampai ${formatDateShort(me.unavailableUntil)}`}. Kamu tidak akan dijadwalkan otomatis.
+              {tr("Status kamu")} <b>{tr("OFF")}</b> — {me.unavailableReason || tr("tidak tersedia")}
+              {me.unavailableUntil && ` sampai ${formatDateShort(me.unavailableUntil)}`}{tr(". Kamu tidak akan dijadwalkan otomatis.")}
             </div>
           </Card>
         </Link>
@@ -82,7 +83,7 @@ export default function HomePage() {
 
       {swapRequests.length > 0 && (
         <>
-          <SectionTitle>Permintaan tukar jadwal</SectionTitle>
+          <SectionTitle>{tr("Permintaan tukar jadwal")}</SectionTitle>
           <div className="space-y-2 mb-2">
             {swapRequests.map(({ a, s }) => {
               const from = users.find((u) => u.id === a.swapRequest!.from);
@@ -94,13 +95,13 @@ export default function HomePage() {
                     <Avatar name={from?.name} src={from?.photoUrl} size={38} />
                     <div className="flex-1 min-w-0">
                       <div className="text-sm">
-                        <b>{from?.name ?? "Seseorang"}</b> minta kamu menggantikan
+                        <b>{from?.name ?? tr("Seseorang")}</b> {tr("minta kamu menggantikan")}
                       </div>
-                      <div className="text-[12px] text-ink-soft">
+                      <div className="text-[length:calc(12px*var(--fs))] text-ink-soft">
                         {a.position} · {m?.name} · {formatDateShort(s.date)} {s.time}
                       </div>
-                      {a.swapRequest?.reason && <div className="text-[12px] text-ink-soft italic">“{a.swapRequest.reason}”</div>}
-                      {clash.length > 0 && <div className="text-[12px] text-danger-ink mt-0.5">Kamu sudah bertugas di waktu yang sama.</div>}
+                      {a.swapRequest?.reason && <div className="text-[length:calc(12px*var(--fs))] text-ink-soft italic">“{a.swapRequest.reason}”</div>}
+                      {clash.length > 0 && <div className="text-[length:calc(12px*var(--fs))] text-danger-ink mt-0.5">{tr("Kamu sudah bertugas di waktu yang sama.")}</div>}
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-2 mt-3">
@@ -108,13 +109,13 @@ export default function HomePage() {
                       variant="secondary"
                       size="sm"
                       onClick={async () => {
-                        if (!(await ask({ title: "Tolak permintaan tukar?", message: `${from?.name ?? "Dia"} akan diminta mencari pengganti lain.`, confirmText: "Tolak", tone: "danger" }))) return;
+                        if (!(await ask({ title: tr("Tolak permintaan tukar?"), message: tr("{p} akan diminta mencari pengganti lain.", { p: from?.name ?? tr("Dia") }), confirmText: tr("Tolak"), tone: "danger" }))) return;
                         await rejectSwap(a, me, s);
                         haptic("warning");
-                        toast("Permintaan ditolak");
+                        toast(tr("Permintaan ditolak"));
                       }}
                     >
-                      Tolak
+                      {tr("Tolak")}
                     </Button>
                     <Button
                       variant="success"
@@ -122,18 +123,18 @@ export default function HomePage() {
                       onClick={async () => {
                         if (
                           !(await ask({
-                            title: `Gantikan sebagai ${a.position}?`,
-                            message: `${formatDateLong(s.date)} · ${s.title} ${s.time}${clash.length ? "\nKamu sudah bertugas di waktu yang sama." : ""}`,
-                            confirmText: "Terima",
+                            title: tr("Gantikan sebagai {position}?", { position: a.position }),
+                            message: `${formatDateLong(s.date)} · ${s.title} ${s.time}${clash.length ? tr("\nKamu sudah bertugas di waktu yang sama.") : ""}`,
+                            confirmText: tr("Terima"),
                             tone: clash.length ? "warning" : "primary",
                           }))
                         )
                           return;
                         await acceptSwap(a, me, s, users);
-                        celebrate("Terima kasih sudah menolong! 🙌");
+                        celebrate(tr("Terima kasih sudah menolong! 🙌"));
                       }}
                     >
-                      <Repeat2 size={14} /> Terima
+                      <Repeat2 size={14} /> {tr("Terima")}
                     </Button>
                   </div>
                 </Card>
@@ -143,12 +144,12 @@ export default function HomePage() {
         </>
       )}
 
-      <SectionTitle>Tugas berikutnya</SectionTitle>
+      <SectionTitle>{tr("Tugas berikutnya")}</SectionTitle>
       {upcoming[0] ? (
         <DutyCard duty={upcoming[0]} highlight />
       ) : (
         <Card>
-          <Empty icon={<CalendarCheck size={20} />} title="Belum ada tugas terjadwal" body="Waktunya istirahat dan menikmati ibadah bersama jemaat 💛" />
+          <Empty icon={<CalendarCheck size={20} />} title={tr("Belum ada tugas terjadwal")} body={tr("Waktunya istirahat dan menikmati ibadah bersama jemaat 💛")} />
         </Card>
       )}
 
@@ -156,15 +157,15 @@ export default function HomePage() {
         <Link href="/jadwal">
           <Card className="mt-3 px-4 py-3 flex items-center gap-3 text-sm hover:border-brand">
             <span className="h-7 w-7 rounded-full bg-warning-soft text-warning-ink grid place-items-center font-bold text-xs">{pendingLater}</span>
-            <span className="flex-1">tugas lain belum kamu konfirmasi</span>
-            <span className="text-brand font-medium text-xs">Konfirmasi →</span>
+            <span className="flex-1">{tr("tugas lain belum kamu konfirmasi")}</span>
+            <span className="text-brand font-medium text-xs">{tr("Konfirmasi →")}</span>
           </Card>
         </Link>
       )}
 
       {openRequests.length > 0 && (
         <>
-          <SectionTitle>Butuh pengganti</SectionTitle>
+          <SectionTitle>{tr("Butuh pengganti")}</SectionTitle>
           <div className="space-y-2">
             {openRequests.map(({ a, s }) => {
               const requester = users.find((u) => u.id === (a.subRequest?.requestedBy ?? a.userId));
@@ -174,22 +175,22 @@ export default function HomePage() {
                   <Avatar name={requester?.name} src={requester?.photoUrl} size={38} />
                   <div className="flex-1 min-w-0">
                     <div className="text-sm">
-                      <b>{requester?.name ?? "Seseorang"}</b> butuh pengganti
+                      <b>{requester?.name ?? tr("Seseorang")}</b> {tr("butuh pengganti")}
                     </div>
-                    <div className="text-[12px] text-ink-soft truncate">
+                    <div className="text-[length:calc(12px*var(--fs))] text-ink-soft truncate">
                       {a.position} · {m?.name} · {formatDateShort(s.date)} {s.time}
                     </div>
-                    <div className="text-[12px] text-ink-soft italic truncate">“{a.subRequest?.reason}”</div>
+                    <div className="text-[length:calc(12px*var(--fs))] text-ink-soft italic truncate">“{a.subRequest?.reason}”</div>
                   </div>
                   <Button
                     size="sm"
                     onClick={async () => {
-                      if (!(await ask({ title: `Gantikan sebagai ${a.position}?`, message: formatDateLong(s.date), confirmText: "Saya bisa" }))) return;
+                      if (!(await ask({ title: tr("Gantikan sebagai {position}?", { position: a.position }), message: formatDateLong(s.date), confirmText: tr("Saya bisa") }))) return;
                       await takeSubstitute(a, me, s, users);
-                      celebrate("Terima kasih sudah menolong! 🙌");
+                      celebrate(tr("Terima kasih sudah menolong! 🙌"));
                     }}
                   >
-                    <Repeat2 size={14} /> Saya bisa
+                    <Repeat2 size={14} /> {tr("Saya bisa")}
                   </Button>
                 </Card>
               );
@@ -198,40 +199,40 @@ export default function HomePage() {
         </>
       )}
 
-      <SectionTitle>Servant care</SectionTitle>
+      <SectionTitle>{tr("Servant care")}</SectionTitle>
       <Card className="p-4">
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 rounded-xl bg-danger-soft text-danger grid place-items-center shrink-0">
             <HandHeart size={20} />
           </div>
           <div className="text-sm flex-1">
-            <p className="font-semibold">{stats.thisMonth} tugas bulan ini</p>
-            <p className="text-ink-soft">{stats.thisMonth >= 5 ? "Sudah sering melayani — istirahat juga penting 💛" : "Tetap jaga kesehatan & waktu teduhmu."}</p>
+            <p className="font-semibold">{stats.thisMonth} {tr("tugas bulan ini")}</p>
+            <p className="text-ink-soft">{stats.thisMonth >= 5 ? tr("Sudah sering melayani — istirahat juga penting 💛") : tr("Tetap jaga kesehatan & waktu teduhmu.")}</p>
           </div>
           {stats.thisMonth >= 5 && (
             <Link href="/profil">
-              <Badge className="bg-danger-soft text-danger-ink">Atur OFF</Badge>
+              <Badge className="bg-danger-soft text-danger-ink">{tr("Atur OFF")}</Badge>
             </Link>
           )}
         </div>
-        <p className="mt-3 pt-3 border-t border-line text-[13px] text-ink-soft">
-          “{verse[0]}” <span className="font-medium text-ink">{verse[1]}</span>
+        <p className="mt-3 pt-3 border-t border-line text-[length:calc(13px*var(--fs))] text-ink-soft">
+          “{tr(verse[0])}” <span className="font-medium text-ink">{tr(verse[1])}</span>
         </p>
       </Card>
 
       {upcoming.length > 1 && (
         <>
-          <SectionTitle action={<Link href="/jadwal" className="text-xs text-brand font-medium">Lihat semua</Link>}>Berikutnya</SectionTitle>
+          <SectionTitle action={<Link href="/jadwal" className="text-xs text-brand font-medium">{tr("Lihat semua")}</Link>}>{tr("Berikutnya")}</SectionTitle>
           <div className="space-y-2">
             {upcoming.slice(1, 4).map((d) => (
               <Card key={d.assignment.id} className="p-3 flex items-center gap-3">
                 <div className="text-center w-11 shrink-0">
-                  <div className="text-[10px] uppercase text-ink-soft">{formatDateShort(d.service.date).split(",")[0]}</div>
+                  <div className="text-[length:calc(10px*var(--fs))] uppercase text-ink-soft">{formatDateShort(d.service.date).split(",")[0]}</div>
                   <div className="text-lg font-bold leading-none">{Number(d.service.date.slice(8))}</div>
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-medium truncate">{d.assignment.position}</div>
-                  <div className="text-[12px] text-ink-soft truncate">
+                  <div className="text-[length:calc(12px*var(--fs))] text-ink-soft truncate">
                     {d.service.title} · {d.service.time}
                   </div>
                 </div>

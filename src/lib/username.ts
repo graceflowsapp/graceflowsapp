@@ -29,6 +29,7 @@ import { firebaseAuth } from "./firebase";
 import { raw } from "./store";
 import { nowISO } from "./dates";
 import type { Account } from "./types";
+import { tr } from "@/lib/i18n";
 
 /* ---------------- rules ---------------- */
 
@@ -61,19 +62,19 @@ const dotsOk = (u: string) => !u.startsWith(".") && !u.endsWith(".") && !u.inclu
 /** Live checklist for the form. */
 export function usernameChecks(u: string) {
   return [
-    { ok: u.length >= USERNAME_MIN && u.length <= USERNAME_MAX, label: `Lebih dari 4 karakter (maks. ${USERNAME_MAX})` },
-    { ok: /[a-z]/.test(u), label: "Ada huruf" },
-    { ok: u.length > 0 && ALLOWED.test(u), label: "Hanya huruf, angka, titik (.) atau garis bawah (_)" },
-    { ok: u.length > 0 && dotsOk(u), label: "Titik tidak di awal/akhir dan tidak dobel (..)" },
+    { ok: u.length >= USERNAME_MIN && u.length <= USERNAME_MAX, label: tr("Lebih dari 4 karakter (maks. {USERNAME_MAX})", { USERNAME_MAX }) },
+    { ok: /[a-z]/.test(u), label: tr("Ada huruf") },
+    { ok: u.length > 0 && ALLOWED.test(u), label: tr("Hanya huruf, angka, titik (.) atau garis bawah (_)") },
+    { ok: u.length > 0 && dotsOk(u), label: tr("Titik tidak di awal/akhir dan tidak dobel (..)") },
   ];
 }
 
 export function usernameError(u: string): string | null {
-  if (u.length < USERNAME_MIN) return "Username harus lebih dari 4 karakter.";
-  if (u.length > USERNAME_MAX) return `Username maksimal ${USERNAME_MAX} karakter.`;
-  if (!ALLOWED.test(u)) return "Username hanya boleh berisi huruf, angka, titik (.) atau garis bawah (_), tanpa spasi.";
-  if (!/[a-z]/.test(u)) return "Username harus mengandung huruf, tidak boleh angka semua.";
-  if (!dotsOk(u)) return "Titik (.) tidak boleh di awal atau akhir username, dan tidak boleh dua titik berurutan.";
+  if (u.length < USERNAME_MIN) return tr("Username harus lebih dari 4 karakter.");
+  if (u.length > USERNAME_MAX) return tr("Username maksimal {USERNAME_MAX} karakter.", { USERNAME_MAX });
+  if (!ALLOWED.test(u)) return tr("Username hanya boleh berisi huruf, angka, titik (.) atau garis bawah (_), tanpa spasi.");
+  if (!/[a-z]/.test(u)) return tr("Username harus mengandung huruf, tidak boleh angka semua.");
+  if (!dotsOk(u)) return tr("Titik (.) tidak boleh di awal atau akhir username, dan tidak boleh dua titik berurutan.");
   return null;
 }
 
@@ -111,14 +112,14 @@ export function authErrorMessage(e: unknown): string {
   const code = (e as { code?: string })?.code ?? "";
   const msg = (e as Error)?.message ?? String(e);
   if (code.startsWith("app/")) return msg;
-  if (code.includes("invalid-credential") || code.includes("wrong-password") || code.includes("user-not-found")) return "Username/email atau kata sandi salah.";
-  if (code.includes("email-already-in-use")) return "Email ini sudah dipakai akun lain.";
-  if (code.includes("invalid-email")) return "Format email tidak benar.";
-  if (code.includes("weak-password")) return "Kata sandi minimal 6 karakter.";
-  if (code.includes("too-many-requests")) return "Terlalu banyak percobaan. Tunggu sebentar lalu coba lagi.";
-  if (code.includes("requires-recent-login")) return "Demi keamanan, silakan keluar lalu masuk lagi, kemudian ulangi.";
-  if (code.includes("network-request-failed")) return "Tidak ada koneksi internet.";
-  if (code.includes("provider-already-linked") || code.includes("credential-already-in-use")) return "Akun ini sudah punya kata sandi.";
+  if (code.includes("invalid-credential") || code.includes("wrong-password") || code.includes("user-not-found")) return tr("Username/email atau kata sandi salah.");
+  if (code.includes("email-already-in-use")) return tr("Email ini sudah dipakai akun lain.");
+  if (code.includes("invalid-email")) return tr("Format email tidak benar.");
+  if (code.includes("weak-password")) return tr("Kata sandi minimal 6 karakter.");
+  if (code.includes("too-many-requests")) return tr("Terlalu banyak percobaan. Tunggu sebentar lalu coba lagi.");
+  if (code.includes("requires-recent-login")) return tr("Demi keamanan, silakan keluar lalu masuk lagi, kemudian ulangi.");
+  if (code.includes("network-request-failed")) return tr("Tidak ada koneksi internet.");
+  if (code.includes("provider-already-linked") || code.includes("credential-already-in-use")) return tr("Akun ini sudah punya kata sandi.");
   return msg;
 }
 
@@ -138,14 +139,14 @@ export async function registerWithUsername(name: string, rawUsername: string, pa
   const u = normalizeUsername(rawUsername);
   const problem = usernameError(u);
   if (problem) throw appError("app/invalid-username", problem);
-  if (await isTaken(u)) throw appError("app/username-taken", "Username sudah dipakai, coba yang lain.");
+  if (await isTaken(u)) throw appError("app/username-taken", tr("Username sudah dipakai, coba yang lain."));
 
   const email = placeholderEmail(u);
   let cred;
   try {
     cred = await createUserWithEmailAndPassword(firebaseAuth(), email, password);
   } catch (e) {
-    if ((e as { code?: string }).code?.includes("email-already-in-use")) throw appError("app/username-taken", "Username sudah dipakai, coba yang lain.");
+    if ((e as { code?: string }).code?.includes("email-already-in-use")) throw appError("app/username-taken", tr("Username sudah dipakai, coba yang lain."));
     throw e;
   }
   try {
@@ -153,7 +154,7 @@ export async function registerWithUsername(name: string, rawUsername: string, pa
   } catch {
     // someone claimed it a moment earlier → undo the half-created login
     await cred.user.delete().catch(() => undefined);
-    throw appError("app/username-taken", "Username sudah dipakai, coba yang lain.");
+    throw appError("app/username-taken", tr("Username sudah dipakai, coba yang lain."));
   }
   await updateProfile(cred.user, { displayName: name }).catch(() => undefined);
   const account: Account = { id: cred.user.uid, email: "", username: u, name: name.trim() || u, churchIds: [], activeChurchId: null, createdAt: nowISO() };
@@ -166,7 +167,7 @@ export async function resolveLoginEmails(identifier: string): Promise<string[]> 
   if (s.includes("@") && !s.startsWith("@")) return [s];
   const u = normalizeUsername(s);
   const doc = await raw.get<UsernameDoc>(`usernames/${u}`);
-  if (!doc) throw appError("app/username-not-found", "Username tidak ditemukan. Periksa lagi, atau masuk pakai email.");
+  if (!doc) throw appError("app/username-not-found", tr("Username tidak ditemukan. Periksa lagi, atau masuk pakai email."));
   return [doc.email, ...(doc.pendingEmail ? [doc.pendingEmail] : [])];
 }
 
@@ -184,15 +185,15 @@ export async function addUsername(user: User, account: Account, rawUsername: str
   const u = normalizeUsername(rawUsername);
   const problem = usernameError(u);
   if (problem) throw appError("app/invalid-username", problem);
-  if (account.username) throw appError("app/has-username", "Akun ini sudah punya username.");
-  if (!user.email) throw appError("app/no-email", "Akun ini belum punya email login.");
-  if (await isTaken(u)) throw appError("app/username-taken", "Username sudah dipakai, coba yang lain.");
+  if (account.username) throw appError("app/has-username", tr("Akun ini sudah punya username."));
+  if (!user.email) throw appError("app/no-email", tr("Akun ini belum punya email login."));
+  if (await isTaken(u)) throw appError("app/username-taken", tr("Username sudah dipakai, coba yang lain."));
 
   // claim the name first, so a failed password step never leaves a half-done account
   await raw.set(`usernames/${u}`, { uid: user.uid, username: u, email: user.email } satisfies UsernameDoc);
   try {
     if (!hasPassword(user)) {
-      if (!newPassword || newPassword.length < 6) throw appError("app/weak-password", "Kata sandi minimal 6 karakter.");
+      if (!newPassword || newPassword.length < 6) throw appError("app/weak-password", tr("Kata sandi minimal 6 karakter."));
       await linkWithCredential(user, EmailAuthProvider.credential(user.email, newPassword));
     }
   } catch (e) {
@@ -210,9 +211,9 @@ export async function addUsername(user: User, account: Account, rawUsername: str
  */
 export async function connectEmail(user: User, account: Account, newEmail: string, currentPassword: string) {
   const email = newEmail.trim().toLowerCase();
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw appError("app/invalid-email", "Format email tidak benar.");
-  if (!user.email) throw appError("app/no-email", "Akun ini belum bisa diubah.");
-  if (email === user.email.toLowerCase()) throw appError("app/same-email", "Itu sudah email kamu sekarang.");
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw appError("app/invalid-email", tr("Format email tidak benar."));
+  if (!user.email) throw appError("app/no-email", tr("Akun ini belum bisa diubah."));
+  if (email === user.email.toLowerCase()) throw appError("app/same-email", tr("Itu sudah email kamu sekarang."));
   await confirmPassword(user, currentPassword);
   await verifyBeforeUpdateEmail(user, email);
   await raw.update(`users/${user.uid}`, { pendingEmail: email });
@@ -241,12 +242,12 @@ export async function syncLoginEmail(user: User) {
 
 /** Confirm it is really this person (needed before changing username or password). */
 async function confirmPassword(user: User, currentPassword: string) {
-  if (!user.email || !hasPassword(user)) throw appError("app/no-password", "Akun ini belum punya kata sandi.");
+  if (!user.email || !hasPassword(user)) throw appError("app/no-password", tr("Akun ini belum punya kata sandi."));
   try {
     await reauthenticateWithCredential(user, EmailAuthProvider.credential(user.email, currentPassword));
   } catch (e) {
     const code = (e as { code?: string }).code ?? "";
-    if (code.includes("invalid-credential") || code.includes("wrong-password")) throw appError("app/wrong-password", "Kata sandi salah.");
+    if (code.includes("invalid-credential") || code.includes("wrong-password")) throw appError("app/wrong-password", tr("Kata sandi salah."));
     throw e;
   }
 }
@@ -263,11 +264,11 @@ export async function changeUsername(user: User, account: Account, rawUsername: 
   const problem = usernameError(u);
   if (problem) throw appError("app/invalid-username", problem);
   const old = account.username;
-  if (!old) throw appError("app/no-username", "Akun ini belum punya username.");
-  if (u === old) throw appError("app/same-username", "Itu sudah username kamu sekarang.");
-  if (!user.email) throw appError("app/no-email", "Akun ini belum bisa diubah.");
+  if (!old) throw appError("app/no-username", tr("Akun ini belum punya username."));
+  if (u === old) throw appError("app/same-username", tr("Itu sudah username kamu sekarang."));
+  if (!user.email) throw appError("app/no-email", tr("Akun ini belum bisa diubah."));
   await confirmPassword(user, currentPassword);
-  if (await isTaken(u)) throw appError("app/username-taken", "Username sudah dipakai, coba yang lain.");
+  if (await isTaken(u)) throw appError("app/username-taken", tr("Username sudah dipakai, coba yang lain."));
 
   const oldDoc = await raw.get<UsernameDoc>(`usernames/${old}`);
   const next: UsernameDoc = { uid: user.uid, username: u, email: user.email };
@@ -275,7 +276,7 @@ export async function changeUsername(user: User, account: Account, rawUsername: 
   try {
     await raw.set(`usernames/${u}`, next);
   } catch {
-    throw appError("app/username-taken", "Username sudah dipakai, coba yang lain.");
+    throw appError("app/username-taken", tr("Username sudah dipakai, coba yang lain."));
   }
   await raw.update(`users/${user.uid}`, { username: u });
   await updateMemberships(account, { username: u });
@@ -284,12 +285,12 @@ export async function changeUsername(user: User, account: Account, rawUsername: 
 
 /** Change one's own password: the old one first, then the new one (min. 6 characters). */
 export async function changePassword(user: User, currentPassword: string, newPassword: string) {
-  if (newPassword.length < 6) throw appError("app/weak-password", "Kata sandi baru minimal 6 karakter.");
-  if (newPassword === currentPassword) throw appError("app/same-password", "Kata sandi baru harus berbeda dari yang lama.");
+  if (newPassword.length < 6) throw appError("app/weak-password", tr("Kata sandi baru minimal 6 karakter."));
+  if (newPassword === currentPassword) throw appError("app/same-password", tr("Kata sandi baru harus berbeda dari yang lama."));
   try {
     await confirmPassword(user, currentPassword);
   } catch (e) {
-    if ((e as { code?: string }).code === "app/wrong-password") throw appError("app/wrong-password", "Kata sandi lama salah.");
+    if ((e as { code?: string }).code === "app/wrong-password") throw appError("app/wrong-password", tr("Kata sandi lama salah."));
     throw e;
   }
   await updatePassword(user, newPassword);
@@ -307,7 +308,7 @@ export function googleEmail(user: User) {
  * account instead of making a new, empty one. Fails if that Google account already has its own GraceFlow login.
  */
 export async function linkGoogle(user: User) {
-  if (googleEmail(user)) throw appError("app/google-linked", "Akun Google sudah terhubung.");
+  if (googleEmail(user)) throw appError("app/google-linked", tr("Akun Google sudah terhubung."));
   try {
     await linkWithPopup(user, new GoogleAuthProvider());
   } catch (e) {
@@ -317,15 +318,15 @@ export async function linkGoogle(user: User) {
     if (code.includes("credential-already-in-use") || code.includes("email-already-in-use") || code.includes("account-exists-with-different-credential"))
       throw appError(
         "app/google-used",
-        "Akun Google ini sudah dipakai untuk akun GraceFlow lain. Minta Admin gereja menghapus akun itu dulu, lalu coba lagi. Atau pilih akun Google lain.",
+        tr("Akun Google ini sudah dipakai untuk akun GraceFlow lain. Minta Admin gereja menghapus akun itu dulu, lalu coba lagi. Atau pilih akun Google lain."),
       );
-    if (code.includes("popup-blocked")) throw appError("app/popup-blocked", "Jendela Google diblokir browser. Izinkan pop-up untuk situs ini, lalu coba lagi.");
+    if (code.includes("popup-blocked")) throw appError("app/popup-blocked", tr("Jendela Google diblokir browser. Izinkan pop-up untuk situs ini, lalu coba lagi."));
     throw e;
   }
 }
 
 /** Disconnect Google; only allowed while the account can still log in with a password. */
 export async function unlinkGoogle(user: User) {
-  if (!hasPassword(user)) throw appError("app/last-login", "Google adalah satu-satunya cara masuk akun ini, jadi tidak bisa dilepas.");
+  if (!hasPassword(user)) throw appError("app/last-login", tr("Google adalah satu-satunya cara masuk akun ini, jadi tidak bisa dilepas."));
   await unlink(user, "google.com");
 }
