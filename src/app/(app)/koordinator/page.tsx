@@ -194,7 +194,7 @@ export default function CoordinatorPage() {
       ) : (
         <div className="space-y-3">
           {dayServices.map((s) => (
-            <ServiceSection key={s.id} service={s} ministryIds={ids} onPick={setAssigning} defaultOpen={dayServices.length === 1 ? true : undefined} />
+            <ServiceSection key={s.id} service={s} ministryIds={ids} onPick={setAssigning} />
           ))}
         </div>
       )}
@@ -247,20 +247,18 @@ const ALL = "__all";
 
 /**
  * One service as a section that opens and closes (Ibadah RBK, Ibadah PBK, …). Inside: every komisi that serves
- * in it (of the ones shown) with its slots. Opens by itself when something still needs filling.
+ * in it (of the ones shown) with its slots. Starts closed; the header shows what still needs filling.
  */
 function ServiceSection({
   service,
   ministryIds,
   onPick,
   showDate,
-  defaultOpen,
 }: {
   service: Service;
   ministryIds: string[];
   onPick: (s: Slot) => void;
   showDate?: boolean;
-  defaultOpen?: boolean;
 }) {
   const { ministries, assignments } = useApp();
   const map = useMemo(() => new Map(assignments.map((a) => [a.id, a])), [assignments]);
@@ -269,8 +267,7 @@ function ServiceSection({
   const filled = slots.filter((x) => x.assignment?.userId).length;
   const subs = slots.filter((x) => x.assignment?.subRequest && !x.assignment.userId).length;
   const empty = slots.length - filled;
-  const [userOpen, setUserOpen] = useState<boolean | null>(null);
-  const open = userOpen ?? defaultOpen ?? empty > 0;
+  const [open, setOpen] = useState(false);
   const status =
     subs > 0
       ? { cls: "bg-warning-soft text-warning-ink", text: tr("{n} butuh pengganti", { n: subs }) }
@@ -280,7 +277,7 @@ function ServiceSection({
 
   return (
     <Card className="overflow-hidden">
-      <button type="button" onClick={() => setUserOpen(!open)} aria-expanded={open} className="w-full flex items-start gap-3 p-4 text-left hover:bg-surface/60 transition">
+      <button type="button" onClick={() => setOpen(!open)} aria-expanded={open} className="w-full flex items-start gap-3 p-4 text-left hover:bg-surface/60 transition">
         <div className="flex-1 min-w-0">
           {showDate && <div className="text-[length:calc(12px*var(--fs))] font-medium text-ink-soft">{formatDateLong(service.date)}</div>}
           <div className="flex flex-wrap items-center gap-1.5">
