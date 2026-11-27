@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import Link from "next/link";
-import { CalendarDays, Camera, Download, LogOut } from "lucide-react";
+import { CalendarDays, Camera, Download, LogOut, Pencil } from "lucide-react";
 import { IOSInstallSteps, useInstall } from "@/components/InstallPrompt";
 import { serviceLine, useMyDuties } from "@/components/duty";
 import { ThemeSettings } from "@/components/ThemeSettings";
@@ -100,16 +100,16 @@ export default function ProfilePage() {
             </div>
             {me.skills.length > 0 && <p className="text-[12px] text-ink-soft mt-2">Posisi: {me.skills.join(", ")}</p>}
             <Button
-              variant="ghost"
+              variant="primary"
               size="sm"
-              className="mt-2"
+              className="mt-3"
               onClick={() => {
                 setName(me.name);
                 setPhone(me.phone ?? "");
                 setEditing(true);
               }}
             >
-              Ubah profil
+              <Pencil size={14} /> Ubah profil
             </Button>
           </>
         )}
