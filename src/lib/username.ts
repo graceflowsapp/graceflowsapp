@@ -171,6 +171,11 @@ export function hasPassword(user: User) {
   return user.providerData.some((p) => p.providerId === "password");
 }
 
+/** Signed in with Google: the email belongs to the Google account, so it isn't changed here. */
+export function usesGoogle(user: User) {
+  return user.providerData.some((p) => p.providerId === "google.com");
+}
+
 /** Accounts made with email or Google add a username. Google-only accounts also create a password. */
 export async function addUsername(user: User, account: Account, rawUsername: string, newPassword?: string) {
   const u = normalizeUsername(rawUsername);
@@ -195,12 +200,17 @@ export async function addUsername(user: User, account: Account, rawUsername: str
   await updateMemberships(account, { username: u });
 }
 
-/** Username-only account connects a real email. Firebase emails a link; the email switches once it is clicked. */
+/**
+ * Connect (username-only account) or change (email + password account) the login email.
+ * Firebase emails a link to the NEW address; the old login keeps working until it is clicked, then
+ * syncLoginEmail copies the new email everywhere. Firebase also mails the old address an undo link.
+ */
 export async function connectEmail(user: User, account: Account, newEmail: string, currentPassword: string) {
   const email = newEmail.trim().toLowerCase();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw appError("app/invalid-email", "Format email tidak benar.");
   if (!user.email) throw appError("app/no-email", "Akun ini belum bisa diubah.");
-  await reauthenticateWithCredential(user, EmailAuthProvider.credential(user.email, currentPassword));
+  if (email === user.email.toLowerCase()) throw appError("app/same-email", "Itu sudah email kamu sekarang.");
+  await confirmPassword(user, currentPassword);
   await verifyBeforeUpdateEmail(user, email);
   await raw.update(`users/${user.uid}`, { pendingEmail: email });
   if (account.username) await raw.update(`usernames/${account.username}`, { pendingEmail: email }).catch(() => undefined);

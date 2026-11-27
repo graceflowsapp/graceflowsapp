@@ -6,7 +6,7 @@ import { useApp } from "./providers";
 import { Button, Card, Field, SectionTitle, inputCls, toast } from "./ui";
 import { UsernameField } from "./UsernameField";
 import { firebaseAuth } from "@/lib/firebase";
-import { addUsername, authErrorMessage, changePassword, changeUsername, connectEmail, hasPassword, isPlaceholderEmail, usernameError } from "@/lib/username";
+import { addUsername, authErrorMessage, changePassword, changeUsername, connectEmail, hasPassword, isPlaceholderEmail, usernameError, usesGoogle } from "@/lib/username";
 import { celebrate } from "@/lib/feedback";
 
 /**
@@ -22,6 +22,8 @@ export function AccountLoginSettings() {
   const user = firebaseAuth().currentUser;
   if (!user) return null;
   const usernameOnly = isPlaceholderEmail(user.email);
+  // username-only accounts connect an email; email + password accounts can change theirs (Google: managed by Google)
+  const canEditEmail = hasPassword(user) && !usesGoogle(user);
 
   return (
     <>
@@ -67,18 +69,20 @@ export function AccountLoginSettings() {
           value={account.email || (account.pendingEmail ? "Menunggu verifikasi" : "Belum terhubung")}
           muted={!account.email}
         >
-          {usernameOnly && form !== "email" && (
+          {canEditEmail && form !== "email" && (
             <Button size="sm" variant="secondary" onClick={() => setForm("email")}>
-              {account.pendingEmail ? "Ubah" : "Hubungkan"}
+              {usernameOnly && !account.pendingEmail ? "Hubungkan" : "Ubah"}
             </Button>
           )}
         </Row>
-        {account.pendingEmail && usernameOnly && form !== "email" && (
+        {account.pendingEmail && form !== "email" && (
           <p className="mt-3 rounded-xl bg-warning-soft text-warning-ink text-[13px] px-3 py-2">
-            Kami sudah mengirim link ke <b>{account.pendingEmail}</b>. Buka email itu dan klik link-nya. Setelah itu kamu akan keluar otomatis — masuk lagi pakai email atau username.
+            Kami sudah mengirim link ke <b>{account.pendingEmail}</b>. Buka email itu dan klik link-nya. Setelah itu kamu akan keluar otomatis. Masuk lagi pakai {usernameOnly ? "email baru atau username" : "email baru"}.
+            {!usernameOnly && <> Sampai link diklik, kamu tetap masuk dengan <b>{account.email}</b>.</>}
           </p>
         )}
-        {form === "email" && <ConnectEmailForm onDone={() => setForm(null)} />}
+        {!canEditEmail && usesGoogle(user) && <p className="mt-2 text-[12px] text-ink-soft">Email ini mengikuti akun Google kamu.</p>}
+        {form === "email" && <ConnectEmailForm changing={!usernameOnly} onDone={() => setForm(null)} />}
       </div>
 
       <p className="px-4 py-3 text-[12px] text-ink-soft">Kamu bisa masuk dengan {account.username && account.email ? "email atau username" : account.username ? "username" : "email"} beserta kata sandimu.</p>
@@ -146,7 +150,7 @@ function AddUsernameForm({ needsPassword, onDone }: { needsPassword: boolean; on
   );
 }
 
-function ConnectEmailForm({ onDone }: { onDone: () => void }) {
+function ConnectEmailForm({ changing, onDone }: { changing: boolean; onDone: () => void }) {
   const { account } = useApp();
   const [email, setEmail] = useState(account?.pendingEmail ?? "");
   const [password, setPassword] = useState("");
@@ -173,13 +177,16 @@ function ConnectEmailForm({ onDone }: { onDone: () => void }) {
         }
       }}
     >
-      <Field label="Email">
+      <Field label={changing ? "Email baru" : "Email"}>
         <input type="email" className={inputCls} value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" placeholder="nama@email.com" required />
       </Field>
       <Field label="Kata sandi saat ini" hint="Untuk memastikan ini benar kamu.">
-        <input type="password" className={inputCls} value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" required />
+        <PasswordInput value={password} onChange={setPassword} autoComplete="current-password" />
       </Field>
-      <p className="text-[12px] text-ink-soft mb-3">Kami akan mengirim link ke email itu. Email baru terhubung setelah link-nya kamu klik.</p>
+      <p className="text-[12px] text-ink-soft mb-3">
+        Kami akan mengirim link ke email itu. Email baru {changing ? "dipakai" : "terhubung"} setelah link-nya kamu klik.
+        {changing && " Email lama tetap bisa dipakai sampai saat itu, dan akan menerima pemberitahuan perubahan."}
+      </p>
       {error && <p className="text-sm text-danger-ink mb-3">{error}</p>}
       <div className="flex gap-2">
         <Button type="button" variant="secondary" onClick={onDone}>
